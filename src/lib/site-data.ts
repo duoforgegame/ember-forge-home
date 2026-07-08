@@ -55,6 +55,7 @@ export const team: TeamMember[] = [
 export const socials = {
   twitter: "https://x.com/",
   tiktok: "https://www.tiktok.com/",
+  instagram: "https://www.instagram.com/",
   discord: "https://discord.com/",
   youtube: "https://www.youtube.com/",
 };

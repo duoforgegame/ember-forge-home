@@ -381,6 +381,7 @@ function SocialLinks() {
   const items = [
     { href: socials.twitter, label: "X (Twitter)", icon: XIcon },
     { href: socials.tiktok, label: "TikTok", icon: TikTokIcon },
+    { href: socials.instagram, label: "Instagram", icon: InstagramIcon },
     { href: socials.discord, label: "Discord", icon: DiscordIcon },
     { href: socials.youtube, label: "YouTube", icon: YouTubeIcon },
   ];
@@ -413,6 +414,15 @@ function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
       <path d="M19.6 6.7a5.7 5.7 0 0 1-3.4-1.1 5.7 5.7 0 0 1-2.2-3.6h-3.4v13.2a2.7 2.7 0 1 1-2.7-2.7c.3 0 .6 0 .8.1V9.1a6.1 6.1 0 0 0-.8-.1 6.2 6.2 0 1 0 6.2 6.2V9.5a9 9 0 0 0 5.5 1.9V8a5.6 5.6 0 0 1 0-1.3Z" />
+    </svg>
+  );
+}
+function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
