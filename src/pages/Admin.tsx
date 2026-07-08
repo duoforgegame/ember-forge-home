@@ -423,6 +423,58 @@ function AboutPanel() {
   );
 }
 
+type LegalRow = { slug: string; title: string; body_html: string };
+const LEGAL_SLUGS: { slug: string; label: string }[] = [
+  { slug: "imprint", label: "Imprint (Impressum)" },
+  { slug: "privacy", label: "Privacy Policy (Datenschutz)" },
+];
+
+function LegalPanel() {
+  const { data, loading, error, reload, setData } = useLoader<LegalRow[]>(async () => {
+    const { supabase } = await import("@/lib/supabase");
+    const { data } = await supabase.from("site_legal").select("*");
+    const existing = (data ?? []) as LegalRow[];
+    const bySlug = new Map(existing.map((r) => [r.slug, r]));
+    const rows: LegalRow[] = LEGAL_SLUGS.map(({ slug, label }) =>
+      bySlug.get(slug) ?? { slug, title: label, body_html: "" }
+    );
+    return rows;
+  });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (loading || !data) return <Spinner />;
+  if (error) return <ErrorMsg text={error} />;
+  const rows = data;
+  const update = (i: number, patch: Partial<LegalRow>) => setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  const save = async () => {
+    setSaving(true); setMsg("");
+    try { await adminCall({ op: "upsert", table: "site_legal", rows }); setMsg("Saved"); await reload(); }
+    catch (e: any) { setMsg(e?.message ?? "Save failed"); }
+    finally { setSaving(false); }
+  };
+  return (
+    <div className="space-y-4">
+      <PanelHeader title="Legal pages" onSave={save} saving={saving} msg={msg} />
+      <p className="text-sm text-muted-foreground">Edit the Imprint and Privacy Policy pages. HTML tags are allowed (e.g. &lt;h2&gt;, &lt;p&gt;, &lt;section&gt;, &lt;a&gt;, &lt;br&gt;, &lt;strong&gt;, &lt;em&gt;).</p>
+      {rows.map((r, i) => (
+        <div key={r.slug} className="space-y-3 rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-display text-lg font-bold">{LEGAL_SLUGS.find((s) => s.slug === r.slug)?.label ?? r.slug}</div>
+              <div className="text-xs text-muted-foreground">Public URL: /{r.slug}</div>
+            </div>
+          </div>
+          <Field label="Page title" value={r.title} onChange={(v) => update(i, { title: v })} />
+          <div>
+            <Label>Body (HTML allowed)</Label>
+            <Textarea rows={18} value={r.body_html} onChange={(e) => update(i, { body_html: e.target.value })} className="mt-2 font-mono text-xs" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SocialsPanel() {
   const { data, loading, error, setData } = useLoader<Socials>(async () => {
     const { supabase } = await import("@/lib/supabase");
