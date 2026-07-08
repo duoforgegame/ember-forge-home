@@ -189,6 +189,16 @@ function ProjectsSection({ projects, statusColorMap }: { projects: ProjectView[]
                 >
                   {p.status}
                 </span>
+                {p.pressKitEnabled && (
+                  <Link
+                    to={`/press/${slugify(p.title)}`}
+                    title="Press Kit"
+                    aria-label={`${p.title} press kit`}
+                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-md border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm transition hover:border-primary/60 hover:text-primary hover:shadow-glow-sm"
+                  >
+                    <Newspaper className="h-4 w-4" />
+                  </Link>
+                )}
               </div>
               <div className="flex flex-1 flex-col gap-3 p-5">
                 <h3 className="font-display text-xl font-bold">{p.title}</h3>
