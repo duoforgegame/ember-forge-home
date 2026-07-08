@@ -204,6 +204,12 @@ function ProjectsPanel() {
           </div>
         </div>
       ))}
+      {pressKitFor?.id && (
+        <PressKitDialog
+          project={pressKitFor}
+          onClose={() => setPressKitFor(null)}
+        />
+      )}
     </div>
   );
 }
