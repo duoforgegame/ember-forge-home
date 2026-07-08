@@ -82,6 +82,19 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 55% 100% at 0% 50%, oklch(0.68 0.17 45 / 0.22), transparent 60%),
+      radial-gradient(ellipse 55% 100% at 100% 50%, oklch(0.68 0.17 45 / 0.22), transparent 60%),
+      radial-gradient(ellipse 80% 60% at 50% 50%, oklch(0.68 0.17 45 / 0.06), transparent 70%);
   }
 
   h1, h2, h3, h4 {
