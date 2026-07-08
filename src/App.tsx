@@ -13,6 +13,10 @@ const PressKit = lazy(() => import("./pages/PressKit"));
 export default function App() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {!loaded && <LoadingScreen onDone={() => setLoaded(true)} />}
   return (
     <>
       {!isAdmin && <AnnouncementBanner />}
