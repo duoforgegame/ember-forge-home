@@ -115,7 +115,16 @@ export default function PressKit() {
   const socials = (kit?.other_social_urls || "")
     .split(/\n|,/)
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((raw) => {
+      const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      try {
+        return { url, label: new URL(url).hostname.replace(/^www\./, "") };
+      } catch {
+        return null;
+      }
+    })
+    .filter((s): s is { url: string; label: string } => !!s);
 
   return (
     <div className="relative min-h-screen">
