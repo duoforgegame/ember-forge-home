@@ -18,6 +18,7 @@ import {
   type ProjectStatus,
 } from "@/lib/site-data";
 import { fetchSiteContent, sendContact, slugify } from "@/lib/api";
+import { FeaturedGameCard, type FeaturedGameView } from "@/components/FeaturedGameCard";
 import logoLarge from "@/assets/dfg-logo-large.png";
 
 const DEFAULT_STATUS_COLORS: Record<string, string> = {
