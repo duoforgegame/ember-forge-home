@@ -5,8 +5,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 const ALLOWED_TABLES = new Set([
   "site_projects", "site_team", "site_about", "site_socials",
   "site_header_links", "site_footer_links", "site_status_colors", "site_legal", "site_announcement",
+  "site_press_kits", "site_press_screenshots",
 ]);
 const COVERS_BUCKET = "project-covers";
+const PRESS_BUCKET = "press-kit-assets";
+const UPLOAD_BUCKETS: Record<string, { bucket: string; folder: string; exts: Set<string> }> = {
+  cover: { bucket: COVERS_BUCKET, folder: "covers", exts: new Set(["jpg", "jpeg", "png", "webp"]) },
+  press_image: { bucket: PRESS_BUCKET, folder: "images", exts: new Set(["jpg", "jpeg", "png", "webp", "gif"]) },
+  press_logo: { bucket: PRESS_BUCKET, folder: "logos", exts: new Set(["png", "webp", "svg"]) },
+  press_zip: { bucket: PRESS_BUCKET, folder: "zips", exts: new Set(["zip"]) },
+};
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -72,7 +80,20 @@ Deno.serve(async (req) => {
         const { data, error } = await sb.storage.from(COVERS_BUCKET).createSignedUploadUrl(path);
         if (error) throw error;
         const publicUrl = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/${COVERS_BUCKET}/${path}`;
-        return json({ signedUrl: data.signedUrl, token: data.token, path, publicUrl }, { status: 200 }, origin);
+        return json({ signedUrl: data.signedUrl, token: data.token, path, publicUrl, bucket: COVERS_BUCKET }, { status: 200 }, origin);
+      }
+      case "sign_upload": {
+        const kind = String(body.kind ?? "");
+        const cfg = UPLOAD_BUCKETS[kind];
+        if (!cfg) return json({ error: "Invalid upload kind" }, { status: 400 }, origin);
+        const ext = String(body.ext ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!cfg.exts.has(ext)) return json({ error: "Invalid extension" }, { status: 400 }, origin);
+        const uuid = crypto.randomUUID();
+        const path = `${cfg.folder}/${uuid}.${ext}`;
+        const { data, error } = await sb.storage.from(cfg.bucket).createSignedUploadUrl(path);
+        if (error) throw error;
+        const publicUrl = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/${cfg.bucket}/${path}`;
+        return json({ signedUrl: data.signedUrl, token: data.token, path, publicUrl, bucket: cfg.bucket }, { status: 200 }, origin);
       }
       default:
         return json({ error: "Unknown op" }, { status: 400 }, origin);

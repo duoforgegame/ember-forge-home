@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { z } from "zod";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowDown, Send, Loader2, CheckCircle2, AlertCircle, Newspaper } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Embers } from "@/components/Embers";
@@ -16,7 +17,7 @@ import {
   CONTACT_EMAIL,
   type ProjectStatus,
 } from "@/lib/site-data";
-import { fetchSiteContent, sendContact } from "@/lib/api";
+import { fetchSiteContent, sendContact, slugify } from "@/lib/api";
 import logoLarge from "@/assets/dfg-logo-large.png";
 
 const DEFAULT_STATUS_COLORS: Record<string, string> = {
@@ -46,8 +47,9 @@ export default function Landing() {
           status: p.status as ProjectStatus,
           buttonLabel: p.button_label,
           buttonUrl: p.button_url,
+          pressKitEnabled: !!p.press_kit_enabled,
         }))
-      : fallbackProjects;
+      : fallbackProjects.map((p) => ({ ...p, pressKitEnabled: false }));
 
   const team =
     data?.team && data.team.length > 0
@@ -159,7 +161,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectsSection({ projects, statusColorMap }: { projects: typeof fallbackProjects; statusColorMap: Record<string, string> }) {
+type ProjectView = (typeof fallbackProjects)[number] & { pressKitEnabled?: boolean };
+
+function ProjectsSection({ projects, statusColorMap }: { projects: ProjectView[]; statusColorMap: Record<string, string> }) {
   return (
     <section id="projects" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -185,6 +189,16 @@ function ProjectsSection({ projects, statusColorMap }: { projects: typeof fallba
                 >
                   {p.status}
                 </span>
+                {p.pressKitEnabled && (
+                  <Link
+                    to={`/press/${slugify(p.title)}`}
+                    title="Press Kit"
+                    aria-label={`${p.title} press kit`}
+                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-md border border-border/60 bg-background/70 text-muted-foreground backdrop-blur-sm transition hover:border-primary/60 hover:text-primary hover:shadow-glow-sm"
+                  >
+                    <Newspaper className="h-4 w-4" />
+                  </Link>
+                )}
               </div>
               <div className="flex flex-1 flex-col gap-3 p-5">
                 <h3 className="font-display text-xl font-bold">{p.title}</h3>

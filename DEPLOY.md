@@ -4,7 +4,7 @@
 
 ### Apply the schema
 
-Open the [Supabase SQL editor](https://supabase.com/dashboard/project/kdefgqkvwmfdpvuuvslw/sql), paste the contents of `db/schema.sql`, and run. The script is idempotent — safe to re-run whenever new tables are added (e.g. `site_legal`, `site_announcement`).
+Open the [Supabase SQL editor](https://supabase.com/dashboard/project/kdefgqkvwmfdpvuuvslw/sql), paste the contents of `db/schema.sql`, and run. The script is idempotent — safe to re-run whenever new tables/buckets are added (e.g. `site_legal`, `site_announcement`, `site_press_kits`, `site_press_screenshots`, and the `press-kit-assets` storage bucket).
 
 Or via CLI: `supabase link --project-ref kdefgqkvwmfdpvuuvslw` then paste through `psql`.
 

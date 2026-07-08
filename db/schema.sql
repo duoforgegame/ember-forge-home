@@ -215,4 +215,61 @@ drop policy if exists "public read announcement" on public.site_announcement;
 create policy "public read announcement" on public.site_announcement for select to anon, authenticated using (true);
 insert into public.site_announcement (id) values (1) on conflict (id) do nothing;
 
+-- PRESS KIT — per-project toggle + related tables
+alter table public.site_projects add column if not exists press_kit_enabled boolean not null default false;
+
+create table if not exists public.site_press_kits (
+  project_id uuid primary key references public.site_projects(id) on delete cascade,
+  genre text not null default '',
+  platforms text not null default '',
+  release_date text not null default '',
+  price text not null default '',
+  one_line_pitch text not null default '',
+  long_description text not null default '',
+  developer text not null default '',
+  publisher text not null default '',
+  studio_location text not null default '',
+  steam_url text not null default '',
+  discord_url text not null default '',
+  other_social_urls text not null default '',
+  press_contact_email text not null default '',
+  key_art_url text not null default '',
+  game_logo_url text not null default '',
+  studio_logo_url text not null default '',
+  trailer_url text not null default '',
+  system_requirements text not null default '',
+  content_warnings text not null default '',
+  press_kit_zip_url text not null default '',
+  updated_at timestamptz not null default now()
+);
+grant select on public.site_press_kits to anon, authenticated;
+grant all on public.site_press_kits to service_role;
+alter table public.site_press_kits enable row level security;
+drop policy if exists "public read press kits" on public.site_press_kits;
+create policy "public read press kits" on public.site_press_kits for select to anon, authenticated using (true);
+
+create table if not exists public.site_press_screenshots (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.site_projects(id) on delete cascade,
+  url text not null default '',
+  caption text not null default '',
+  sort_order integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+create index if not exists site_press_screenshots_project_idx on public.site_press_screenshots(project_id);
+grant select on public.site_press_screenshots to anon, authenticated;
+grant all on public.site_press_screenshots to service_role;
+alter table public.site_press_screenshots enable row level security;
+drop policy if exists "public read press screenshots" on public.site_press_screenshots;
+create policy "public read press screenshots" on public.site_press_screenshots for select to anon, authenticated using (true);
+
+-- STORAGE bucket for press kit assets (public read)
+insert into storage.buckets (id, name, public)
+values ('press-kit-assets', 'press-kit-assets', true)
+on conflict (id) do nothing;
+
+drop policy if exists "public read press kit assets" on storage.objects;
+create policy "public read press kit assets" on storage.objects for select using (bucket_id = 'press-kit-assets');
+
+
 
