@@ -264,7 +264,7 @@ function ProjectsSection({ projects, statusColorMap }: { projects: ProjectView[]
 
 function AboutSection({ team, aboutText }: { team: typeof fallbackTeam; aboutText: string | null }) {
   return (
-    <section id="about" className="relative py-24 sm:py-32">
+    <section id="about" className="relative pt-8 pb-24 sm:pt-10 sm:pb-32">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <SectionTitle>About Us</SectionTitle>
         {aboutText ? (
