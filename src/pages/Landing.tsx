@@ -47,8 +47,9 @@ export default function Landing() {
           status: p.status as ProjectStatus,
           buttonLabel: p.button_label,
           buttonUrl: p.button_url,
+          pressKitEnabled: !!p.press_kit_enabled,
         }))
-      : fallbackProjects;
+      : fallbackProjects.map((p) => ({ ...p, pressKitEnabled: false }));
 
   const team =
     data?.team && data.team.length > 0
