@@ -19,12 +19,20 @@ import {
 import { fetchSiteContent, sendContact } from "@/lib/api";
 import logoLarge from "@/assets/dfg-logo-large.png";
 
-const statusStyles: Record<ProjectStatus, string> = {
-  "Play Now": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  "In Development": "bg-primary/15 text-primary border-primary/40",
-  "Coming Soon": "bg-sky-500/15 text-sky-400 border-sky-500/30",
-  Prototype: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
+const DEFAULT_STATUS_COLORS: Record<string, string> = {
+  "Play Now": "#10b981",
+  "In Development": "#f59e0b",
+  "Coming Soon": "#0ea5e9",
+  Prototype: "#a1a1aa",
 };
+
+export function statusBadgeStyle(color: string): React.CSSProperties {
+  return {
+    backgroundColor: `${color}26`,
+    borderColor: `${color}66`,
+    color,
+  };
+}
 
 export default function Landing() {
   const { data } = useQuery({ queryKey: ["site-content"], queryFn: fetchSiteContent, retry: 0 });
@@ -49,12 +57,15 @@ export default function Landing() {
   const socials = data?.socials ?? fallbackSocials;
   const aboutText: string | null = data?.about?.intro_html ?? null;
 
+  const statusColorMap: Record<string, string> = { ...DEFAULT_STATUS_COLORS };
+  for (const c of data?.statusColors ?? []) statusColorMap[c.status] = c.color;
+
   return (
     <div className="relative min-h-screen">
       <Header />
       <main>
         <HomeSection />
-        <ProjectsSection projects={projects} />
+        <ProjectsSection projects={projects} statusColorMap={statusColorMap} />
         <AboutSection team={team} aboutText={aboutText} />
         <ContactSection socials={socials} />
       </main>
@@ -148,7 +159,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectsSection({ projects }: { projects: typeof fallbackProjects }) {
+function ProjectsSection({ projects, statusColorMap }: { projects: typeof fallbackProjects; statusColorMap: Record<string, string> }) {
   return (
     <section id="projects" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -169,7 +180,8 @@ function ProjectsSection({ projects }: { projects: typeof fallbackProjects }) {
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <span
-                  className={`absolute left-3 top-3 rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm ${statusStyles[p.status as ProjectStatus] ?? statusStyles.Prototype}`}
+                  className="absolute left-3 top-3 rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm"
+                  style={statusBadgeStyle(statusColorMap[p.status] ?? DEFAULT_STATUS_COLORS[p.status] ?? "#a1a1aa")}
                 >
                   {p.status}
                 </span>

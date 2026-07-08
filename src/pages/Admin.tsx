@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { adminLogin, adminCall, getToken, clearToken } from "@/lib/api";
+import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover } from "@/lib/api";
+import { statusBadgeStyle } from "@/pages/Landing";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number };
 type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
@@ -12,8 +13,11 @@ type LinkRow = { id?: string; label: string; url: string; sort_order: number };
 type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string };
 type About = { id: number; intro_html: string };
 type Submission = { id: string; name: string; email: string; subject: string; message: string; created_at: string };
+type StatusColor = { status: string; color: string };
 
-const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Messages"] as const;
+const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
+
+const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Messages"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
@@ -88,6 +92,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         {tab === "Socials" && <SocialsPanel />}
         {tab === "Header" && <LinksPanel table="site_header_links" title="Header links" />}
         {tab === "Footer" && <LinksPanel table="site_footer_links" title="Footer links" />}
+        {tab === "Status colors" && <StatusColorsPanel />}
         {tab === "Messages" && <MessagesPanel />}
       </main>
     </div>
@@ -117,11 +122,21 @@ async function loadTable<T>(table: string): Promise<T[]> {
 
 function ProjectsPanel() {
   const { data, loading, error, reload, setData } = useLoader<ProjectRow[]>(() => loadTable("site_projects"));
+  const colorsLoader = useLoader<StatusColor[]>(async () => {
+    const { supabase } = await import("@/lib/supabase");
+    const { data } = await supabase.from("site_status_colors").select("*");
+    return (data ?? []) as StatusColor[];
+  });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   if (loading) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const rows = data ?? [];
+  const colorMap: Record<string, string> = {
+    "Play Now": "#10b981", "In Development": "#f59e0b", "Coming Soon": "#0ea5e9", Prototype: "#a1a1aa",
+  };
+  for (const c of colorsLoader.data ?? []) colorMap[c.status] = c.color;
+
   const update = (i: number, patch: Partial<ProjectRow>) => setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
   const addRow = () => setData([...rows, { title: "", description: "", cover_url: "", status: "In Development", button_label: "", button_url: "", sort_order: rows.length }]);
   const removeRow = async (i: number) => {
@@ -140,22 +155,206 @@ function ProjectsPanel() {
     <div className="space-y-4">
       <PanelHeader title="Projects" onAdd={addRow} onSave={saveAll} saving={saving} msg={msg} />
       {rows.map((r, i) => (
-        <div key={r.id ?? `new-${i}`} className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2">
-          <Field label="Title" value={r.title} onChange={(v) => update(i, { title: v })} />
-          <Field label="Status" value={r.status} onChange={(v) => update(i, { status: v })} placeholder="Play Now / In Development / Coming Soon / Prototype" />
-          <Field label="Cover URL" value={r.cover_url} onChange={(v) => update(i, { cover_url: v })} className="sm:col-span-2" />
-          <Field label="Button label" value={r.button_label} onChange={(v) => update(i, { button_label: v })} />
-          <Field label="Button URL" value={r.button_url} onChange={(v) => update(i, { button_url: v })} />
-          <TextField label="Description" value={r.description} onChange={(v) => update(i, { description: v })} className="sm:col-span-2" />
-          <NumField label="Sort order" value={r.sort_order} onChange={(v) => update(i, { sort_order: v })} />
-          <div className="flex items-end justify-end sm:col-span-2">
-            <Button variant="ghost" size="sm" onClick={() => removeRow(i)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+        <div key={r.id ?? `new-${i}`} className="rounded-lg border border-border bg-card p-4">
+          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Title" value={r.title} onChange={(v) => update(i, { title: v })} />
+              <StatusSelect value={r.status} options={Object.keys(colorMap)} onChange={(v) => update(i, { status: v })} />
+              <div className="sm:col-span-2">
+                <CoverUploader value={r.cover_url} onChange={(v) => update(i, { cover_url: v })} />
+              </div>
+              <Field label="Button label" value={r.button_label} onChange={(v) => update(i, { button_label: v })} />
+              <Field label="Button URL" value={r.button_url} onChange={(v) => update(i, { button_url: v })} />
+              <TextField label="Description" value={r.description} onChange={(v) => update(i, { description: v })} className="sm:col-span-2" />
+              <NumField label="Sort order" value={r.sort_order} onChange={(v) => update(i, { sort_order: v })} />
+              <div className="flex items-end justify-end sm:col-span-2">
+                <Button variant="ghost" size="sm" onClick={() => removeRow(i)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+              </div>
+            </div>
+            <div>
+              <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground">Live preview</Label>
+              <ProjectCardPreview project={r} statusColor={colorMap[r.status] ?? "#a1a1aa"} />
+            </div>
           </div>
         </div>
       ))}
     </div>
   );
 }
+
+function StatusSelect({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
+  const opts = Array.from(new Set([...options, ...DEFAULT_STATUSES, value].filter(Boolean)));
+  return (
+    <div>
+      <Label>Status</Label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      >
+        {opts.map((s) => <option key={s} value={s}>{s}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function CoverUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string>("");
+
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setErr("");
+    const okType = ["image/jpeg", "image/png", "image/webp"].includes(f.type);
+    if (!okType) { setErr("Only JPG, PNG, or WebP allowed."); return; }
+    if (f.size > 5 * 1024 * 1024) { setErr("Max file size is 5 MB."); return; }
+    setUploading(true);
+    try {
+      const url = await uploadProjectCover(f);
+      onChange(url);
+    } catch (ex: any) {
+      setErr(ex?.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <Label>Cover image</Label>
+      <p className="mt-1 text-xs text-muted-foreground">Recommended: 1280×720 (16:9), JPG/PNG/WebP, max 5 MB.</p>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <div className="grid h-20 w-36 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-surface-2">
+          {value ? (
+            <img src={value} alt="Cover preview" className="h-full w-full object-cover" />
+          ) : (
+            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPick} className="hidden" />
+          <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading}>
+            {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="mr-2 h-4 w-4" /> {value ? "Replace image" : "Upload image"}</>}
+          </Button>
+          <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="…or paste an image URL" className="w-full sm:w-96" />
+          {err && <p className="text-xs text-destructive">{err}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectCardPreview({ project, statusColor }: { project: ProjectRow; statusColor: string }) {
+  return (
+    <article className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+      <div className="relative aspect-video overflow-hidden bg-surface-2">
+        {project.cover_url ? (
+          <img src={project.cover_url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">No cover yet</div>
+        )}
+        <span
+          className="absolute left-3 top-3 rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm"
+          style={statusBadgeStyle(statusColor)}
+        >
+          {project.status || "Status"}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <h3 className="font-display text-lg font-bold">{project.title || "Untitled project"}</h3>
+        <p className="flex-1 text-sm text-muted-foreground">{project.description || "Description preview…"}</p>
+        <Button className="mt-1 w-full bg-primary font-semibold text-primary-foreground" disabled>
+          {project.button_label || "Button"}
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+function StatusColorsPanel() {
+  const { data, loading, error, reload, setData } = useLoader<StatusColor[]>(async () => {
+    const { supabase } = await import("@/lib/supabase");
+    const { data } = await supabase.from("site_status_colors").select("*");
+    const existing = (data ?? []) as StatusColor[];
+    const byStatus = new Map(existing.map((r) => [r.status, r]));
+    // Ensure defaults are present in UI so user can edit them immediately.
+    const defaults: Record<string, string> = {
+      "Play Now": "#10b981", "In Development": "#f59e0b", "Coming Soon": "#0ea5e9", Prototype: "#a1a1aa",
+    };
+    for (const s of DEFAULT_STATUSES) if (!byStatus.has(s)) existing.push({ status: s, color: defaults[s] });
+    return existing;
+  });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (loading) return <Spinner />;
+  if (error) return <ErrorMsg text={error} />;
+  const rows = data ?? [];
+  const update = (i: number, patch: Partial<StatusColor>) => setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  const addRow = () => setData([...rows, { status: "", color: "#f59e0b" }]);
+  const removeRow = async (i: number) => {
+    const row = rows[i];
+    if (!confirm(`Delete color for "${row.status}"?`)) return;
+    if (row.status) await adminCall({ op: "delete", table: "site_status_colors", id: row.status });
+    setData(rows.filter((_, idx) => idx !== i));
+  };
+  const saveAll = async () => {
+    setSaving(true); setMsg("");
+    try {
+      const clean = rows.filter((r) => r.status.trim()).map((r) => ({ status: r.status.trim(), color: r.color }));
+      await adminCall({ op: "upsert", table: "site_status_colors", rows: clean });
+      setMsg("Saved"); await reload();
+    } catch (e: any) { setMsg(e?.message ?? "Save failed"); }
+    finally { setSaving(false); }
+  };
+  const PRESETS = ["#10b981", "#22c55e", "#f59e0b", "#f97316", "#ef4444", "#0ea5e9", "#3b82f6", "#8b5cf6", "#ec4899", "#a1a1aa"];
+  return (
+    <div className="space-y-4">
+      <PanelHeader title="Status colors" onAdd={addRow} onSave={saveAll} saving={saving} msg={msg} />
+      <p className="text-sm text-muted-foreground">Customize the badge color for each project status. Applied on the public site.</p>
+      {rows.map((r, i) => (
+        <div key={`${r.status}-${i}`} className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-[1fr_auto_auto_auto]">
+          <Field label="Status label" value={r.status} onChange={(v) => update(i, { status: v })} />
+          <div>
+            <Label>Color</Label>
+            <input type="color" value={r.color} onChange={(e) => update(i, { color: e.target.value })} className="mt-1 h-10 w-16 cursor-pointer rounded-md border border-input bg-background" />
+          </div>
+          <div>
+            <Label>Hex</Label>
+            <Input value={r.color} onChange={(e) => update(i, { color: e.target.value })} className="mt-1 w-28" />
+          </div>
+          <div>
+            <Label>Preview</Label>
+            <span
+              className="mt-1 inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider"
+              style={statusBadgeStyle(r.color || "#a1a1aa")}
+            >
+              {r.status || "Status"}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1 sm:col-span-4">
+            {PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => update(i, { color: p })}
+                className="h-6 w-6 rounded-full border border-border ring-offset-background transition hover:scale-110"
+                style={{ backgroundColor: p }}
+                aria-label={`Use ${p}`}
+              />
+            ))}
+            <div className="ml-auto">
+              <Button variant="ghost" size="sm" onClick={() => removeRow(i)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 function TeamPanel() {
   const { data, loading, error, reload, setData } = useLoader<TeamRow[]>(() => loadTable("site_team"));

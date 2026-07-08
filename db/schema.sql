@@ -111,3 +111,27 @@ alter table public.contact_submissions enable row level security;
 insert into storage.buckets (id, name, public)
 values ('project-covers', 'project-covers', true)
 on conflict (id) do nothing;
+
+-- STATUS COLORS (public read, admin writes via edge function service role)
+create table if not exists public.site_status_colors (
+  status text primary key,
+  color text not null default '#f59e0b',
+  updated_at timestamptz not null default now()
+);
+grant select on public.site_status_colors to anon, authenticated;
+grant all on public.site_status_colors to service_role;
+alter table public.site_status_colors enable row level security;
+drop policy if exists "public read status colors" on public.site_status_colors;
+create policy "public read status colors" on public.site_status_colors for select to anon, authenticated using (true);
+
+insert into public.site_status_colors (status, color) values
+  ('Play Now', '#10b981'),
+  ('In Development', '#f59e0b'),
+  ('Coming Soon', '#0ea5e9'),
+  ('Prototype', '#a1a1aa')
+on conflict (status) do nothing;
+
+-- Storage policies for project-covers bucket: allow public read + service_role writes.
+-- Uploads go through admin-write (service_role signs uploads); browser uploads via signed URL token.
+drop policy if exists "public read covers" on storage.objects;
+create policy "public read covers" on storage.objects for select using (bucket_id = 'project-covers');
