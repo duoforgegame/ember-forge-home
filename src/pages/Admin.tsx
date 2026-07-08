@@ -140,6 +140,7 @@ function ProjectsPanel() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [pressKitFor, setPressKitFor] = useState<ProjectRow | null>(null);
+  const [gamePageFor, setGamePageFor] = useState<ProjectRow | null>(null);
   if (loading) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const rows = data ?? [];
