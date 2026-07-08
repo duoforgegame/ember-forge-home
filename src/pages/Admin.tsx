@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover } from "@/lib/api";
 import { statusBadgeStyle } from "@/pages/Landing";
+import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number };
 type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
