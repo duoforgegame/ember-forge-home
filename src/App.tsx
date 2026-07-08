@@ -1,8 +1,9 @@
 import { Routes, Route, useLocation } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import { AnnouncementBanner } from "./components/AnnouncementBanner";
+import { LoadingScreen } from "./components/LoadingScreen";
 
 const Imprint = lazy(() => import("./pages/Imprint"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -12,8 +13,10 @@ const PressKit = lazy(() => import("./pages/PressKit"));
 export default function App() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
+  const [loaded, setLoaded] = useState(false);
   return (
     <>
+      {!loaded && <LoadingScreen onDone={() => setLoaded(true)} />}
       {!isAdmin && <AnnouncementBanner />}
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
         <Routes>
