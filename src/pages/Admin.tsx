@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover, uploadPressAsset, slugify } from "@/lib/api";
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
+import { FeaturedGameCard } from "@/components/FeaturedGameCard";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
 type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
