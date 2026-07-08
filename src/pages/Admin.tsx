@@ -8,7 +8,7 @@ import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover, upload
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 
-type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean };
+type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
 type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
 type LinkRow = { id?: string; label: string; url: string; sort_order: number };
 type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string };
