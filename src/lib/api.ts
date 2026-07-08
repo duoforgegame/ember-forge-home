@@ -67,6 +67,29 @@ export async function uploadProjectCover(file: File): Promise<string> {
   return publicUrl as string;
 }
 
+export async function uploadPressAsset(
+  file: File,
+  kind: "press_image" | "press_logo" | "press_zip",
+): Promise<string> {
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  const { token, path, publicUrl, bucket } = await adminCall({ op: "sign_upload", kind, ext });
+  const { error } = await supabase.storage.from(bucket).uploadToSignedUrl(path, token, file, {
+    contentType: file.type || undefined,
+    upsert: false,
+  });
+  if (error) throw error;
+  return publicUrl as string;
+}
+
+export function slugify(input: string): string {
+  return (input || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export async function fetchSiteContent() {
   const [projects, team, about, socials, header, footer, statusColors] = await Promise.all([
     supabase.from("site_projects").select("*").order("sort_order"),
