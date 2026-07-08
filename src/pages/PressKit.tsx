@@ -204,21 +204,22 @@ export default function PressKit() {
           const validShots = screenshots.filter((s) => typeof s?.url === "string" && s.url.trim() !== "");
           if (validShots.length === 0) return null;
           return (
-          <Section title="Screenshots">
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-              {screenshots.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setLightbox(s.url)}
-                  className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-surface-2"
-                >
-                  <img src={s.url} alt={s.caption || "Screenshot"} loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                </button>
-              ))}
-            </div>
-          </Section>
-        )}
+            <Section title="Screenshots">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {validShots.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setLightbox(s.url)}
+                    className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-surface-2"
+                  >
+                    <img src={s.url} alt={s.caption || "Screenshot"} loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  </button>
+                ))}
+              </div>
+            </Section>
+          );
+        })()}
 
         {/* Logos */}
         {(kit?.game_logo_url || kit?.studio_logo_url) && (
