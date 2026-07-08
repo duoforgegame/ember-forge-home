@@ -187,7 +187,7 @@ type ProjectView = (typeof fallbackProjects)[number] & { pressKitEnabled?: boole
 
 function ProjectsSection({ projects, statusColorMap }: { projects: ProjectView[]; statusColorMap: Record<string, string> }) {
   return (
-    <section id="projects" className="relative py-24 sm:py-32">
+    <section id="projects" className="relative pt-24 pb-10 sm:pt-32 sm:pb-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionTitle>Our Forge</SectionTitle>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
