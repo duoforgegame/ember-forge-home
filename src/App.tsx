@@ -21,6 +21,7 @@ export default function App() {
           <Route path="/imprint" element={<Imprint />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/press/:slug" element={<PressKit />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
