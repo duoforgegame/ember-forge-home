@@ -171,6 +171,28 @@ function ProjectsPanel() {
               <Field label="Button URL" value={r.button_url} onChange={(v) => update(i, { button_url: v })} />
               <TextField label="Description" value={r.description} onChange={(v) => update(i, { description: v })} className="sm:col-span-2" />
               <NumField label="Sort order" value={r.sort_order} onChange={(v) => update(i, { sort_order: v })} />
+              <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={!!r.press_kit_enabled}
+                    onChange={(e) => update(i, { press_kit_enabled: e.target.checked })}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  <span className="text-sm font-medium">Press Kit enabled</span>
+                  <span className="text-xs text-muted-foreground">Shows a press-kit icon on the public card and enables <code>/press/{slugifyImport(r.title)}</code>.</span>
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!r.id || !r.press_kit_enabled}
+                  onClick={() => setPressKitFor(r)}
+                  title={!r.id ? "Save the project first" : !r.press_kit_enabled ? "Enable press kit first" : "Edit press kit"}
+                >
+                  <FileText className="mr-2 h-4 w-4" /> Edit Press Kit
+                </Button>
+              </div>
               <div className="flex items-end justify-end sm:col-span-2">
                 <Button variant="ghost" size="sm" onClick={() => removeRow(i)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
               </div>
