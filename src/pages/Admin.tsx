@@ -150,7 +150,7 @@ function ProjectsPanel() {
   for (const c of colorsLoader.data ?? []) colorMap[c.status] = c.color;
 
   const update = (i: number, patch: Partial<ProjectRow>) => setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-  const addRow = () => setData([...rows, { title: "", description: "", cover_url: "", status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false }]);
+  const addRow = () => setData([...rows, { title: "", description: "", cover_url: "", status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false, more_info_enabled: false }]);
   const removeRow = async (i: number) => {
     const row = rows[i];
     if (row.id && !confirm("Delete this project?")) return;
