@@ -265,13 +265,32 @@ alter table public.site_press_screenshots enable row level security;
 drop policy if exists "public read press screenshots" on public.site_press_screenshots;
 create policy "public read press screenshots" on public.site_press_screenshots for select to anon, authenticated using (true);
 
--- STORAGE bucket for press kit assets (public read)
+-- STORAGE bucket for press kit assets (public read) — also reused for Game Info Page images
 insert into storage.buckets (id, name, public)
 values ('press-kit-assets', 'press-kit-assets', true)
 on conflict (id) do nothing;
 
 drop policy if exists "public read press kit assets" on storage.objects;
 create policy "public read press kit assets" on storage.objects for select using (bucket_id = 'press-kit-assets');
+
+-- GAME INFO PAGE — per-project toggle + block-based content
+alter table public.site_projects add column if not exists more_info_enabled boolean not null default false;
+
+create table if not exists public.site_game_page_blocks (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.site_projects(id) on delete cascade,
+  block_type text not null,
+  sort_order integer not null default 0,
+  visible boolean not null default true,
+  content jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+create index if not exists site_game_page_blocks_project_idx on public.site_game_page_blocks(project_id);
+grant select on public.site_game_page_blocks to anon, authenticated;
+grant all on public.site_game_page_blocks to service_role;
+alter table public.site_game_page_blocks enable row level security;
+drop policy if exists "public read game blocks" on public.site_game_page_blocks;
+create policy "public read game blocks" on public.site_game_page_blocks for select to anon, authenticated using (true);
 
 
 
