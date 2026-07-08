@@ -76,14 +76,18 @@ function HomeSection() {
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl" />
       <Embers />
       <div className="relative z-10 flex flex-col items-center px-6 text-center">
-        <div className="relative">
+        <div className="relative" style={{ perspective: "1200px" }}>
           <SwirlingParticles />
           <img
             src={logoLarge}
             alt="Duo Forge Games logo"
-            className="relative z-10 h-[30rem] w-auto drop-shadow-[0_0_60px_oklch(0.68_0.17_45_/_0.5)] sm:h-[38rem] md:h-[44rem]"
+            className="relative z-10 h-[30rem] w-auto drop-shadow-[0_0_60px_oklch(0.68_0.17_45_/_0.5)] transition-transform duration-300 ease-out will-change-transform sm:h-[38rem] md:h-[44rem]"
             width={672}
             height={840}
+            style={{
+              transform: `rotateY(${tilt.x}deg) rotateX(${tilt.y}deg)`,
+              transformStyle: "preserve-3d",
+            }}
           />
         </div>
         <p className="mt-6 max-w-xl text-base uppercase tracking-[0.3em] text-muted-foreground sm:text-lg">
@@ -95,13 +99,48 @@ function HomeSection() {
             e.preventDefault();
             document.getElementById("projects")?.scrollIntoView({ behavior: "smooth" });
           }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted-foreground transition-colors hover:text-primary"
+          className="mt-8 text-muted-foreground transition-colors hover:text-primary"
           aria-label="Scroll to projects"
         >
           <ArrowDown className="h-6 w-6 animate-bounce" />
         </a>
       </div>
     </section>
+  );
+}
+
+function SwirlingParticles() {
+  const particles = Array.from({ length: 28 }, (_, i) => {
+    const angle = (i / 28) * Math.PI * 2;
+    const radius = 44 + (i % 4) * 6;
+    return {
+      key: i,
+      x: 50 + Math.cos(angle) * radius,
+      y: 50 + Math.sin(angle) * radius,
+      delay: (i * 0.2) % 4,
+      duration: 3 + (i % 5),
+      size: 7 + (i % 4) * 2,
+    };
+  });
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+      {particles.map((p) => (
+        <span
+          key={p.key}
+          className="absolute rounded-full bg-primary-glow animate-orbit"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            boxShadow:
+              "0 0 24px oklch(0.78 0.18 55 / 0.95), 0 0 48px oklch(0.68 0.17 45 / 0.6)",
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration + 6}s`,
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
