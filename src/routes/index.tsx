@@ -154,39 +154,7 @@ function SwirlingParticles() {
   );
 }
 
-function SwirlingParticles() {
-  const particles = Array.from({ length: 28 }, (_, i) => {
-    const angle = (i / 28) * Math.PI * 2;
-    const radius = 44 + (i % 4) * 6;
-    return {
-      key: i,
-      x: 50 + Math.cos(angle) * radius,
-      y: 50 + Math.sin(angle) * radius,
-      delay: (i * 0.15) % 4,
-      duration: 3 + (i % 5),
-      size: 3 + (i % 3),
-    };
-  });
-  return (
-    <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
-      {particles.map((p) => (
-        <span
-          key={p.key}
-          className="absolute rounded-full bg-primary-glow animate-orbit"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: `${p.size}px`,
-            height: `${p.size}px`,
-            boxShadow: "0 0 12px oklch(0.78 0.18 55 / 0.9)",
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration + 6}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
