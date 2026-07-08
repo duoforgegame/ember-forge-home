@@ -200,7 +200,10 @@ export default function PressKit() {
         )}
 
         {/* Screenshots */}
-        {screenshots.length > 0 && (
+        {(() => {
+          const validShots = screenshots.filter((s) => typeof s?.url === "string" && s.url.trim() !== "");
+          if (validShots.length === 0) return null;
+          return (
           <Section title="Screenshots">
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
               {screenshots.map((s) => (
