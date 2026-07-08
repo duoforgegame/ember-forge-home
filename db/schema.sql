@@ -196,3 +196,23 @@ $html$<section>
 <p><em>Hinweis: Dieser Text ist ein Muster und ersetzt keine individuelle Rechtsberatung. Bitte vor Veröffentlichung durch einen Fachanwalt prüfen lassen.</em></p>$html$)
 on conflict (slug) do nothing;
 
+-- ANNOUNCEMENT BANNER (singleton)
+create table if not exists public.site_announcement (
+  id integer primary key check (id = 1),
+  enabled boolean not null default false,
+  message text not null default '',
+  link_url text not null default '',
+  link_label text not null default '',
+  open_in_new_tab boolean not null default true,
+  background_color text not null default '#f59e0b',
+  text_color text not null default '#0b0b0f',
+  updated_at timestamptz not null default now()
+);
+grant select on public.site_announcement to anon, authenticated;
+grant all on public.site_announcement to service_role;
+alter table public.site_announcement enable row level security;
+drop policy if exists "public read announcement" on public.site_announcement;
+create policy "public read announcement" on public.site_announcement for select to anon, authenticated using (true);
+insert into public.site_announcement (id) values (1) on conflict (id) do nothing;
+
+
