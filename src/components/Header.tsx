@@ -1,17 +1,43 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import logo from "@/assets/dfg-logo.png";
 
-const NAV = [
-  { id: "home", label: "Home" },
-  { id: "projects", label: "Our Forge" },
-  { id: "about", label: "About Us" },
-  { id: "contact", label: "Contact" },
+type HeaderLink = { id?: string; label: string; url: string; sort_order?: number };
+
+const FALLBACK: HeaderLink[] = [
+  { label: "Home", url: "#home" },
+  { label: "Our Forge", url: "#projects" },
+  { label: "About Us", url: "#about" },
+  { label: "Contact", url: "#contact" },
+  { label: "Discord", url: "https://discord.gg/9mJ4XA6YrB" },
 ];
+
+const isInternal = (url: string) => url.startsWith("#");
+const isExternal = (url: string) => /^https?:\/\//i.test(url);
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("home");
+
+  const { data } = useQuery({
+    queryKey: ["header-links"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("site_header_links")
+        .select("*")
+        .order("sort_order");
+      return (data ?? []) as HeaderLink[];
+    },
+    retry: 0,
+  });
+
+  const links = data && data.length > 0 ? data : FALLBACK;
+  const internalIds = useMemo(
+    () => links.filter((l) => isInternal(l.url)).map((l) => l.url.slice(1)),
+    [links],
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -21,9 +47,9 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    const sections = NAV.map((n) => document.getElementById(n.id)).filter(
-      (el): el is HTMLElement => !!el,
-    );
+    const sections = internalIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => !!el);
     if (sections.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -35,7 +61,7 @@ export function Header() {
     );
     sections.forEach((s) => observer.observe(s));
     return () => observer.disconnect();
-  }, []);
+  }, [internalIds]);
 
   const scrollTo = (id: string) => (e: React.MouseEvent) => {
     const el = document.getElementById(id);
@@ -66,37 +92,51 @@ export function Header() {
           </span>
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
-          {NAV.map((n) => {
-            const isActive = active === n.id;
+          {links.map((l, i) => {
+            if (isInternal(l.url)) {
+              const id = l.url.slice(1);
+              const isActive = active === id;
+              return (
+                <a
+                  key={`${l.label}-${i}`}
+                  href={l.url}
+                  onClick={scrollTo(id)}
+                  className={`relative px-2.5 py-2 text-sm font-medium transition-colors sm:px-3.5 ${
+                    isActive
+                      ? "text-primary text-glow"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {l.label}
+                  {isActive && (
+                    <span className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-primary shadow-glow-sm" />
+                  )}
+                </a>
+              );
+            }
+            if (isExternal(l.url)) {
+              return (
+                <a
+                  key={`${l.label}-${i}`}
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 hidden items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary-glow hover:shadow-glow-sm sm:inline-flex"
+                >
+                  {l.label}
+                </a>
+              );
+            }
             return (
-              <a
-                key={n.id}
-                href={`#${n.id}`}
-                onClick={scrollTo(n.id)}
-                className={`relative px-2.5 py-2 text-sm font-medium transition-colors sm:px-3.5 ${
-                  isActive
-                    ? "text-primary text-glow"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+              <Link
+                key={`${l.label}-${i}`}
+                to={l.url}
+                className="px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-3.5"
               >
-                {n.label}
-                {isActive && (
-                  <span className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-primary shadow-glow-sm" />
-                )}
-              </a>
+                {l.label}
+              </Link>
             );
           })}
-          <a
-            href="https://discord.gg/9mJ4XA6YrB"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-2 hidden items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary-glow hover:shadow-glow-sm sm:inline-flex"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
-              <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3c-.2.36-.44.845-.6 1.23a18.27 18.27 0 0 0-5.918 0A12.6 12.6 0 0 0 9.44 3a19.74 19.74 0 0 0-3.76 1.37C2.06 9.09 1.09 13.68 1.57 18.2A19.9 19.9 0 0 0 7.62 21a14.5 14.5 0 0 0 1.24-2c-.68-.26-1.32-.58-1.92-.95.16-.12.32-.24.47-.36 3.7 1.72 7.7 1.72 11.35 0 .16.12.31.24.47.36-.6.37-1.24.69-1.92.95.36.7.77 1.37 1.24 2a19.87 19.87 0 0 0 6.06-2.8c.56-5.28-.96-9.83-4.31-13.83ZM8.68 15.33c-1.18 0-2.15-1.08-2.15-2.4 0-1.32.95-2.4 2.15-2.4 1.2 0 2.17 1.09 2.15 2.4 0 1.32-.95 2.4-2.15 2.4Zm6.63 0c-1.18 0-2.15-1.08-2.15-2.4 0-1.32.95-2.4 2.15-2.4 1.2 0 2.17 1.09 2.15 2.4 0 1.32-.95 2.4-2.15 2.4Z" />
-            </svg>
-            Discord
-          </a>
         </nav>
       </div>
     </header>
