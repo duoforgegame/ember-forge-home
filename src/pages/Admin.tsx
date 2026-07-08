@@ -132,6 +132,7 @@ function ProjectsPanel() {
   });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [pressKitFor, setPressKitFor] = useState<ProjectRow | null>(null);
   if (loading) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const rows = data ?? [];
@@ -142,7 +143,6 @@ function ProjectsPanel() {
 
   const update = (i: number, patch: Partial<ProjectRow>) => setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
   const addRow = () => setData([...rows, { title: "", description: "", cover_url: "", status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false }]);
-  const [pressKitFor, setPressKitFor] = useState<ProjectRow | null>(null);
   const removeRow = async (i: number) => {
     const row = rows[i];
     if (row.id && !confirm("Delete this project?")) return;
