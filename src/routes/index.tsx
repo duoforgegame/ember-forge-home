@@ -381,6 +381,7 @@ function SocialLinks() {
   const items = [
     { href: socials.twitter, label: "X (Twitter)", icon: XIcon },
     { href: socials.tiktok, label: "TikTok", icon: TikTokIcon },
+    { href: socials.instagram, label: "Instagram", icon: InstagramIcon },
     { href: socials.discord, label: "Discord", icon: DiscordIcon },
     { href: socials.youtube, label: "YouTube", icon: YouTubeIcon },
   ];
