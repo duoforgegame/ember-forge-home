@@ -257,16 +257,27 @@ function AboutSection({ team, aboutText }: { team: typeof fallbackTeam; aboutTex
   );
 }
 
+export const INQUIRY_TYPES = [
+  { value: "player", label: "Player" },
+  { value: "press", label: "Press / Media" },
+  { value: "publisher", label: "Publisher / Business" },
+  { value: "other", label: "Other" },
+] as const;
+
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
   subject: z.string().trim().min(1).max(150),
   message: z.string().trim().min(1).max(2000),
+  inquiry_type: z.enum(["player", "press", "publisher", "other"], {
+    errorMap: () => ({ message: "Please select an inquiry type" }),
+  }),
 });
 
 function ContactSection({ socials }: { socials: typeof fallbackSocials }) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [inquiryType, setInquiryType] = useState<string>("");
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -277,6 +288,7 @@ function ContactSection({ socials }: { socials: typeof fallbackSocials }) {
       email: fd.get("email"),
       subject: fd.get("subject"),
       message: fd.get("message"),
+      inquiry_type: fd.get("inquiry_type"),
     });
     if (!parsed.success) {
       setStatus("error");
@@ -289,6 +301,7 @@ function ContactSection({ socials }: { socials: typeof fallbackSocials }) {
       await sendContact(parsed.data);
       setStatus("success");
       form.reset();
+      setInquiryType("");
     } catch (err) {
       console.error(err);
       setStatus("error");
@@ -307,18 +320,37 @@ function ContactSection({ socials }: { socials: typeof fallbackSocials }) {
               <Input id="name" name="name" required maxLength={100} autoComplete="name" />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="inquiry_type">I am a</Label>
+              <select
+                id="inquiry_type"
+                name="inquiry_type"
+                required
+                value={inquiryType}
+                onChange={(e) => setInquiryType(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="" disabled>Select…</option>
+                {INQUIRY_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" required maxLength={255} autoComplete="email" />
             </div>
-          </div>
-          <div className="mt-5 space-y-2">
-            <Label htmlFor="subject">Subject</Label>
-            <Input id="subject" name="subject" required maxLength={150} />
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input id="subject" name="subject" required maxLength={150} />
+            </div>
           </div>
           <div className="mt-5 space-y-2">
             <Label htmlFor="message">Message</Label>
             <Textarea id="message" name="message" required rows={6} maxLength={2000} />
           </div>
+
 
           {status === "success" && (
             <div className="mt-5 flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
