@@ -9,6 +9,7 @@ const Imprint = lazy(() => import("./pages/Imprint"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Admin = lazy(() => import("./pages/Admin"));
 const PressKit = lazy(() => import("./pages/PressKit"));
+const GamePage = lazy(() => import("./pages/GamePage"));
 
 export default function App() {
   const location = useLocation();
