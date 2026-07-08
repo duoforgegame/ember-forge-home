@@ -48,8 +48,9 @@ export default function Landing() {
           buttonLabel: p.button_label,
           buttonUrl: p.button_url,
           pressKitEnabled: !!p.press_kit_enabled,
+          moreInfoEnabled: !!p.more_info_enabled,
         }))
-      : fallbackProjects.map((p) => ({ ...p, pressKitEnabled: false }));
+      : fallbackProjects.map((p) => ({ ...p, pressKitEnabled: false, moreInfoEnabled: false }));
 
   const team =
     data?.team && data.team.length > 0
