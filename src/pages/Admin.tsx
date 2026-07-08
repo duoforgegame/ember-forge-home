@@ -767,3 +767,280 @@ function Spinner() {
 function ErrorMsg({ text }: { text: string }) {
   return <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{text}</div>;
 }
+
+// -----------------------------------------------------------------------------
+// PRESS KIT EDITOR (per project)
+// -----------------------------------------------------------------------------
+
+type PressKitRow = {
+  project_id: string;
+  genre: string; platforms: string; release_date: string; price: string;
+  one_line_pitch: string; long_description: string;
+  developer: string; publisher: string; studio_location: string;
+  steam_url: string; discord_url: string; other_social_urls: string;
+  press_contact_email: string;
+  key_art_url: string; game_logo_url: string; studio_logo_url: string;
+  trailer_url: string; system_requirements: string; content_warnings: string;
+  press_kit_zip_url: string;
+};
+
+type ScreenshotRow = { id?: string; project_id: string; url: string; caption: string; sort_order: number };
+
+const emptyPressKit = (projectId: string): PressKitRow => ({
+  project_id: projectId,
+  genre: "", platforms: "", release_date: "", price: "",
+  one_line_pitch: "", long_description: "",
+  developer: "", publisher: "", studio_location: "",
+  steam_url: "", discord_url: "", other_social_urls: "",
+  press_contact_email: "",
+  key_art_url: "", game_logo_url: "", studio_logo_url: "",
+  trailer_url: "", system_requirements: "", content_warnings: "",
+  press_kit_zip_url: "",
+});
+
+function PressKitDialog({ project, onClose }: { project: ProjectRow; onClose: () => void }) {
+  const projectId = project.id!;
+  const [kit, setKit] = useState<PressKitRow | null>(null);
+  const [shots, setShots] = useState<ScreenshotRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const [kitRes, shotsRes] = await Promise.all([
+          supabase.from("site_press_kits").select("*").eq("project_id", projectId).maybeSingle(),
+          supabase.from("site_press_screenshots").select("*").eq("project_id", projectId).order("sort_order"),
+        ]);
+        setKit((kitRes.data as PressKitRow) ?? emptyPressKit(projectId));
+        setShots((shotsRes.data ?? []) as ScreenshotRow[]);
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to load press kit");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [projectId]);
+
+  const upd = <K extends keyof PressKitRow>(k: K, v: PressKitRow[K]) => setKit((prev) => prev ? { ...prev, [k]: v } : prev);
+
+  const save = async () => {
+    if (!kit) return;
+    setSaving(true); setMsg("");
+    try {
+      await adminCall({ op: "upsert", table: "site_press_kits", rows: [kit] });
+      if (shots.length > 0) {
+        const rows = shots.map((s, i) => ({ ...s, project_id: projectId, sort_order: i }));
+        await adminCall({ op: "upsert", table: "site_press_screenshots", rows });
+      }
+      setMsg("Saved");
+    } catch (e: any) {
+      setMsg(e?.message ?? "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteShot = async (i: number) => {
+    const s = shots[i];
+    if (s.id) {
+      if (!confirm("Delete this screenshot?")) return;
+      try { await adminCall({ op: "delete", table: "site_press_screenshots", id: s.id }); }
+      catch (e: any) { setMsg(e?.message ?? "Delete failed"); return; }
+    }
+    setShots(shots.filter((_, idx) => idx !== i));
+  };
+
+  const moveShot = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= shots.length) return;
+    const next = [...shots];
+    [next[i], next[j]] = [next[j], next[i]];
+    setShots(next);
+  };
+
+  const addScreenshotFromUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const uploaded: ScreenshotRow[] = [];
+    for (const f of Array.from(files)) {
+      try {
+        const url = await uploadPressAsset(f, "press_image");
+        uploaded.push({ project_id: projectId, url, caption: "", sort_order: shots.length + uploaded.length });
+      } catch (e: any) {
+        setMsg(e?.message ?? "Upload failed");
+      }
+    }
+    if (uploaded.length > 0) setShots([...shots, ...uploaded]);
+  };
+
+  const pressUrl = `/press/${slugify(project.title)}`;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
+      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <h2 className="font-display text-xl font-bold">Press Kit — {project.title}</h2>
+            <a href={pressUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+              <ExternalLink className="h-3 w-3" /> Live preview: {pressUrl}
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
+            <Button size="sm" onClick={save} disabled={saving || loading}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {loading && <Spinner />}
+          {error && <ErrorMsg text={error} />}
+          {kit && !loading && (
+            <div className="space-y-6">
+              <section className="grid gap-3 sm:grid-cols-2">
+                <TextField label="One-line pitch" value={kit.one_line_pitch} onChange={(v) => upd("one_line_pitch", v)} className="sm:col-span-2" />
+                <TextField label="Long description" value={kit.long_description} onChange={(v) => upd("long_description", v)} className="sm:col-span-2" />
+                <Field label="Developer" value={kit.developer} onChange={(v) => upd("developer", v)} />
+                <Field label="Publisher" value={kit.publisher} onChange={(v) => upd("publisher", v)} />
+                <Field label="Studio location" value={kit.studio_location} onChange={(v) => upd("studio_location", v)} />
+                <Field label="Genre" value={kit.genre} onChange={(v) => upd("genre", v)} />
+                <Field label="Platforms" value={kit.platforms} onChange={(v) => upd("platforms", v)} placeholder="Windows, macOS, Steam Deck" />
+                <Field label="Release date" value={kit.release_date} onChange={(v) => upd("release_date", v)} placeholder="Q2 2026 / TBA" />
+                <Field label="Price" value={kit.price} onChange={(v) => upd("price", v)} placeholder="$9.99 / Free" />
+                <Field label="Press contact email" value={kit.press_contact_email} onChange={(v) => upd("press_contact_email", v)} />
+                <Field label="Steam URL" value={kit.steam_url} onChange={(v) => upd("steam_url", v)} />
+                <Field label="Discord URL" value={kit.discord_url} onChange={(v) => upd("discord_url", v)} />
+                <TextField label="Other social URLs (one per line)" value={kit.other_social_urls} onChange={(v) => upd("other_social_urls", v)} className="sm:col-span-2" />
+                <Field label="Trailer URL (YouTube/Vimeo)" value={kit.trailer_url} onChange={(v) => upd("trailer_url", v)} className="sm:col-span-2" />
+              </section>
+
+              <section className="grid gap-4 sm:grid-cols-3">
+                <PressUpload label="Key art" value={kit.key_art_url} kind="press_image" onChange={(v) => upd("key_art_url", v)} />
+                <PressUpload label="Game logo (PNG)" value={kit.game_logo_url} kind="press_logo" onChange={(v) => upd("game_logo_url", v)} />
+                <PressUpload label="Studio logo (PNG)" value={kit.studio_logo_url} kind="press_logo" onChange={(v) => upd("studio_logo_url", v)} />
+              </section>
+
+              <section>
+                <div className="mb-2 flex items-center justify-between">
+                  <Label>Screenshots</Label>
+                  <MultiUploadButton onFiles={addScreenshotFromUpload} />
+                </div>
+                {shots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No screenshots yet. Upload one or more images.</p>
+                ) : (
+                  <ul className="grid gap-2">
+                    {shots.map((s, i) => (
+                      <li key={s.id ?? `new-${i}`} className="flex items-center gap-3 rounded-md border border-border bg-card p-2">
+                        <div className="h-14 w-24 shrink-0 overflow-hidden rounded bg-surface-2">
+                          {s.url ? <img src={s.url} alt="" className="h-full w-full object-cover" /> : <div className="grid h-full w-full place-items-center text-muted-foreground"><ImageIcon className="h-4 w-4" /></div>}
+                        </div>
+                        <Input value={s.caption} onChange={(e) => setShots(shots.map((r, idx) => idx === i ? { ...r, caption: e.target.value } : r))} placeholder="Caption (optional)" className="flex-1" />
+                        <Button variant="ghost" size="icon" onClick={() => moveShot(i, -1)} aria-label="Move up"><ArrowUp className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => moveShot(i, 1)} aria-label="Move down"><ArrowDown className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => deleteShot(i)} aria-label="Delete" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              <section className="grid gap-3 sm:grid-cols-2">
+                <TextField label="System requirements (optional)" value={kit.system_requirements} onChange={(v) => upd("system_requirements", v)} />
+                <TextField label="Content warnings (optional)" value={kit.content_warnings} onChange={(v) => upd("content_warnings", v)} />
+              </section>
+
+              <section>
+                <ZipUpload value={kit.press_kit_zip_url} onChange={(v) => upd("press_kit_zip_url", v)} />
+              </section>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PressUpload({ label, value, kind, onChange }: { label: string; value: string; kind: "press_image" | "press_logo"; onChange: (url: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState("");
+  const accept = kind === "press_logo" ? "image/png,image/webp,image/svg+xml" : "image/jpeg,image/png,image/webp,image/gif";
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (!f) return;
+    setErr("");
+    if (f.size > 10 * 1024 * 1024) { setErr("Max 10 MB."); return; }
+    setUploading(true);
+    try { onChange(await uploadPressAsset(f, kind)); }
+    catch (ex: any) { setErr(ex?.message ?? "Upload failed"); }
+    finally { setUploading(false); }
+  };
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="mt-2 grid aspect-video place-items-center overflow-hidden rounded-md border border-border bg-surface-2">
+        {value ? <img src={value} alt="" className="h-full w-full object-contain" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+      </div>
+      <input ref={inputRef} type="file" accept={accept} onChange={onPick} className="hidden" />
+      <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading} className="mt-2 w-full">
+        {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="mr-2 h-4 w-4" /> {value ? "Replace" : "Upload"}</>}
+      </Button>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="or paste URL" className="mt-2 text-xs" />
+      {err && <p className="mt-1 text-xs text-destructive">{err}</p>}
+    </div>
+  );
+}
+
+function MultiUploadButton({ onFiles }: { onFiles: (files: FileList | null) => Promise<void> | void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="hidden" onChange={async (e) => { setBusy(true); await onFiles(e.target.files); e.target.value = ""; setBusy(false); }} />
+      <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={busy}>
+        {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />} Add screenshots
+      </Button>
+    </>
+  );
+}
+
+function ZipUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState("");
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (!f) return;
+    if (f.size > 500 * 1024 * 1024) { setErr("Max 500 MB."); return; }
+    setErr(""); setUploading(true);
+    try { onChange(await uploadPressAsset(f, "press_zip")); }
+    catch (ex: any) { setErr(ex?.message ?? "Upload failed"); }
+    finally { setUploading(false); }
+  };
+  return (
+    <div className="rounded-md border border-border bg-card p-4">
+      <Label>Press Kit ZIP (optional)</Label>
+      <p className="mt-1 text-xs text-muted-foreground">A single ZIP bundle downloadable from the "Download Full Press Kit" button.</p>
+      <input ref={inputRef} type="file" accept=".zip,application/zip" onChange={onPick} className="hidden" />
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading}>
+          {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="mr-2 h-4 w-4" /> {value ? "Replace ZIP" : "Upload ZIP"}</>}
+        </Button>
+        {value && (
+          <a href={value} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+            <ExternalLink className="h-3 w-3" /> View current ZIP
+          </a>
+        )}
+      </div>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="or paste URL" className="mt-2 text-xs" />
+      {err && <p className="mt-1 text-xs text-destructive">{err}</p>}
+    </div>
+  );
+}
