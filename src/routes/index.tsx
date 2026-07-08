@@ -168,7 +168,7 @@ function ProjectsSection() {
   return (
     <section id="projects" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <SectionTitle>Projects</SectionTitle>
+        <SectionTitle>Our Forge</SectionTitle>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <article

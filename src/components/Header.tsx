@@ -4,7 +4,7 @@ import logo from "@/assets/dfg-logo.png";
 
 const NAV = [
   { id: "home", label: "Home" },
-  { id: "projects", label: "Projects" },
+  { id: "projects", label: "Our Forge" },
   { id: "about", label: "About Us" },
   { id: "contact", label: "Contact" },
 ];
