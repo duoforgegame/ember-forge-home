@@ -53,7 +53,7 @@ const statusStyles: Record<ProjectStatus, string> = {
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen">
       <Header />
       <main>
         <HomeSection />
@@ -82,7 +82,7 @@ function HomeSection() {
       id="home"
       className="relative flex min-h-screen items-center justify-center overflow-hidden bg-grid"
     >
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/20 via-transparent to-background/30" />
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl" />
       <Embers />
       <div className="relative z-10 flex flex-col items-center px-6 text-center">
@@ -212,7 +212,7 @@ function ProjectsSection() {
 
 function AboutSection() {
   return (
-    <section id="about" className="relative bg-surface/40 py-24 sm:py-32">
+    <section id="about" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <SectionTitle>About Us</SectionTitle>
         <p className="mx-auto max-w-3xl text-center text-lg leading-relaxed text-muted-foreground">

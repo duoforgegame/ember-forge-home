@@ -17,7 +17,7 @@ export const Route = createFileRoute("/imprint")({
 
 function ImprintPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen">
       <Header />
       <main className="mx-auto max-w-3xl px-4 pb-24 pt-32 sm:px-6">
         <Link
