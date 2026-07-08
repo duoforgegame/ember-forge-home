@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover, uploadPressAsset, slugify } from "@/lib/api";
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
+import { FeaturedGameCard } from "@/components/FeaturedGameCard";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
 type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
@@ -25,7 +26,7 @@ type StatusColor = { status: string; color: string };
 
 const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
 
-const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
+const TABS = ["Projects", "Featured", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
@@ -95,6 +96,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {tab === "Projects" && <ProjectsPanel />}
+        {tab === "Featured" && <FeaturedGamePanel />}
         {tab === "Team" && <TeamPanel />}
         {tab === "About" && <AboutPanel />}
         {tab === "Socials" && <SocialsPanel />}
@@ -614,6 +616,100 @@ function AnnouncementPanel() {
     </div>
   );
 }
+
+type FeaturedGame = {
+  id: number;
+  enabled: boolean;
+  project_id: string | null;
+  custom_image_url: string;
+  custom_headline: string;
+  custom_description: string;
+  steam_app_id: string;
+};
+
+const FEATURED_DEFAULTS: FeaturedGame = {
+  id: 1,
+  enabled: false,
+  project_id: null,
+  custom_image_url: "",
+  custom_headline: "",
+  custom_description: "",
+  steam_app_id: "",
+};
+
+function FeaturedGamePanel() {
+  const { data, loading, error, setData } = useLoader<FeaturedGame>(async () => {
+    const { supabase } = await import("@/lib/supabase");
+    const { data: row } = await supabase.from("site_featured_game").select("*").eq("id", 1).maybeSingle();
+    return (row as FeaturedGame) ?? FEATURED_DEFAULTS;
+  });
+  const projectsLoader = useLoader<ProjectRow[]>(() => loadTable("site_projects"));
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (loading || !data) return <Spinner />;
+  if (error) return <ErrorMsg text={error} />;
+  const projects = projectsLoader.data ?? [];
+  const selected = projects.find((p) => p.id === data.project_id) ?? null;
+  const preview = {
+    headline: (data.custom_headline || selected?.title || "").trim(),
+    description: (data.custom_description || selected?.description || "").trim(),
+    imageUrl: (data.custom_image_url || selected?.cover_url || "").trim(),
+    steamAppId: String(data.steam_app_id || "").trim(),
+  };
+  const save = async () => {
+    setSaving(true); setMsg("");
+    try {
+      const rowToSave = { ...data, project_id: data.project_id || null };
+      await adminCall({ op: "upsert", table: "site_featured_game", rows: [rowToSave] });
+      setMsg("Saved");
+    } catch (e: any) { setMsg(e?.message ?? "Save failed"); }
+    finally { setSaving(false); }
+  };
+  const upd = <K extends keyof FeaturedGame>(k: K, v: FeaturedGame[K]) => setData({ ...data, [k]: v });
+  return (
+    <div className="space-y-4">
+      <PanelHeader title="Featured Game" onSave={save} saving={saving} msg={msg} />
+      <div className="rounded-lg border border-border bg-card p-4">
+        <Label className="mb-3 block text-xs uppercase tracking-wider text-muted-foreground">Live preview</Label>
+        <FeaturedGameCard value={preview} />
+        {!data.enabled && (
+          <p className="mt-2 text-xs text-muted-foreground">Currently disabled — will not render on the public site.</p>
+        )}
+      </div>
+      <div className="grid gap-4 rounded-lg border border-border bg-card p-4">
+        <ToggleField
+          label="Enabled"
+          description="Show the Featured Game section between Home and Projects."
+          value={data.enabled}
+          onChange={(v) => upd("enabled", v)}
+        />
+        <div>
+          <Label>Project</Label>
+          <select
+            value={data.project_id ?? ""}
+            onChange={(e) => upd("project_id", e.target.value || null)}
+            className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="">— Select a project —</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.title}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-muted-foreground">Image, title and description fall back to the selected project unless overridden below.</p>
+        </div>
+        <CoverUploader value={data.custom_image_url} onChange={(v) => upd("custom_image_url", v)} />
+        <Field label="Custom headline (optional)" value={data.custom_headline} onChange={(v) => upd("custom_headline", v)} placeholder="Overrides project title" />
+        <TextField label="Custom description (optional)" value={data.custom_description} onChange={(v) => upd("custom_description", v)} />
+        <div>
+          <Field label="Steam App ID" value={data.steam_app_id} onChange={(v) => upd("steam_app_id", v)} placeholder="e.g. 4321130" />
+          <p className="mt-1 text-xs text-muted-foreground">Enter only the numeric Steam App ID, not the full embed code.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 function ToggleField({ label, description, value, onChange }: { label: string; description?: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
