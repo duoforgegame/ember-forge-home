@@ -257,11 +257,21 @@ function AboutSection({ team, aboutText }: { team: typeof fallbackTeam; aboutTex
   );
 }
 
+export const INQUIRY_TYPES = [
+  { value: "player", label: "Player" },
+  { value: "press", label: "Press / Media" },
+  { value: "publisher", label: "Publisher / Business" },
+  { value: "other", label: "Other" },
+] as const;
+
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
   subject: z.string().trim().min(1).max(150),
   message: z.string().trim().min(1).max(2000),
+  inquiry_type: z.enum(["player", "press", "publisher", "other"], {
+    errorMap: () => ({ message: "Please select an inquiry type" }),
+  }),
 });
 
 function ContactSection({ socials }: { socials: typeof fallbackSocials }) {
