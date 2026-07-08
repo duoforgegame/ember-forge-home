@@ -53,14 +53,28 @@ export async function sendContact(input: { name: string; email: string; subject:
   return res.json();
 }
 
+export async function uploadProjectCover(file: File): Promise<string> {
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  const { signedUrl, token, path, publicUrl } = await adminCall({ op: "sign_cover_upload", ext });
+  void signedUrl; void path;
+  // Use the SDK's uploadToSignedUrl helper — extracts bucket+path from token flow.
+  const { error } = await supabase.storage.from("project-covers").uploadToSignedUrl(path, token, file, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (error) throw error;
+  return publicUrl as string;
+}
+
 export async function fetchSiteContent() {
-  const [projects, team, about, socials, header, footer] = await Promise.all([
+  const [projects, team, about, socials, header, footer, statusColors] = await Promise.all([
     supabase.from("site_projects").select("*").order("sort_order"),
     supabase.from("site_team").select("*").order("sort_order"),
     supabase.from("site_about").select("*").eq("id", 1).maybeSingle(),
     supabase.from("site_socials").select("*").eq("id", 1).maybeSingle(),
     supabase.from("site_header_links").select("*").order("sort_order"),
     supabase.from("site_footer_links").select("*").order("sort_order"),
+    supabase.from("site_status_colors").select("*"),
   ]);
   return {
     projects: projects.data ?? [],
@@ -69,5 +83,6 @@ export async function fetchSiteContent() {
     socials: socials.data ?? null,
     header: header.data ?? [],
     footer: footer.data ?? [],
+    statusColors: (statusColors.data ?? []) as { status: string; color: string }[],
   };
 }
