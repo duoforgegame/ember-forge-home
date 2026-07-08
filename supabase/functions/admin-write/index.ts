@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 const ALLOWED_TABLES = new Set([
   "site_projects", "site_team", "site_about", "site_socials",
   "site_header_links", "site_footer_links", "site_status_colors", "site_legal", "site_announcement",
-  "site_press_kits", "site_press_screenshots", "site_game_page_blocks",
+  "site_press_kits", "site_press_screenshots", "site_game_page_blocks", "site_featured_game",
 ]);
 const COVERS_BUCKET = "project-covers";
 const PRESS_BUCKET = "press-kit-assets";
