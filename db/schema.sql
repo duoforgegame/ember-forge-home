@@ -292,5 +292,25 @@ alter table public.site_game_page_blocks enable row level security;
 drop policy if exists "public read game blocks" on public.site_game_page_blocks;
 create policy "public read game blocks" on public.site_game_page_blocks for select to anon, authenticated using (true);
 
+-- FEATURED GAME (singleton) — highlighted card between Home and Projects on the landing page
+create table if not exists public.site_featured_game (
+  id integer primary key check (id = 1),
+  enabled boolean not null default false,
+  project_id uuid references public.site_projects(id) on delete set null,
+  custom_image_url text not null default '',
+  custom_headline text not null default '',
+  custom_description text not null default '',
+  steam_app_id text not null default '',
+  updated_at timestamptz not null default now()
+);
+grant select on public.site_featured_game to anon, authenticated;
+grant all on public.site_featured_game to service_role;
+alter table public.site_featured_game enable row level security;
+drop policy if exists "public read featured game" on public.site_featured_game;
+create policy "public read featured game" on public.site_featured_game for select to anon, authenticated using (true);
+insert into public.site_featured_game (id) values (1) on conflict (id) do nothing;
+
+
+
 
 
