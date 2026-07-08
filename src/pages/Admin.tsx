@@ -17,7 +17,7 @@ type StatusColor = { status: string; color: string };
 
 const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
 
-const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Legal", "Messages"] as const;
+const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
