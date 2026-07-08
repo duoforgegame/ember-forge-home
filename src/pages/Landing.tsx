@@ -161,7 +161,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectsSection({ projects, statusColorMap }: { projects: typeof fallbackProjects; statusColorMap: Record<string, string> }) {
+type ProjectView = (typeof fallbackProjects)[number] & { pressKitEnabled?: boolean };
+
+function ProjectsSection({ projects, statusColorMap }: { projects: ProjectView[]; statusColorMap: Record<string, string> }) {
   return (
     <section id="projects" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
