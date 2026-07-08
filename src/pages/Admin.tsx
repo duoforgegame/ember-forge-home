@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover } from "@/lib/api";
 import { statusBadgeStyle } from "@/pages/Landing";
+import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number };
 type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
@@ -17,7 +18,7 @@ type StatusColor = { status: string; color: string };
 
 const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
 
-const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Legal", "Messages"] as const;
+const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
@@ -94,6 +95,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         {tab === "Footer" && <LinksPanel table="site_footer_links" title="Footer links" />}
         {tab === "Status colors" && <StatusColorsPanel />}
         {tab === "Legal" && <LegalPanel />}
+        {tab === "Banner" && <AnnouncementPanel />}
         {tab === "Messages" && <MessagesPanel />}
       </main>
     </div>
@@ -471,6 +473,119 @@ function LegalPanel() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+type Announcement = {
+  id: number;
+  enabled: boolean;
+  message: string;
+  link_url: string;
+  link_label: string;
+  open_in_new_tab: boolean;
+  background_color: string;
+  text_color: string;
+};
+
+const ANNOUNCEMENT_DEFAULTS: Announcement = {
+  id: 1,
+  enabled: false,
+  message: "",
+  link_url: "",
+  link_label: "",
+  open_in_new_tab: true,
+  background_color: "#f59e0b",
+  text_color: "#0b0b0f",
+};
+
+function AnnouncementPanel() {
+  const { data, loading, error, setData } = useLoader<Announcement>(async () => {
+    const { supabase } = await import("@/lib/supabase");
+    const { data: row } = await supabase.from("site_announcement").select("*").eq("id", 1).maybeSingle();
+    return (row as Announcement) ?? ANNOUNCEMENT_DEFAULTS;
+  });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (loading || !data) return <Spinner />;
+  if (error) return <ErrorMsg text={error} />;
+  const save = async () => {
+    setSaving(true); setMsg("");
+    try { await adminCall({ op: "upsert", table: "site_announcement", rows: [data] }); setMsg("Saved"); }
+    catch (e: any) { setMsg(e?.message ?? "Save failed"); }
+    finally { setSaving(false); }
+  };
+  const upd = <K extends keyof Announcement>(k: K, v: Announcement[K]) => setData({ ...data, [k]: v });
+  return (
+    <div className="space-y-4">
+      <PanelHeader title="Announcement Banner" onSave={save} saving={saving} msg={msg} />
+      <div className="rounded-lg border border-border bg-card p-4">
+        <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground">Live preview</Label>
+        <AnnouncementBannerPreview value={data} />
+        {!data.enabled && (
+          <p className="mt-2 text-xs text-muted-foreground">Currently disabled — will not render on the public site.</p>
+        )}
+      </div>
+      <div className="grid gap-4 rounded-lg border border-border bg-card p-4">
+        <ToggleField
+          label="Enabled"
+          description="Show the banner on the public site."
+          value={data.enabled}
+          onChange={(v) => upd("enabled", v)}
+        />
+        <TextField label="Message" value={data.message} onChange={(v) => upd("message", v)} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Link URL (optional)" value={data.link_url} onChange={(v) => upd("link_url", v)} placeholder="https://…" />
+          <Field label="Link label (optional)" value={data.link_label} onChange={(v) => upd("link_label", v)} placeholder="Learn more" />
+        </div>
+        <ToggleField
+          label="Open link in new tab"
+          description="Only applies when a link URL is set."
+          value={data.open_in_new_tab}
+          onChange={(v) => upd("open_in_new_tab", v)}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ColorField label="Background color" value={data.background_color} onChange={(v) => upd("background_color", v)} />
+          <ColorField label="Text color" value={data.text_color} onChange={(v) => upd("text_color", v)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ToggleField({ label, description, value, onChange }: { label: string; description?: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-start justify-between gap-4">
+      <span className="flex-1">
+        <span className="block text-sm font-medium text-foreground">{label}</span>
+        {description && <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        onClick={() => onChange(!value)}
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${value ? "bg-primary" : "bg-muted"}`}
+      >
+        <span className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform ${value ? "translate-x-5" : "translate-x-0.5"}`} />
+      </button>
+    </label>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="mt-1 flex items-center gap-2">
+        <input
+          type="color"
+          value={value || "#000000"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-10 w-16 cursor-pointer rounded-md border border-input bg-background"
+        />
+        <Input value={value} onChange={(e) => onChange(e.target.value)} className="w-32" />
+      </div>
     </div>
   );
 }
