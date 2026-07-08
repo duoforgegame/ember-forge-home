@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, Send, Loader2, CheckCircle2, AlertCircle, Newspaper } from "lucide-react";
+import { ArrowDown, Send, Loader2, CheckCircle2, AlertCircle, Newspaper, Info } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Embers } from "@/components/Embers";
