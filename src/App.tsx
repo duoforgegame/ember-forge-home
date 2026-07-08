@@ -9,6 +9,7 @@ const Imprint = lazy(() => import("./pages/Imprint"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Admin = lazy(() => import("./pages/Admin"));
 const PressKit = lazy(() => import("./pages/PressKit"));
+const GamePage = lazy(() => import("./pages/GamePage"));
 
 export default function App() {
   const location = useLocation();
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/press/:slug" element={<PressKit />} />
+          <Route path="/games/:slug" element={<GamePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

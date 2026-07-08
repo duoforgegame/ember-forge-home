@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X } from "lucide-react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover, upload
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 
-type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean };
+type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
 type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
 type LinkRow = { id?: string; label: string; url: string; sort_order: number };
 type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string };
@@ -140,6 +140,7 @@ function ProjectsPanel() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [pressKitFor, setPressKitFor] = useState<ProjectRow | null>(null);
+  const [gamePageFor, setGamePageFor] = useState<ProjectRow | null>(null);
   if (loading) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const rows = data ?? [];
@@ -149,7 +150,7 @@ function ProjectsPanel() {
   for (const c of colorsLoader.data ?? []) colorMap[c.status] = c.color;
 
   const update = (i: number, patch: Partial<ProjectRow>) => setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-  const addRow = () => setData([...rows, { title: "", description: "", cover_url: "", status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false }]);
+  const addRow = () => setData([...rows, { title: "", description: "", cover_url: "", status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false, more_info_enabled: false }]);
   const removeRow = async (i: number) => {
     const row = rows[i];
     if (row.id && !confirm("Delete this project?")) return;
@@ -200,6 +201,28 @@ function ProjectsPanel() {
                   <FileText className="mr-2 h-4 w-4" /> Edit Press Kit
                 </Button>
               </div>
+              <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={!!r.more_info_enabled}
+                    onChange={(e) => update(i, { more_info_enabled: e.target.checked })}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  <span className="text-sm font-medium">Game Info Page enabled</span>
+                  <span className="text-xs text-muted-foreground">Shows a "More info" link on the card and enables <code>/games/{slugify(r.title || "slug")}</code>.</span>
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!r.id || !r.more_info_enabled}
+                  onClick={() => setGamePageFor(r)}
+                  title={!r.id ? "Save the project first" : !r.more_info_enabled ? "Enable Game Page first" : "Edit game page"}
+                >
+                  <Layers className="mr-2 h-4 w-4" /> Edit Game Page
+                </Button>
+              </div>
               <div className="flex items-end justify-end sm:col-span-2">
                 <Button variant="ghost" size="sm" onClick={() => removeRow(i)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
               </div>
@@ -216,6 +239,9 @@ function ProjectsPanel() {
           project={pressKitFor}
           onClose={() => setPressKitFor(null)}
         />
+      )}
+      {gamePageFor?.id && (
+        <GamePageDialog project={gamePageFor} onClose={() => setGamePageFor(null)} />
       )}
     </div>
   );
@@ -1086,3 +1112,505 @@ function ZipUpload({ value, onChange }: { value: string; onChange: (url: string)
     </div>
   );
 }
+
+// -----------------------------------------------------------------------------
+// GAME INFO PAGE EDITOR (per project) — block-based
+// -----------------------------------------------------------------------------
+
+type BlockRow = {
+  id?: string;
+  project_id: string;
+  block_type: string;
+  sort_order: number;
+  visible: boolean;
+  content: any;
+  _dirty?: boolean;
+};
+
+const BLOCK_TYPES: { type: string; label: string; description: string }[] = [
+  { type: "hero", label: "Hero", description: "Big background image with title, subtitle, and optional CTA." },
+  { type: "text", label: "Text", description: "Heading, rich text body, optional side image." },
+  { type: "gallery", label: "Image Gallery", description: "Multiple images with lightbox and reordering." },
+  { type: "free_image", label: "Free Image", description: "Single image (roadmap/infographic) with size and caption." },
+  { type: "steam", label: "Steam Widget", description: "Embed the official Steam wishlist/buy widget." },
+  { type: "features", label: "Feature List", description: "Grid of icon + title + description items." },
+  { type: "video", label: "Video / Trailer", description: "Embedded YouTube or Vimeo video." },
+  { type: "quote", label: "Quote / Testimonial", description: "Featured quote with attribution." },
+];
+
+const defaultContent = (type: string): any => {
+  switch (type) {
+    case "hero":       return { title: "", subtitle: "", image_url: "", cta_label: "", cta_url: "", overlay_color: "#000000", overlay_opacity: 0.5, background_color: "" };
+    case "text":       return { heading: "", body: "", image_url: "", image_position: "none", background_color: "" };
+    case "gallery":    return { heading: "", images: [] as string[], background_color: "" };
+    case "free_image": return { image_url: "", caption: "", size: "large", zoomable: true, background_color: "" };
+    case "steam":      return { app_id: "", background_color: "" };
+    case "features":   return { heading: "", columns: 3, items: [] as any[], background_color: "" };
+    case "video":      return { url: "", background_color: "" };
+    case "quote":      return { quote: "", attribution: "", background_color: "" };
+    default:           return { background_color: "" };
+  }
+};
+
+function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: () => void }) {
+  const projectId = project.id!;
+  const [blocks, setBlocks] = useState<BlockRow[]>([]);
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data, error } = await supabase
+          .from("site_game_page_blocks")
+          .select("*")
+          .eq("project_id", projectId)
+          .order("sort_order");
+        if (error) throw error;
+        setBlocks((data ?? []).map((b: any) => ({ ...b, content: b.content ?? {} })) as BlockRow[]);
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to load game page");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [projectId]);
+
+  const patch = (i: number, p: Partial<BlockRow>) => setBlocks(blocks.map((b, idx) => idx === i ? { ...b, ...p, _dirty: true } : b));
+  const patchContent = (i: number, c: any) => patch(i, { content: { ...blocks[i].content, ...c } });
+
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= blocks.length) return;
+    const next = [...blocks];
+    [next[i], next[j]] = [next[j], next[i]];
+    setBlocks(next.map((b, idx) => ({ ...b, sort_order: idx, _dirty: true })));
+    if (openIdx === i) setOpenIdx(j);
+    else if (openIdx === j) setOpenIdx(i);
+  };
+
+  const remove = (i: number) => {
+    if (!confirm("Delete this block?")) return;
+    const b = blocks[i];
+    if (b.id) setDeletedIds([...deletedIds, b.id]);
+    setBlocks(blocks.filter((_, idx) => idx !== i).map((b, idx) => ({ ...b, sort_order: idx, _dirty: true })));
+    if (openIdx === i) setOpenIdx(null);
+  };
+
+  const add = (type: string) => {
+    setBlocks([...blocks, { project_id: projectId, block_type: type, sort_order: blocks.length, visible: true, content: defaultContent(type), _dirty: true }]);
+    setAddOpen(false);
+    setOpenIdx(blocks.length);
+  };
+
+  const save = async () => {
+    setSaving(true); setMsg("");
+    try {
+      for (const id of deletedIds) {
+        await adminCall({ op: "delete", table: "site_game_page_blocks", id });
+      }
+      const rows = blocks.map((b, i) => {
+        const { _dirty, ...rest } = b;
+        return { ...rest, sort_order: i };
+      });
+      if (rows.length > 0) {
+        const res = await adminCall({ op: "upsert", table: "site_game_page_blocks", rows });
+        // refresh with returned ids
+        if (res?.rows) setBlocks((res.rows as any[]).sort((a, b) => a.sort_order - b.sort_order).map((b: any) => ({ ...b, content: b.content ?? {} })));
+      }
+      setDeletedIds([]);
+      setMsg("Saved");
+    } catch (e: any) {
+      setMsg(e?.message ?? "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const gameUrl = `/games/${slugify(project.title)}`;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
+      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <h2 className="font-display text-xl font-bold">Game Info Page — {project.title}</h2>
+            <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+              <ExternalLink className="h-3 w-3" /> Preview page: {gameUrl}
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
+            <Button size="sm" onClick={save} disabled={saving || loading}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></Button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {loading && <Spinner />}
+          {error && <ErrorMsg text={error} />}
+          {!loading && !error && (
+            <div className="space-y-3">
+              {blocks.length === 0 && (
+                <p className="text-sm text-muted-foreground">No blocks yet. Click "Add block" to start.</p>
+              )}
+              {blocks.map((b, i) => {
+                const meta = BLOCK_TYPES.find((t) => t.type === b.block_type);
+                const open = openIdx === i;
+                return (
+                  <div key={b.id ?? `new-${i}`} className={`rounded-lg border ${b.visible ? "border-border" : "border-border/50 opacity-70"} bg-card`}>
+                    <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setOpenIdx(open ? null : i)}
+                        className="flex flex-1 items-center gap-3 text-left"
+                      >
+                        <span className="rounded-md bg-primary/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-primary">
+                          {meta?.label ?? b.block_type}
+                        </span>
+                        <span className="truncate text-sm text-muted-foreground">{blockSummary(b)}</span>
+                      </button>
+                      <Button variant="ghost" size="icon" onClick={() => patch(i, { visible: !b.visible })} aria-label="Toggle visibility" title={b.visible ? "Hide" : "Show"}>
+                        {b.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => move(i, -1)} aria-label="Move up"><ArrowUp className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => move(i, 1)} aria-label="Move down"><ArrowDown className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => remove(i)} aria-label="Delete" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                    {open && (
+                      <div className="space-y-3 px-4 py-4">
+                        <BlockEditor block={b} onContent={(c) => patchContent(i, c)} />
+                        <div className="pt-2">
+                          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Background color (hex)</Label>
+                          <div className="mt-1 flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={/^#[0-9a-fA-F]{6}$/.test(b.content?.background_color || "") ? b.content.background_color : "#000000"}
+                              onChange={(e) => patchContent(i, { background_color: e.target.value })}
+                              className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+                            />
+                            <Input
+                              value={b.content?.background_color ?? ""}
+                              onChange={(e) => patchContent(i, { background_color: e.target.value })}
+                              placeholder="e.g. #0b0b0f or empty for transparent"
+                              className="max-w-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-border px-6 py-4">
+          <div className="relative">
+            <Button variant="outline" size="sm" onClick={() => setAddOpen(!addOpen)}>
+              <Plus className="mr-2 h-4 w-4" /> Add block
+            </Button>
+            {addOpen && (
+              <div className="absolute bottom-full left-0 mb-2 w-80 rounded-lg border border-border bg-popover p-2 shadow-lg">
+                {BLOCK_TYPES.map((t) => (
+                  <button
+                    key={t.type}
+                    type="button"
+                    onClick={() => add(t.type)}
+                    className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
+                  >
+                    <div className="font-semibold">{t.label}</div>
+                    <div className="text-xs text-muted-foreground">{t.description}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function blockSummary(b: BlockRow): string {
+  const c = b.content || {};
+  switch (b.block_type) {
+    case "hero":       return c.title || "Untitled hero";
+    case "text":       return c.heading || (c.body ? String(c.body).slice(0, 60) : "Text block");
+    case "gallery":    return `${(Array.isArray(c.images) ? c.images.length : 0)} image(s)`;
+    case "free_image": return c.caption || "Image";
+    case "steam":      return c.app_id ? `App ${c.app_id}` : "No App ID";
+    case "features":   return `${(Array.isArray(c.items) ? c.items.length : 0)} feature(s)`;
+    case "video":      return c.url || "No URL";
+    case "quote":      return c.quote ? String(c.quote).slice(0, 60) : "Empty quote";
+    default:           return "";
+  }
+}
+
+function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any) => void }) {
+  const c = block.content || {};
+  switch (block.block_type) {
+    case "hero":
+      return (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Title" value={c.title ?? ""} onChange={(v) => onContent({ title: v })} className="sm:col-span-2" />
+          <TextField label="Subtitle" value={c.subtitle ?? ""} onChange={(v) => onContent({ subtitle: v })} className="sm:col-span-2" />
+          <div className="sm:col-span-2">
+            <ImageInput label="Background image" value={c.image_url ?? ""} onChange={(v) => onContent({ image_url: v })} />
+          </div>
+          <Field label="CTA label (optional)" value={c.cta_label ?? ""} onChange={(v) => onContent({ cta_label: v })} />
+          <Field label="CTA URL (optional)" value={c.cta_url ?? ""} onChange={(v) => onContent({ cta_url: v })} />
+          <div>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Overlay color</Label>
+            <div className="mt-1 flex items-center gap-2">
+              <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(c.overlay_color || "") ? c.overlay_color : "#000000"} onChange={(e) => onContent({ overlay_color: e.target.value })} className="h-9 w-12 cursor-pointer rounded border border-border" />
+              <Input value={c.overlay_color ?? ""} onChange={(e) => onContent({ overlay_color: e.target.value })} placeholder="#000000" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Overlay opacity ({Math.round((c.overlay_opacity ?? 0.5) * 100)}%)</Label>
+            <input type="range" min={0} max={1} step={0.05} value={c.overlay_opacity ?? 0.5} onChange={(e) => onContent({ overlay_opacity: Number(e.target.value) })} className="mt-2 w-full accent-primary" />
+          </div>
+        </div>
+      );
+
+    case "text":
+      return (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Heading (optional)" value={c.heading ?? ""} onChange={(v) => onContent({ heading: v })} className="sm:col-span-2" />
+          <TextField label="Body" value={c.body ?? ""} onChange={(v) => onContent({ body: v })} className="sm:col-span-2" />
+          <div>
+            <Label>Image position</Label>
+            <select
+              value={c.image_position ?? "none"}
+              onChange={(e) => onContent({ image_position: e.target.value })}
+              className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="none">None</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          <div>
+            <ImageInput label="Image (optional)" value={c.image_url ?? ""} onChange={(v) => onContent({ image_url: v })} />
+          </div>
+        </div>
+      );
+
+    case "gallery": {
+      const images: string[] = Array.isArray(c.images) ? c.images : [];
+      const setImages = (next: string[]) => onContent({ images: next });
+      const moveImg = (i: number, dir: -1 | 1) => {
+        const j = i + dir;
+        if (j < 0 || j >= images.length) return;
+        const next = [...images];
+        [next[i], next[j]] = [next[j], next[i]];
+        setImages(next);
+      };
+      return (
+        <div className="space-y-3">
+          <Field label="Heading (optional)" value={c.heading ?? ""} onChange={(v) => onContent({ heading: v })} />
+          <MultiImageUpload
+            onFiles={async (files) => {
+              const urls: string[] = [];
+              for (const f of Array.from(files ?? [])) {
+                try { urls.push(await uploadPressAsset(f, "press_image")); } catch {}
+              }
+              if (urls.length) setImages([...images, ...urls]);
+            }}
+          />
+          {images.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No images yet.</p>
+          ) : (
+            <ul className="grid gap-2">
+              {images.map((url, i) => (
+                <li key={`${url}-${i}`} className="flex items-center gap-3 rounded-md border border-border bg-background/40 p-2">
+                  <div className="h-14 w-24 shrink-0 overflow-hidden rounded bg-surface-2">
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </div>
+                  <Input value={url} onChange={(e) => setImages(images.map((u, idx) => idx === i ? e.target.value : u))} className="flex-1 text-xs" />
+                  <Button variant="ghost" size="icon" onClick={() => moveImg(i, -1)} aria-label="Move up"><ArrowUp className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => moveImg(i, 1)} aria-label="Move down"><ArrowDown className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => setImages(images.filter((_, idx) => idx !== i))} aria-label="Delete" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    }
+
+    case "free_image":
+      return (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <ImageInput label="Image" value={c.image_url ?? ""} onChange={(v) => onContent({ image_url: v })} />
+          </div>
+          <div>
+            <Label>Display size</Label>
+            <select
+              value={c.size ?? "large"}
+              onChange={(e) => onContent({ size: e.target.value })}
+              className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+              <option value="full">Full width</option>
+            </select>
+          </div>
+          <label className="flex items-end gap-2 pb-2">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={c.zoomable !== false} onChange={(e) => onContent({ zoomable: e.target.checked })} />
+            <span className="text-sm">Click to zoom</span>
+          </label>
+          <TextField label="Caption (optional)" value={c.caption ?? ""} onChange={(v) => onContent({ caption: v })} className="sm:col-span-2" />
+        </div>
+      );
+
+    case "steam":
+      return (
+        <div className="grid gap-3">
+          <Field label="Steam App ID" value={c.app_id ?? ""} onChange={(v) => onContent({ app_id: v })} placeholder="e.g. 730" />
+          <p className="text-xs text-muted-foreground">Renders <code>https://store.steampowered.com/widget/&lt;APP_ID&gt;/</code>.</p>
+        </div>
+      );
+
+    case "features": {
+      const items: any[] = Array.isArray(c.items) ? c.items : [];
+      const setItems = (next: any[]) => onContent({ items: next });
+      return (
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Heading (optional)" value={c.heading ?? ""} onChange={(v) => onContent({ heading: v })} />
+            <div>
+              <Label>Columns</Label>
+              <select
+                value={String(c.columns ?? 3)}
+                onChange={(e) => onContent({ columns: Number(e.target.value) })}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {items.map((it, i) => (
+              <div key={i} className="grid gap-2 rounded-md border border-border bg-background/40 p-3 sm:grid-cols-[80px_1fr_1fr_auto]">
+                <div>
+                  <Label className="text-xs">Icon</Label>
+                  {it.icon_url ? (
+                    <img src={it.icon_url} alt="" className="mt-1 h-10 w-10 object-contain" />
+                  ) : (
+                    <div className="mt-1 grid h-10 w-10 place-items-center rounded bg-surface-2 text-muted-foreground"><ImageIcon className="h-4 w-4" /></div>
+                  )}
+                </div>
+                <Field label="Title" value={it.title ?? ""} onChange={(v) => setItems(items.map((x, idx) => idx === i ? { ...x, title: v } : x))} />
+                <Field label="Description" value={it.description ?? ""} onChange={(v) => setItems(items.map((x, idx) => idx === i ? { ...x, description: v } : x))} />
+                <div className="flex items-end gap-1">
+                  <IconUploadButton onUploaded={(url) => setItems(items.map((x, idx) => idx === i ? { ...x, icon_url: url } : x))} />
+                  <Button variant="ghost" size="icon" onClick={() => setItems(items.filter((_, idx) => idx !== i))} aria-label="Delete" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => setItems([...items, { title: "", description: "", icon_url: "" }])}>
+              <Plus className="mr-2 h-4 w-4" /> Add feature
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    case "video":
+      return (
+        <Field label="YouTube or Vimeo URL" value={c.url ?? ""} onChange={(v) => onContent({ url: v })} placeholder="https://youtube.com/watch?v=…" />
+      );
+
+    case "quote":
+      return (
+        <div className="grid gap-3">
+          <TextField label="Quote" value={c.quote ?? ""} onChange={(v) => onContent({ quote: v })} />
+          <Field label="Attribution" value={c.attribution ?? ""} onChange={(v) => onContent({ attribution: v })} placeholder="Name / Publication" />
+        </div>
+      );
+
+    default:
+      return <p className="text-sm text-muted-foreground">Unknown block type.</p>;
+  }
+}
+
+function ImageInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState("");
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (!f) return;
+    if (f.size > 15 * 1024 * 1024) { setErr("Max 15 MB."); return; }
+    setErr(""); setUploading(true);
+    try { onChange(await uploadPressAsset(f, "press_image")); }
+    catch (ex: any) { setErr(ex?.message ?? "Upload failed"); }
+    finally { setUploading(false); }
+  };
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="mt-2 grid aspect-video max-h-56 place-items-center overflow-hidden rounded-md border border-border bg-surface-2">
+        {value ? <img src={value} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+      </div>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={pick} className="hidden" />
+      <div className="mt-2 flex gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading}>
+          {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="mr-2 h-4 w-4" /> {value ? "Replace" : "Upload"}</>}
+        </Button>
+        {value && <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Clear</Button>}
+      </div>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="or paste URL" className="mt-2 text-xs" />
+      {err && <p className="mt-1 text-xs text-destructive">{err}</p>}
+    </div>
+  );
+}
+
+function MultiImageUpload({ onFiles }: { onFiles: (files: FileList | null) => Promise<void> | void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="hidden" onChange={async (e) => { setBusy(true); await onFiles(e.target.files); e.target.value = ""; setBusy(false); }} />
+      <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={busy}>
+        {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />} Add images
+      </Button>
+    </>
+  );
+}
+
+function IconUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (!f) return;
+    setBusy(true);
+    try { onUploaded(await uploadPressAsset(f, "press_logo")); }
+    catch {}
+    finally { setBusy(false); }
+  };
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/png,image/webp,image/svg+xml" onChange={pick} className="hidden" />
+      <Button type="button" variant="ghost" size="icon" onClick={() => inputRef.current?.click()} aria-label="Upload icon" disabled={busy}>
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+      </Button>
+    </>
+  );
+}
+
