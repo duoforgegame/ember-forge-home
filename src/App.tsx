@@ -4,6 +4,7 @@ import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import { AnnouncementBanner } from "./components/AnnouncementBanner";
 import { LoadingScreen } from "./components/LoadingScreen";
+import ScrollToTop from "./components/ScrollToTop";
 
 const Imprint = lazy(() => import("./pages/Imprint"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -18,6 +19,7 @@ export default function App() {
   return (
     <>
       {!loaded && <LoadingScreen onDone={() => setLoaded(true)} />}
+      <ScrollToTop />
       {!isAdmin && <AnnouncementBanner />}
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
         <Routes>
