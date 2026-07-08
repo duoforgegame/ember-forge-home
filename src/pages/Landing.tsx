@@ -19,12 +19,20 @@ import {
 import { fetchSiteContent, sendContact } from "@/lib/api";
 import logoLarge from "@/assets/dfg-logo-large.png";
 
-const statusStyles: Record<ProjectStatus, string> = {
-  "Play Now": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  "In Development": "bg-primary/15 text-primary border-primary/40",
-  "Coming Soon": "bg-sky-500/15 text-sky-400 border-sky-500/30",
-  Prototype: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
+const DEFAULT_STATUS_COLORS: Record<string, string> = {
+  "Play Now": "#10b981",
+  "In Development": "#f59e0b",
+  "Coming Soon": "#0ea5e9",
+  Prototype: "#a1a1aa",
 };
+
+export function statusBadgeStyle(color: string): React.CSSProperties {
+  return {
+    backgroundColor: `${color}26`,
+    borderColor: `${color}66`,
+    color,
+  };
+}
 
 export default function Landing() {
   const { data } = useQuery({ queryKey: ["site-content"], queryFn: fetchSiteContent, retry: 0 });
