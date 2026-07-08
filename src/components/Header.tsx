@@ -86,6 +86,17 @@ export function Header() {
               </a>
             );
           })}
+          <a
+            href="https://discord.gg/9mJ4XA6YrB"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-2 hidden items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary-glow hover:shadow-glow-sm sm:inline-flex"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+              <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3c-.2.36-.44.845-.6 1.23a18.27 18.27 0 0 0-5.918 0A12.6 12.6 0 0 0 9.44 3a19.74 19.74 0 0 0-3.76 1.37C2.06 9.09 1.09 13.68 1.57 18.2A19.9 19.9 0 0 0 7.62 21a14.5 14.5 0 0 0 1.24-2c-.68-.26-1.32-.58-1.92-.95.16-.12.32-.24.47-.36 3.7 1.72 7.7 1.72 11.35 0 .16.12.31.24.47.36-.6.37-1.24.69-1.92.95.36.7.77 1.37 1.24 2a19.87 19.87 0 0 0 6.06-2.8c.56-5.28-.96-9.83-4.31-13.83ZM8.68 15.33c-1.18 0-2.15-1.08-2.15-2.4 0-1.32.95-2.4 2.15-2.4 1.2 0 2.17 1.09 2.15 2.4 0 1.32-.95 2.4-2.15 2.4Zm6.63 0c-1.18 0-2.15-1.08-2.15-2.4 0-1.32.95-2.4 2.15-2.4 1.2 0 2.17 1.09 2.15 2.4 0 1.32-.95 2.4-2.15 2.4Z" />
+            </svg>
+            Discord
+          </a>
         </nav>
       </div>
     </header>
