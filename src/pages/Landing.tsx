@@ -57,12 +57,15 @@ export default function Landing() {
   const socials = data?.socials ?? fallbackSocials;
   const aboutText: string | null = data?.about?.intro_html ?? null;
 
+  const statusColorMap: Record<string, string> = { ...DEFAULT_STATUS_COLORS };
+  for (const c of data?.statusColors ?? []) statusColorMap[c.status] = c.color;
+
   return (
     <div className="relative min-h-screen">
       <Header />
       <main>
         <HomeSection />
-        <ProjectsSection projects={projects} />
+        <ProjectsSection projects={projects} statusColorMap={statusColorMap} />
         <AboutSection team={team} aboutText={aboutText} />
         <ContactSection socials={socials} />
       </main>
