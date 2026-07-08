@@ -24,7 +24,8 @@ export type AdminOp =
   | { op: "upsert"; table: string; rows: unknown[] }
   | { op: "delete"; table: string; id: string | number }
   | { op: "list_submissions" }
-  | { op: "delete_submission"; id: string };
+  | { op: "delete_submission"; id: string }
+  | { op: "sign_cover_upload"; ext: string };
 
 export async function adminCall(body: AdminOp): Promise<any> {
   const token = getToken();
