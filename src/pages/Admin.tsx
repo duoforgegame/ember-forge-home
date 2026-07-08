@@ -696,34 +696,69 @@ function LinksPanel({ table, title }: { table: string; title: string }) {
 }
 
 function MessagesPanel() {
+  const [filter, setFilter] = useState<string>("all");
   const { data, loading, error, reload } = useLoader<Submission[]>(async () => {
     const res = await adminCall({ op: "list_submissions" });
     return res.rows as Submission[];
   });
   if (loading) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
-  const rows = data ?? [];
+  const all = data ?? [];
+  const rows = filter === "all" ? all : all.filter((r) => (r.inquiry_type || "other") === filter);
   const del = async (id: string) => {
     if (!confirm("Delete this message?")) return;
     await adminCall({ op: "delete_submission", id });
     await reload();
   };
+  const filterOptions = [
+    { value: "all", label: `All (${all.length})` },
+    ...Object.entries(INQUIRY_META).map(([value, m]) => ({
+      value,
+      label: `${m.label} (${all.filter((r) => (r.inquiry_type || "other") === value).length})`,
+    })),
+  ];
   return (
     <div className="space-y-4">
-      <h2 className="font-display text-2xl font-bold">Messages ({rows.length})</h2>
-      {rows.length === 0 && <p className="text-sm text-muted-foreground">No messages yet.</p>}
-      {rows.map((r) => (
-        <div key={r.id} className="rounded-lg border border-border bg-card p-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <div>
-              <div className="font-semibold">{r.subject}</div>
-              <div className="text-xs text-muted-foreground">{r.name} &lt;{r.email}&gt; · {new Date(r.created_at).toLocaleString()}</div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => del(r.id)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
-          </div>
-          <pre className="mt-3 whitespace-pre-wrap font-sans text-sm text-foreground/90">{r.message}</pre>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-2xl font-bold">Messages ({rows.length})</h2>
+        <div className="flex flex-wrap gap-1.5">
+          {filterOptions.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => setFilter(o.value)}
+              className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
+                filter === o.value
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
-      ))}
+      </div>
+      {rows.length === 0 && <p className="text-sm text-muted-foreground">No messages.</p>}
+      {rows.map((r) => {
+        const meta = INQUIRY_META[r.inquiry_type] ?? INQUIRY_META.other;
+        return (
+          <div key={r.id} className="rounded-lg border border-border bg-card p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${meta.className}`}>
+                    {meta.label}
+                  </span>
+                  <span className="font-semibold">{r.subject}</span>
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">{r.name} &lt;{r.email}&gt; · {new Date(r.created_at).toLocaleString()}</div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => del(r.id)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+            </div>
+            <pre className="mt-3 whitespace-pre-wrap font-sans text-sm text-foreground/90">{r.message}</pre>
+          </div>
+        );
+      })}
     </div>
   );
 }
