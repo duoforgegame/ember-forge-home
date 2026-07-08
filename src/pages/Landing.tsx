@@ -96,7 +96,7 @@ function HomeSection() {
           <img
             src={logoLarge}
             alt="Duo Forge Games logo"
-            className="relative z-10 h-[30rem] w-auto drop-shadow-[0_0_60px_oklch(0.68_0.17_45_/_0.5)] transition-transform duration-300 ease-out will-change-transform sm:h-[38rem] md:h-[44rem]"
+            className="relative z-10 h-[21rem] w-auto drop-shadow-[0_0_60px_oklch(0.68_0.17_45_/_0.5)] transition-transform duration-300 ease-out will-change-transform sm:h-[27rem] md:h-[32rem]"
             width={672}
             height={840}
             style={{ transform: `rotateY(${tilt.x}deg) rotateX(${tilt.y}deg)`, transformStyle: "preserve-3d" }}
