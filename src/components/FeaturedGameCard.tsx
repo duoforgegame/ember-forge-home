@@ -24,8 +24,8 @@ export function FeaturedGameCard({ value }: { value: FeaturedGameView }) {
             "radial-gradient(circle at 20% 20%, oklch(0.68 0.17 45 / 0.35), transparent 55%), radial-gradient(circle at 85% 90%, oklch(0.78 0.18 55 / 0.25), transparent 60%)",
         }}
       />
-      <div className="relative grid gap-0 lg:grid-cols-[1.1fr,1fr]">
-        <div className="relative aspect-video w-full overflow-hidden bg-surface-2 lg:aspect-auto lg:min-h-[24rem]">
+      <div className="relative grid gap-0 lg:grid-cols-[1fr,1fr]">
+        <div className="relative aspect-video w-full overflow-hidden bg-surface-2 lg:aspect-auto lg:min-h-[16rem]">
           {hasImage ? (
             <img
               src={value.imageUrl}
@@ -35,22 +35,22 @@ export function FeaturedGameCard({ value }: { value: FeaturedGameView }) {
             />
           ) : (
             <div className="grid h-full w-full place-items-center text-muted-foreground">
-              <ImageIcon className="h-10 w-10" />
+              <ImageIcon className="h-8 w-8" />
             </div>
           )}
-          <span className="absolute left-4 top-4 rounded-md border border-primary/50 bg-background/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-primary backdrop-blur-sm">
+          <span className="absolute left-3 top-3 rounded-md border border-primary/50 bg-background/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary backdrop-blur-sm">
             Featured Game
           </span>
         </div>
-        <div className="flex flex-col justify-center gap-5 p-6 sm:p-8 lg:p-10">
+        <div className="flex flex-col justify-center gap-4 p-5 sm:p-6 lg:p-7">
           <div>
-            <h3 className="font-display text-2xl font-black uppercase tracking-wide sm:text-3xl lg:text-4xl">
+            <h3 className="font-display text-xl font-black uppercase tracking-wide sm:text-2xl lg:text-3xl">
               {value.headline || "Untitled"}
             </h3>
-            <span className="mt-3 block h-1 w-16 rounded-full bg-primary shadow-glow-sm" />
+            <span className="mt-2 block h-1 w-12 rounded-full bg-primary shadow-glow-sm" />
           </div>
           {value.description && (
-            <p className="text-base leading-relaxed text-muted-foreground">{value.description}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{value.description}</p>
           )}
           {appId ? (
             <div className="overflow-hidden rounded-lg border border-border bg-surface-2/60">

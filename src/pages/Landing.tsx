@@ -83,8 +83,8 @@ export default function Landing() {
       <main>
         <HomeSection />
         {featuredView && (
-          <section id="featured" className="relative pt-8 sm:pt-12">
-            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <section id="featured" className="relative pt-6 sm:pt-10">
+            <div className="mx-auto max-w-5xl px-4 sm:px-6">
               <FeaturedGameCard value={featuredView} />
             </div>
           </section>
