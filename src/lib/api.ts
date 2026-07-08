@@ -91,7 +91,7 @@ export function slugify(input: string): string {
 }
 
 export async function fetchSiteContent() {
-  const [projects, team, about, socials, header, footer, statusColors] = await Promise.all([
+  const [projects, team, about, socials, header, footer, statusColors, featured] = await Promise.all([
     supabase.from("site_projects").select("*").order("sort_order"),
     supabase.from("site_team").select("*").order("sort_order"),
     supabase.from("site_about").select("*").eq("id", 1).maybeSingle(),
@@ -99,6 +99,7 @@ export async function fetchSiteContent() {
     supabase.from("site_header_links").select("*").order("sort_order"),
     supabase.from("site_footer_links").select("*").order("sort_order"),
     supabase.from("site_status_colors").select("*"),
+    supabase.from("site_featured_game").select("*").eq("id", 1).maybeSingle(),
   ]);
   return {
     projects: projects.data ?? [],
@@ -108,5 +109,6 @@ export async function fetchSiteContent() {
     header: header.data ?? [],
     footer: footer.data ?? [],
     statusColors: (statusColors.data ?? []) as { status: string; color: string }[],
+    featured: featured.data ?? null,
   };
 }
