@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { adminLogin, adminCall, getToken, clearToken } from "@/lib/api";
+import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover } from "@/lib/api";
+import { statusBadgeStyle } from "@/pages/Landing";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number };
 type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
@@ -12,8 +13,11 @@ type LinkRow = { id?: string; label: string; url: string; sort_order: number };
 type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string };
 type About = { id: number; intro_html: string };
 type Submission = { id: string; name: string; email: string; subject: string; message: string; created_at: string };
+type StatusColor = { status: string; color: string };
 
-const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Messages"] as const;
+const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
+
+const TABS = ["Projects", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Messages"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
