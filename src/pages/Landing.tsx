@@ -90,6 +90,7 @@ export default function Landing() {
           </section>
         )}
         <ProjectsSection projects={projects} statusColorMap={statusColorMap} />
+        <SectionDivider />
         <AboutSection team={team} aboutText={aboutText} />
         <ContactSection socials={socials} />
       </main>
@@ -174,6 +175,35 @@ function SwirlingParticles() {
   );
 }
 
+function SectionDivider() {
+  const dots = Array.from({ length: 14 }, (_, i) => ({
+    key: i,
+    left: 5 + i * (90 / 13) + (i % 2 === 0 ? -1.5 : 1.5),
+    delay: (i * 0.35) % 4,
+    duration: 4 + (i % 4),
+    size: 4 + (i % 3) * 2,
+  }));
+  return (
+    <div className="relative mx-auto h-24 w-full max-w-5xl overflow-hidden" aria-hidden>
+      <span className="absolute left-1/2 top-1/2 h-px w-3/4 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      {dots.map((d) => (
+        <span
+          key={d.key}
+          className="absolute bottom-0 rounded-full bg-primary-glow animate-orbit"
+          style={{
+            left: `${d.left}%`,
+            width: `${d.size}px`,
+            height: `${d.size}px`,
+            boxShadow: "0 0 12px oklch(0.78 0.18 55 / 0.9), 0 0 24px oklch(0.68 0.17 45 / 0.5)",
+            animationDelay: `${d.delay}s`,
+            animationDuration: `${d.duration + 5}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-12 flex flex-col items-center text-center">
@@ -187,7 +217,7 @@ type ProjectView = (typeof fallbackProjects)[number] & { pressKitEnabled?: boole
 
 function ProjectsSection({ projects, statusColorMap }: { projects: ProjectView[]; statusColorMap: Record<string, string> }) {
   return (
-    <section id="projects" className="relative py-24 sm:py-32">
+    <section id="projects" className="relative pt-24 pb-10 sm:pt-32 sm:pb-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionTitle>Our Forge</SectionTitle>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -264,7 +294,7 @@ function ProjectsSection({ projects, statusColorMap }: { projects: ProjectView[]
 
 function AboutSection({ team, aboutText }: { team: typeof fallbackTeam; aboutText: string | null }) {
   return (
-    <section id="about" className="relative py-24 sm:py-32">
+    <section id="about" className="relative pt-8 pb-24 sm:pt-10 sm:pb-32">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <SectionTitle>About Us</SectionTitle>
         {aboutText ? (
