@@ -201,6 +201,28 @@ function ProjectsPanel() {
                   <FileText className="mr-2 h-4 w-4" /> Edit Press Kit
                 </Button>
               </div>
+              <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={!!r.more_info_enabled}
+                    onChange={(e) => update(i, { more_info_enabled: e.target.checked })}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  <span className="text-sm font-medium">Game Info Page enabled</span>
+                  <span className="text-xs text-muted-foreground">Shows a "More info" link on the card and enables <code>/games/{slugify(r.title || "slug")}</code>.</span>
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!r.id || !r.more_info_enabled}
+                  onClick={() => setGamePageFor(r)}
+                  title={!r.id ? "Save the project first" : !r.more_info_enabled ? "Enable Game Page first" : "Edit game page"}
+                >
+                  <Layers className="mr-2 h-4 w-4" /> Edit Game Page
+                </Button>
+              </div>
               <div className="flex items-end justify-end sm:col-span-2">
                 <Button variant="ghost" size="sm" onClick={() => removeRow(i)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
               </div>
@@ -217,6 +239,9 @@ function ProjectsPanel() {
           project={pressKitFor}
           onClose={() => setPressKitFor(null)}
         />
+      )}
+      {gamePageFor?.id && (
+        <GamePageDialog project={gamePageFor} onClose={() => setGamePageFor(null)} />
       )}
     </div>
   );
