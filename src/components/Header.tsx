@@ -20,6 +20,8 @@ const isExternal = (url: string) => /^https?:\/\//i.test(url);
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("home");
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const { data } = useQuery({
     queryKey: ["header-links"],
