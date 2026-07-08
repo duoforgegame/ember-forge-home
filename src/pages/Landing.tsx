@@ -92,6 +92,7 @@ export default function Landing() {
         <ProjectsSection projects={projects} statusColorMap={statusColorMap} />
         <SectionDivider />
         <AboutSection team={team} aboutText={aboutText} />
+        <SectionDivider />
         <ContactSection socials={socials} />
       </main>
       <Footer />
@@ -394,7 +395,7 @@ function ContactSection({ socials }: { socials: typeof fallbackSocials }) {
   };
 
   return (
-    <section id="contact" className="relative py-24 sm:py-32">
+    <section id="contact" className="relative pt-8 pb-24 sm:pt-10 sm:pb-32">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <SectionTitle>Contact</SectionTitle>
         <form onSubmit={onSubmit} className="rounded-xl border border-border bg-card p-6 sm:p-8">
