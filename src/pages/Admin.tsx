@@ -13,7 +13,14 @@ type TeamRow = { id?: string; name: string; role: string; bio: string; sort_orde
 type LinkRow = { id?: string; label: string; url: string; sort_order: number };
 type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string };
 type About = { id: number; intro_html: string };
-type Submission = { id: string; name: string; email: string; subject: string; message: string; created_at: string };
+type Submission = { id: string; name: string; email: string; subject: string; message: string; inquiry_type: string; created_at: string };
+
+const INQUIRY_META: Record<string, { label: string; className: string }> = {
+  player:    { label: "Player",               className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" },
+  press:     { label: "Press / Media",        className: "border-sky-500/40 bg-sky-500/10 text-sky-300" },
+  publisher: { label: "Publisher / Business", className: "border-primary/50 bg-primary/15 text-primary" },
+  other:     { label: "Other",                className: "border-border bg-muted/40 text-muted-foreground" },
+};
 type StatusColor = { status: string; color: string };
 
 const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
