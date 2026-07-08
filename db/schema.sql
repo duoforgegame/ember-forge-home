@@ -101,8 +101,10 @@ create table if not exists public.contact_submissions (
   email text not null,
   subject text not null,
   message text not null,
+  inquiry_type text not null default 'other',
   created_at timestamptz not null default now()
 );
+alter table public.contact_submissions add column if not exists inquiry_type text not null default 'other';
 grant all on public.contact_submissions to service_role;
 alter table public.contact_submissions enable row level security;
 -- no anon/authenticated policies: reads/writes only via service_role from edge functions
