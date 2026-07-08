@@ -26,6 +26,7 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/press/:slug" element={<PressKit />} />
+          <Route path="/games/:slug" element={<GamePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
