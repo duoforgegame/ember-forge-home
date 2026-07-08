@@ -159,7 +159,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProjectsSection({ projects }: { projects: typeof fallbackProjects }) {
+function ProjectsSection({ projects, statusColorMap }: { projects: typeof fallbackProjects; statusColorMap: Record<string, string> }) {
   return (
     <section id="projects" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -180,7 +180,8 @@ function ProjectsSection({ projects }: { projects: typeof fallbackProjects }) {
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <span
-                  className={`absolute left-3 top-3 rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm ${statusStyles[p.status as ProjectStatus] ?? statusStyles.Prototype}`}
+                  className="absolute left-3 top-3 rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm"
+                  style={statusBadgeStyle(statusColorMap[p.status] ?? DEFAULT_STATUS_COLORS[p.status] ?? "#a1a1aa")}
                 >
                   {p.status}
                 </span>
