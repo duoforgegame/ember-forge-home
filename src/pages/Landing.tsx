@@ -64,11 +64,31 @@ export default function Landing() {
   const statusColorMap: Record<string, string> = { ...DEFAULT_STATUS_COLORS };
   for (const c of data?.statusColors ?? []) statusColorMap[c.status] = c.color;
 
+  const featuredRow: any = data?.featured ?? null;
+  const featuredProject = featuredRow?.project_id
+    ? (data?.projects ?? []).find((p: any) => p.id === featuredRow.project_id)
+    : null;
+  const featuredView: FeaturedGameView | null = featuredRow?.enabled
+    ? {
+        headline: (featuredRow.custom_headline || featuredProject?.title || "").trim(),
+        description: (featuredRow.custom_description || featuredProject?.description || "").trim(),
+        imageUrl: (featuredRow.custom_image_url || featuredProject?.cover_url || "").trim(),
+        steamAppId: String(featuredRow.steam_app_id || "").trim(),
+      }
+    : null;
+
   return (
     <div className="relative min-h-screen">
       <Header />
       <main>
         <HomeSection />
+        {featuredView && (
+          <section id="featured" className="relative pt-8 sm:pt-12">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <FeaturedGameCard value={featuredView} />
+            </div>
+          </section>
+        )}
         <ProjectsSection projects={projects} statusColorMap={statusColorMap} />
         <AboutSection team={team} aboutText={aboutText} />
         <ContactSection socials={socials} />
