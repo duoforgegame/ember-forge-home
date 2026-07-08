@@ -61,6 +61,17 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ ok: true }, { status: 200 }, origin);
       }
+      case "sign_cover_upload": {
+        const ext = String(body.ext ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const allowedExt = new Set(["jpg", "jpeg", "png", "webp"]);
+        if (!allowedExt.has(ext)) return json({ error: "Invalid extension" }, { status: 400 }, origin);
+        const uuid = crypto.randomUUID();
+        const path = `covers/${uuid}.${ext}`;
+        const { data, error } = await sb.storage.from(COVERS_BUCKET).createSignedUploadUrl(path);
+        if (error) throw error;
+        const publicUrl = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/${COVERS_BUCKET}/${path}`;
+        return json({ signedUrl: data.signedUrl, token: data.token, path, publicUrl }, { status: 200 }, origin);
+      }
       default:
         return json({ error: "Unknown op" }, { status: 400 }, origin);
     }
