@@ -96,6 +96,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {tab === "Projects" && <ProjectsPanel />}
+        {tab === "Featured" && <FeaturedGamePanel />}
         {tab === "Team" && <TeamPanel />}
         {tab === "About" && <AboutPanel />}
         {tab === "Socials" && <SocialsPanel />}
