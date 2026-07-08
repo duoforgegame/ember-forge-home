@@ -90,6 +90,7 @@ export default function Landing() {
           </section>
         )}
         <ProjectsSection projects={projects} statusColorMap={statusColorMap} />
+        <SectionDivider />
         <AboutSection team={team} aboutText={aboutText} />
         <ContactSection socials={socials} />
       </main>
