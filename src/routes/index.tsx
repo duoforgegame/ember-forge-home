@@ -86,8 +86,8 @@ function HomeSection() {
         <h1 className="font-display text-4xl font-black tracking-tight sm:text-6xl md:text-7xl">
           DUO <span className="text-primary text-glow">FORGE</span> GAMES
         </h1>
-        <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
-          Games by gamers, for gamers.
+        <p className="mt-4 max-w-xl text-base uppercase tracking-[0.3em] text-muted-foreground sm:text-lg">
+          Games by Gamers
         </p>
         <a
           href="#projects"
