@@ -44,7 +44,7 @@ export async function adminCall(body: AdminOp): Promise<any> {
   return res.json();
 }
 
-export async function sendContact(input: { name: string; email: string; subject: string; message: string }) {
+export async function sendContact(input: { name: string; email: string; subject: string; message: string; inquiry_type: string }) {
   const res = await fetch(`${FUNCTIONS_BASE}/contact-send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
