@@ -176,33 +176,40 @@ function SwirlingParticles() {
 }
 
 function SectionDivider() {
-  const dots = Array.from({ length: 11 }, (_, i) => ({
+  const dots = Array.from({ length: 13 }, (_, i) => ({
     key: i,
-    left: 10 + i * 8,
-    top: 30 + ((i * 37) % 40),
-    delay: (i * 0.4) % 3,
-    duration: 2.5 + (i % 4) * 0.6,
+    left: 6 + i * 7.3,
+    delay: (i * 0.35) % 3,
+    duration: 3.5 + (i % 4) * 0.7,
     size: 3 + (i % 3),
+    drift: 6 + (i % 4) * 3, // px vertical travel — kept small so nothing escapes
   }));
   return (
     <div className="relative mx-auto flex h-20 w-full max-w-5xl items-center justify-center px-6" aria-hidden>
+      <style>{`
+        @keyframes divider-float {
+          0%, 100% { transform: translate(-50%, calc(-50% - var(--drift))); opacity: 0.35; }
+          50%      { transform: translate(-50%, calc(-50% + var(--drift))); opacity: 1; }
+        }
+      `}</style>
       <span className="absolute left-1/2 top-1/2 h-px w-3/4 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="relative h-full w-full">
-        {dots.map((d) => (
-          <span
-            key={d.key}
-            className="absolute rounded-full bg-primary-glow"
-            style={{
-              left: `${d.left}%`,
-              top: `${d.top}%`,
-              width: `${d.size}px`,
-              height: `${d.size}px`,
-              boxShadow: "0 0 10px oklch(0.78 0.18 55 / 0.9), 0 0 20px oklch(0.68 0.17 45 / 0.5)",
-              animation: `pulse ${d.duration}s ease-in-out ${d.delay}s infinite`,
-            }}
-          />
-        ))}
-      </div>
+      {dots.map((d) => (
+        <span
+          key={d.key}
+          className="absolute rounded-full bg-primary-glow"
+          style={{
+            left: `${d.left}%`,
+            top: "50%",
+            width: `${d.size}px`,
+            height: `${d.size}px`,
+            boxShadow: "0 0 10px oklch(0.78 0.18 55 / 0.9), 0 0 20px oklch(0.68 0.17 45 / 0.5)",
+            // @ts-expect-error CSS var
+            "--drift": `${d.drift}px`,
+            animation: `divider-float ${d.duration}s ease-in-out ${d.delay}s infinite`,
+            willChange: "transform, opacity",
+          }}
+        />
+      ))}
     </div>
   );
 }
