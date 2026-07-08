@@ -92,6 +92,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         {tab === "Socials" && <SocialsPanel />}
         {tab === "Header" && <LinksPanel table="site_header_links" title="Header links" />}
         {tab === "Footer" && <LinksPanel table="site_footer_links" title="Footer links" />}
+        {tab === "Status colors" && <StatusColorsPanel />}
         {tab === "Messages" && <MessagesPanel />}
       </main>
     </div>
