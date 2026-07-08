@@ -47,8 +47,10 @@ Deno.serve(async (req) => {
         if (!ALLOWED_TABLES.has(table)) return json({ error: "Table not allowed" }, { status: 400 }, origin);
         const rows = Array.isArray(body.rows) ? body.rows : [];
         if (rows.length === 0) return json({ ok: true, count: 0 }, { status: 200 }, origin);
-        const clean = rows.map((r: any) => { const c: any = { ...r }; if (!c.id) delete c.id; return c; });
-        const { error, data } = await sb.from(table).upsert(clean).select();
+        const clean = rows.map((r: any) => { const c: any = { ...r }; if (c.id === null || c.id === undefined || c.id === "") delete c.id; return c; });
+        // defaultToNull: false → PostgREST won't fill missing columns (like `id`) with NULL,
+        // so rows without an id use the column's DEFAULT (gen_random_uuid()).
+        const { error, data } = await sb.from(table).upsert(clean, { defaultToNull: false }).select();
         if (error) throw error;
         return json({ ok: true, rows: data }, { status: 200 }, origin);
       }
