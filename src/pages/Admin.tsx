@@ -1315,28 +1315,45 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
         </div>
 
         <div className="border-t border-border px-6 py-4">
-          <div className="relative">
-            <Button variant="outline" size="sm" onClick={() => setAddOpen(!addOpen)}>
-              <Plus className="mr-2 h-4 w-4" /> Add block
-            </Button>
-            {addOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-80 rounded-lg border border-border bg-popover p-2 shadow-lg">
-                {BLOCK_TYPES.map((t) => (
-                  <button
-                    key={t.type}
-                    type="button"
-                    onClick={() => add(t.type)}
-                    className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
-                  >
-                    <div className="font-semibold">{t.label}</div>
-                    <div className="text-xs text-muted-foreground">{t.description}</div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Add block
+          </Button>
         </div>
       </div>
+
+      {addOpen && (
+        <div
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setAddOpen(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <h3 className="font-display text-base font-bold">Add a block</h3>
+              <Button variant="ghost" size="icon" onClick={() => setAddOpen(false)} aria-label="Close">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="grid gap-2 overflow-y-auto p-4 sm:grid-cols-2">
+              {BLOCK_TYPES.map((t) => (
+                <button
+                  key={t.type}
+                  type="button"
+                  onClick={() => add(t.type)}
+                  className="flex flex-col gap-1 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-primary/60 hover:bg-muted"
+                >
+                  <div className="font-display text-sm font-bold">{t.label}</div>
+                  <div className="text-xs text-muted-foreground">{t.description}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
