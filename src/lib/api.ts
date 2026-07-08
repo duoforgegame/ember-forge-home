@@ -25,7 +25,8 @@ export type AdminOp =
   | { op: "delete"; table: string; id: string | number }
   | { op: "list_submissions" }
   | { op: "delete_submission"; id: string }
-  | { op: "sign_cover_upload"; ext: string };
+  | { op: "sign_cover_upload"; ext: string }
+  | { op: "sign_upload"; kind: "cover" | "press_image" | "press_logo" | "press_zip"; ext: string };
 
 export async function adminCall(body: AdminOp): Promise<any> {
   const token = getToken();
