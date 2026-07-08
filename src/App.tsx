@@ -1,8 +1,9 @@
 import { Routes, Route, useLocation } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import { AnnouncementBanner } from "./components/AnnouncementBanner";
+import { LoadingScreen } from "./components/LoadingScreen";
 
 const Imprint = lazy(() => import("./pages/Imprint"));
 const Privacy = lazy(() => import("./pages/Privacy"));
