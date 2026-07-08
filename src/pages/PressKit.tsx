@@ -233,8 +233,8 @@ export default function PressKit() {
             <ul className="flex flex-wrap gap-2">
               {kit?.steam_url && <LinkPill href={kit.steam_url}>Steam</LinkPill>}
               {kit?.discord_url && <LinkPill href={kit.discord_url}>Discord</LinkPill>}
-              {socials.map((url) => (
-                <LinkPill key={url} href={url}>{new URL(url).hostname.replace(/^www\./, "")}</LinkPill>
+              {socials.map((s) => (
+                <LinkPill key={s.url} href={s.url}>{s.label}</LinkPill>
               ))}
             </ul>
           </Section>
