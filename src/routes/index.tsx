@@ -100,9 +100,6 @@ function HomeSection() {
             }}
           />
         </div>
-        <p className="mt-6 max-w-xl text-base uppercase tracking-[0.3em] text-muted-foreground sm:text-lg">
-          Games by Gamers
-        </p>
         <a
           href="#projects"
           onClick={(e) => {
