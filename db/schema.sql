@@ -135,3 +135,64 @@ on conflict (status) do nothing;
 -- Uploads go through admin-write (service_role signs uploads); browser uploads via signed URL token.
 drop policy if exists "public read covers" on storage.objects;
 create policy "public read covers" on storage.objects for select using (bucket_id = 'project-covers');
+
+-- LEGAL PAGES (imprint, privacy) — editable via admin panel
+create table if not exists public.site_legal (
+  slug text primary key,
+  title text not null default '',
+  body_html text not null default '',
+  updated_at timestamptz not null default now()
+);
+grant select on public.site_legal to anon, authenticated;
+grant all on public.site_legal to service_role;
+alter table public.site_legal enable row level security;
+drop policy if exists "public read legal" on public.site_legal;
+create policy "public read legal" on public.site_legal for select to anon, authenticated using (true);
+
+insert into public.site_legal (slug, title, body_html) values
+  ('imprint', 'Impressum',
+$html$<section>
+  <h2>Angaben gemäß § 5 TMG</h2>
+  <p>Duo Forge Games<br />[Straße und Hausnummer]<br />[PLZ] Lübeck<br />Deutschland</p>
+</section>
+<section>
+  <h2>Kontakt</h2>
+  <p>E-Mail: <a href="mailto:info@duoforgegames.com">info@duoforgegames.com</a></p>
+</section>
+<section>
+  <h2>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
+  <p>[Name der verantwortlichen Person], Anschrift wie oben</p>
+</section>
+<section>
+  <h2>Haftungsausschluss</h2>
+  <p>Trotz sorgfältiger inhaltlicher Kontrolle übernehmen wir keine Haftung für die Inhalte externer Links. Für den Inhalt der verlinkten Seiten sind ausschließlich deren Betreiber verantwortlich.</p>
+</section>
+<p><em>Hinweis: Bitte Platzhalter durch die tatsächlichen Angaben ersetzen, bevor die Website veröffentlicht wird.</em></p>$html$),
+  ('privacy', 'Datenschutzerklärung',
+$html$<section>
+  <h2>1. Verantwortlicher</h2>
+  <p>Duo Forge Games, [Anschrift], E-Mail: info@duoforgegames.com</p>
+</section>
+<section>
+  <h2>2. Erhebung und Speicherung personenbezogener Daten</h2>
+  <p>Bei Nutzung unseres Kontaktformulars werden die von Ihnen angegebenen Daten (Name, E-Mail-Adresse, Betreff, Nachricht) zur Bearbeitung Ihrer Anfrage gespeichert. Die Daten werden per verschlüsselter SMTP-Verbindung (IONOS) an unser Postfach übermittelt und in unserer Datenbank (Supabase, Region EU) für die Dauer der Bearbeitung aufbewahrt.</p>
+</section>
+<section>
+  <h2>3. Rechtsgrundlage</h2>
+  <p>Die Verarbeitung erfolgt gemäß Art. 6 Abs. 1 lit. b DSGVO zur Durchführung vorvertraglicher Maßnahmen bzw. Art. 6 Abs. 1 lit. f DSGVO auf Basis unseres berechtigten Interesses an der Beantwortung Ihrer Anfrage.</p>
+</section>
+<section>
+  <h2>4. Cookies &amp; Tracking</h2>
+  <p>Diese Website setzt keine Cookies zu Tracking- oder Analysezwecken ein. Es werden keine Drittanbieter-Skripte eingebunden, die personenbezogene Daten erheben.</p>
+</section>
+<section>
+  <h2>5. Ihre Rechte</h2>
+  <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit sowie Widerspruch. Zur Ausübung wenden Sie sich bitte an <a href="mailto:info@duoforgegames.com">info@duoforgegames.com</a>.</p>
+</section>
+<section>
+  <h2>6. Hosting</h2>
+  <p>Die Website wird auf einem von uns betriebenen Server gehostet. Datenbank- und Serverfunktionen werden über Supabase (Region EU) bereitgestellt. E-Mails werden über IONOS SE, Elgendorfer Str. 57, 56410 Montabaur, versandt.</p>
+</section>
+<p><em>Hinweis: Dieser Text ist ein Muster und ersetzt keine individuelle Rechtsberatung. Bitte vor Veröffentlichung durch einen Fachanwalt prüfen lassen.</em></p>$html$)
+on conflict (slug) do nothing;
+
