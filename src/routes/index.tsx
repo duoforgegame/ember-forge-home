@@ -76,17 +76,17 @@ function HomeSection() {
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl" />
       <Embers />
       <div className="relative z-10 flex flex-col items-center px-6 text-center">
-        <img
-          src={logoLarge}
-          alt="Duo Forge Games logo"
-          className="mb-6 h-40 w-auto drop-shadow-[0_0_40px_oklch(0.68_0.17_45_/_0.35)] sm:h-56"
-          width={224}
-          height={280}
-        />
-        <h1 className="font-display text-4xl font-black tracking-tight sm:text-6xl md:text-7xl">
-          DUO <span className="text-primary text-glow">FORGE</span> GAMES
-        </h1>
-        <p className="mt-4 max-w-xl text-base uppercase tracking-[0.3em] text-muted-foreground sm:text-lg">
+        <div className="relative">
+          <SwirlingParticles />
+          <img
+            src={logoLarge}
+            alt="Duo Forge Games logo"
+            className="relative z-10 h-[30rem] w-auto drop-shadow-[0_0_60px_oklch(0.68_0.17_45_/_0.5)] sm:h-[38rem] md:h-[44rem]"
+            width={672}
+            height={840}
+          />
+        </div>
+        <p className="mt-6 max-w-xl text-base uppercase tracking-[0.3em] text-muted-foreground sm:text-lg">
           Games by Gamers
         </p>
         <a
