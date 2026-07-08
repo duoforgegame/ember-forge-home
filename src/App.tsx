@@ -17,8 +17,6 @@ export default function App() {
   return (
     <>
       {!loaded && <LoadingScreen onDone={() => setLoaded(true)} />}
-  return (
-    <>
       {!isAdmin && <AnnouncementBanner />}
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
         <Routes>
