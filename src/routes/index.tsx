@@ -3,8 +3,6 @@ import { useState, type FormEvent } from "react";
 import { z } from "zod";
 import {
   ArrowDown,
-  Mail,
-  MapPin,
   Send,
   Loader2,
   CheckCircle2,
@@ -385,6 +383,3 @@ function YouTubeIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-// Suppress unused import warnings for icons that may not be used elsewhere.
-void Mail;
-void MapPin;
