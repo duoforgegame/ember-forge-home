@@ -180,7 +180,7 @@ function ProjectsPanel() {
                     className="h-4 w-4 accent-primary"
                   />
                   <span className="text-sm font-medium">Press Kit enabled</span>
-                  <span className="text-xs text-muted-foreground">Shows a press-kit icon on the public card and enables <code>/press/{slugifyImport(r.title)}</code>.</span>
+                  <span className="text-xs text-muted-foreground">Shows a press-kit icon on the public card and enables <code>/press/{slugify(r.title || "slug")}</code>.</span>
                 </label>
                 <Button
                   type="button"
