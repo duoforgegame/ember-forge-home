@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -20,6 +20,8 @@ const isExternal = (url: string) => /^https?:\/\//i.test(url);
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("home");
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const { data } = useQuery({
     queryKey: ["header-links"],
@@ -64,13 +66,30 @@ export function Header() {
   }, [internalIds]);
 
   const scrollTo = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname !== "/") {
+      navigate(`/#${id}`);
+      return;
+    }
     const el = document.getElementById(id);
     if (el) {
-      e.preventDefault();
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       history.replaceState(null, "", `#${id}`);
     }
   };
+
+  // When landing on "/" with a hash (e.g. from /imprint → /#about), scroll to it.
+  useEffect(() => {
+    if (location.pathname !== "/" || !location.hash) return;
+    const id = location.hash.slice(1);
+    // Wait a tick for sections to render.
+    const t = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [location.pathname, location.hash]);
+
+
 
   return (
     <header
