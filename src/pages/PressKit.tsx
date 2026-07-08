@@ -115,7 +115,16 @@ export default function PressKit() {
   const socials = (kit?.other_social_urls || "")
     .split(/\n|,/)
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((raw) => {
+      const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      try {
+        return { url, label: new URL(url).hostname.replace(/^www\./, "") };
+      } catch {
+        return null;
+      }
+    })
+    .filter((s): s is { url: string; label: string } => !!s);
 
   return (
     <div className="relative min-h-screen">
@@ -191,22 +200,26 @@ export default function PressKit() {
         )}
 
         {/* Screenshots */}
-        {screenshots.length > 0 && (
-          <Section title="Screenshots">
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-              {screenshots.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setLightbox(s.url)}
-                  className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-surface-2"
-                >
-                  <img src={s.url} alt={s.caption || "Screenshot"} loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                </button>
-              ))}
-            </div>
-          </Section>
-        )}
+        {(() => {
+          const validShots = screenshots.filter((s) => typeof s?.url === "string" && s.url.trim() !== "");
+          if (validShots.length === 0) return null;
+          return (
+            <Section title="Screenshots">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {validShots.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setLightbox(s.url)}
+                    className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-surface-2"
+                  >
+                    <img src={s.url} alt={s.caption || "Screenshot"} loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  </button>
+                ))}
+              </div>
+            </Section>
+          );
+        })()}
 
         {/* Logos */}
         {(kit?.game_logo_url || kit?.studio_logo_url) && (
@@ -224,8 +237,8 @@ export default function PressKit() {
             <ul className="flex flex-wrap gap-2">
               {kit?.steam_url && <LinkPill href={kit.steam_url}>Steam</LinkPill>}
               {kit?.discord_url && <LinkPill href={kit.discord_url}>Discord</LinkPill>}
-              {socials.map((url) => (
-                <LinkPill key={url} href={url}>{new URL(url).hostname.replace(/^www\./, "")}</LinkPill>
+              {socials.map((s) => (
+                <LinkPill key={s.url} href={s.url}>{s.label}</LinkPill>
               ))}
             </ul>
           </Section>
