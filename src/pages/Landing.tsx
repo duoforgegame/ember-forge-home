@@ -162,7 +162,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-type ProjectView = (typeof fallbackProjects)[number] & { pressKitEnabled?: boolean };
+type ProjectView = (typeof fallbackProjects)[number] & { pressKitEnabled?: boolean; moreInfoEnabled?: boolean };
 
 function ProjectsSection({ projects, statusColorMap }: { projects: ProjectView[]; statusColorMap: Record<string, string> }) {
   return (
