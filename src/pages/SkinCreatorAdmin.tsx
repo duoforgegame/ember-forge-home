@@ -325,7 +325,8 @@ function SubmissionsPanel() {
                       : <span className="text-[10px] text-muted-foreground">no preview</span>}
                 </div>
                 <div className="min-w-0 text-xs">
-                  <div className="font-semibold text-foreground">{s.weapons?.name ?? "Unknown weapon"}</div>
+                  <div className="font-semibold text-foreground">{s.skin_name || s.weapons?.name || "Unknown weapon"}</div>
+                  {s.skin_name && <div className="text-muted-foreground">{s.weapons?.name ?? "Unknown weapon"}</div>}
                   <div className="text-muted-foreground">{s.player_name || "-"} · <span className="font-mono">{s.discord_name}</span></div>
                   {s.email && <div className="truncate text-muted-foreground">{s.email}</div>}
                   <div className="text-muted-foreground">{new Date(s.created_at).toLocaleString()}</div>

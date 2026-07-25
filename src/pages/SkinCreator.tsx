@@ -25,7 +25,7 @@ export default function SkinCreator() {
   const [category, setCategory] = useState<WeaponCategory | null>(null);
   const [weapon, setWeapon] = useState<Weapon | null>(null);
   const [result, setResult] = useState<{ dataUrl: string; pixels: PixelDatum[] } | null>(null);
-  const [form, setForm] = useState({ player_name: "", discord_name: "", email: "" });
+  const [form, setForm] = useState({ skin_name: "", player_name: "", discord_name: "", email: "" });
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -66,6 +66,7 @@ export default function SkinCreator() {
         weapon_id: weapon.id,
         pixel_data: result.pixels,
         preview_image_url: previewUrl,
+        skin_name: form.skin_name,
         player_name: form.player_name,
         discord_name: form.discord_name,
         email: form.email,
@@ -186,6 +187,10 @@ export default function SkinCreator() {
             <div className="space-y-4 rounded-lg border border-border bg-card p-4">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Your details</div>
               <div className="space-y-1.5">
+                <Label htmlFor="sc-skin-name">Skin name</Label>
+                <Input id="sc-skin-name" value={form.skin_name} maxLength={80} onChange={(e) => setForm({ ...form, skin_name: e.target.value })} placeholder="Give your skin a name" />
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="sc-player">In-game / artist name</Label>
                 <Input id="sc-player" value={form.player_name} maxLength={80} onChange={(e) => setForm({ ...form, player_name: e.target.value })} />
               </div>
@@ -214,7 +219,7 @@ export default function SkinCreator() {
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Button
                 variant="outline"
-                onClick={() => { setResult(null); setWeapon(null); setStep("categories"); setForm({ player_name: "", discord_name: form.discord_name, email: form.email }); }}
+                onClick={() => { setResult(null); setWeapon(null); setStep("categories"); setForm({ skin_name: "", player_name: "", discord_name: form.discord_name, email: form.email }); }}
               >
                 Create another skin
               </Button>

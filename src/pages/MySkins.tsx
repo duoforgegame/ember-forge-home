@@ -64,7 +64,7 @@ export default function MySkins() {
 
                 <div className="space-y-1.5 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold">{s.weapons?.name ?? "Unknown weapon"}</span>
+                    <span className="text-sm font-semibold">{s.skin_name || s.weapons?.name || "Unknown weapon"}</span>
                     <span className={`rounded-sm border px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${STATUS_STYLES[s.status] ?? "border-border text-muted-foreground"}`}>
                       {s.status}
                     </span>

@@ -66,6 +66,7 @@ export type MySubmission = {
   status: string;
   created_at: string;
   preview_image_url: string;
+  skin_name: string | null;
   player_name: string | null;
   discord_name: string;
   pixel_data?: { x: number; y: number; r: number; g: number; b: number; a: number }[] | null;

@@ -353,12 +353,14 @@ create table if not exists public.skin_submissions (
   weapon_id uuid references public.weapons(id) on delete set null,
   pixel_data jsonb not null default '[]'::jsonb,
   preview_image_url text not null default '',
+  skin_name text,
   player_name text,
   discord_name text not null,
   email text,
   status text not null default 'pending',
   created_at timestamptz not null default now()
 );
+alter table public.skin_submissions add column if not exists skin_name text;
 create index if not exists skin_submissions_weapon_idx on public.skin_submissions(weapon_id);
 create index if not exists skin_submissions_status_idx on public.skin_submissions(status);
 grant insert on public.skin_submissions to anon, authenticated;

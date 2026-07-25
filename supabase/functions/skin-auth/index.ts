@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
           weapon_id,
           pixel_data,
           preview_image_url: String(body.preview_image_url ?? "").slice(0, 2000),
+          skin_name: body.skin_name ? String(body.skin_name).slice(0, 80) : null,
           player_name: body.player_name ? String(body.player_name).slice(0, 80) : null,
           discord_name,
           email: body.email ? String(body.email).slice(0, 255) : null,
@@ -148,7 +149,7 @@ Deno.serve(async (req) => {
         if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
         const { data, error } = await sb
           .from("skin_submissions")
-          .select("id, status, created_at, preview_image_url, player_name, discord_name, weapon_id, pixel_data, weapons(id, name, canvas_width, canvas_height, template_image_url, category_id)")
+          .select("id, status, created_at, preview_image_url, skin_name, player_name, discord_name, weapon_id, pixel_data, weapons(id, name, canvas_width, canvas_height, template_image_url, category_id)")
           .eq("user_id", String(claims.sub))
           .order("created_at", { ascending: false })
           .limit(500);
