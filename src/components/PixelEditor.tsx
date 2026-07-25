@@ -50,6 +50,8 @@ export function PixelEditor({
   const templateRef = useRef<HTMLImageElement | null>(null);
   /** 1 = paintable (template alpha > 0), 0 = outside the weapon shape. */
   const maskRef = useRef<Uint8Array>(new Uint8Array(W * H).fill(1));
+  /** RGBA of the original template, used as colour region boundaries for the fill tool. */
+  const tplDataRef = useRef<Uint8ClampedArray | null>(null);
 
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#ef7d57");
