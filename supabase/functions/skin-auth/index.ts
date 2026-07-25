@@ -99,7 +99,33 @@ Deno.serve(async (req) => {
         const token = await signJwt({ sub: user.id, username: user.username }, jwtSecret, 30 * 24 * 60 * 60, ISS);
         return json({ token, user: { id: user.id, username: user.username } }, { status: 200 }, origin);
       }
+      case "submit": {
+        const auth = req.headers.get("authorization") ?? "";
+        const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+        const c = bearer ? await verifyJwt(bearer, jwtSecret, ISS) : null;
+        if (!c?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        if (!rateLimit(`skinsubmit:${c.sub}`, 30, 60 * 60 * 1000)) return json({ error: "Too many submissions" }, { status: 429 }, origin);
+        const weapon_id = String(body.weapon_id ?? "");
+        const discord_name = String(body.discord_name ?? "").trim();
+        if (!weapon_id || !discord_name || discord_name.length > 120) {
+          return json({ error: "Weapon and Discord name are required" }, { status: 400 }, origin);
+        }
+        const pixel_data = Array.isArray(body.pixel_data) ? body.pixel_data.slice(0, 300_000) : [];
+        const { error } = await sb.from("skin_submissions").insert({
+          weapon_id,
+          pixel_data,
+          preview_image_url: String(body.preview_image_url ?? "").slice(0, 2000),
+          player_name: body.player_name ? String(body.player_name).slice(0, 80) : null,
+          discord_name,
+          email: body.email ? String(body.email).slice(0, 255) : null,
+          status: "pending",
+          user_id: String(c.sub),
+        });
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
       case "list_my_submissions": {
+
         const auth = req.headers.get("authorization") ?? "";
         const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
         const claims = token ? await verifyJwt(token, jwtSecret, ISS) : null;
