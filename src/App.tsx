@@ -11,10 +11,12 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Admin = lazy(() => import("./pages/Admin"));
 const PressKit = lazy(() => import("./pages/PressKit"));
 const GamePage = lazy(() => import("./pages/GamePage"));
+const SkinCreator = lazy(() => import("./pages/SkinCreator"));
+const SkinCreatorAdmin = lazy(() => import("./pages/SkinCreatorAdmin"));
 
 export default function App() {
   const location = useLocation();
-  const isAdmin = location.pathname.startsWith("/admin");
+  const isAdmin = location.pathname.startsWith("/admin") || location.pathname.startsWith("/skincreator/admin");
   const [loaded, setLoaded] = useState(false);
   return (
     <>
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/press/:slug" element={<PressKit />} />
           <Route path="/games/:slug" element={<GamePage />} />
+          <Route path="/skincreator" element={<SkinCreator />} />
+          <Route path="/skincreator/admin" element={<SkinCreatorAdmin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

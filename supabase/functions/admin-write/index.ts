@@ -6,6 +6,7 @@ const ALLOWED_TABLES = new Set([
   "site_projects", "site_team", "site_about", "site_socials",
   "site_header_links", "site_footer_links", "site_status_colors", "site_legal", "site_announcement",
   "site_press_kits", "site_press_screenshots", "site_game_page_blocks", "site_featured_game",
+  "weapon_categories", "weapons", "skin_submissions",
 ]);
 const COVERS_BUCKET = "project-covers";
 const PRESS_BUCKET = "press-kit-assets";
@@ -14,6 +15,7 @@ const UPLOAD_BUCKETS: Record<string, { bucket: string; folder: string; exts: Set
   press_image: { bucket: PRESS_BUCKET, folder: "images", exts: new Set(["jpg", "jpeg", "png", "webp", "gif"]) },
   press_logo: { bucket: PRESS_BUCKET, folder: "logos", exts: new Set(["png", "webp", "svg"]) },
   press_zip: { bucket: PRESS_BUCKET, folder: "zips", exts: new Set(["zip"]) },
+  weapon_template: { bucket: PRESS_BUCKET, folder: "weapons", exts: new Set(["png", "webp"]) },
 };
 
 Deno.serve(async (req) => {
@@ -68,6 +70,24 @@ Deno.serve(async (req) => {
         const id = body.id;
         if (id === undefined || id === null) return json({ error: "Missing id" }, { status: 400 }, origin);
         const { error } = await sb.from(table).delete().eq("id", id);
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
+      case "list_skin_submissions": {
+        const { data, error } = await sb
+          .from("skin_submissions")
+          .select("*, weapons(id, name, category_id, template_image_url, canvas_width, canvas_height)")
+          .order("created_at", { ascending: false })
+          .limit(1000);
+        if (error) throw error;
+        return json({ rows: data ?? [] }, { status: 200 }, origin);
+      }
+      case "set_skin_status": {
+        const id = String(body.id ?? "");
+        const status = String(body.status ?? "");
+        if (!id) return json({ error: "Missing id" }, { status: 400 }, origin);
+        if (!["pending", "approved", "rejected"].includes(status)) return json({ error: "Invalid status" }, { status: 400 }, origin);
+        const { error } = await sb.from("skin_submissions").update({ status }).eq("id", id);
         if (error) throw error;
         return json({ ok: true }, { status: 200 }, origin);
       }

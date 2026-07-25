@@ -88,3 +88,13 @@ Visit `https://duoforgegames.com/admin` — not linked anywhere on the site and 
 - **Imprint page** (`src/pages/Imprint.tsx`) — replace the `[…]` placeholders with your actual legal address & responsible person before publishing.
 - **Privacy policy** (`src/pages/Privacy.tsx`) — generic template, have a lawyer review before publishing.
 - **Header/footer links** — the header nav is currently hardcoded scroll anchors (Home / Our Forge / About / Contact) plus the Discord button. Footer has Imprint + Privacy. The `site_header_links` / `site_footer_links` tables exist and are editable from the admin panel, but nothing renders them yet — tell me if/how you want to wire them in (e.g. replace the anchors, or add an extra row).
+
+## 6. Skin Creator (/skincreator)
+
+1. Re-run `db/schema.sql` in the Supabase SQL editor — it adds `weapon_categories`, `weapons`,
+   `skin_submissions` (+ RLS, grants and the 7 default categories).
+2. Re-deploy `admin-write` (it now whitelists the new tables and the `weapon_template` upload kind).
+3. Deploy the preview upload endpoint on the IONOS VPS — see `server/skincreator-upload/server.js`
+   for the ready-to-run Express service and the nginx snippet. Point the frontend at it via
+   `VITE_SKIN_UPLOAD_ENDPOINT` in `.env` (default `https://duoforgegames.com/api/skin-upload`).
+4. Manage weapons/templates and moderate submissions at `/skincreator/admin` (same admin password).
