@@ -4,6 +4,8 @@ import { preflight, json } from "../_shared/cors.ts";
 import { signJwt, verifyJwt } from "../_shared/jwt.ts";
 import { rateLimit, clientIp } from "../_shared/ratelimit.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+
 
 const ISS = "duoforge-skinuser";
 const ITERATIONS = 120_000;
@@ -39,7 +41,52 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   return diff === 0;
 }
 
+/** SHA-256 hex — used for reset tokens (high-entropy, so no salt/stretching needed). */
+async function sha256Hex(input: string): Promise<string> {
+  return toHex(await crypto.subtle.digest("SHA-256", enc.encode(input)));
+}
+
+const SITE_URL = () => (Deno.env.get("SITE_URL") || "https://duoforgegames.com").replace(/\/+$/, "");
+
+/** Sends the reset mail over the same IONOS SMTP setup the contact form uses. */
+async function sendResetMail(to: string, username: string, resetUrl: string): Promise<void> {
+  const client = new SMTPClient({
+    connection: {
+      hostname: Deno.env.get("SMTP_HOST")!,
+      port: Number(Deno.env.get("SMTP_PORT") ?? "465"),
+      tls: (Deno.env.get("SMTP_SECURE") ?? "true") === "true",
+      auth: { username: Deno.env.get("SMTP_USER")!, password: Deno.env.get("SMTP_PASS")! },
+    },
+  });
+  const text = `Hallo ${username},
+
+du (oder jemand anderes) hat ein neues Passwort für deinen Duo Forge Skin Creator Account angefordert.
+
+Neues Passwort setzen:
+${resetUrl}
+
+Der Link ist 1 Stunde gültig und kann nur einmal verwendet werden.
+Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert.
+
+Duo Forge Games`;
+  await client.send({
+    from: Deno.env.get("SMTP_FROM")!,
+    to,
+    subject: "Passwort zurücksetzen – Duo Forge Skin Creator",
+    content: text,
+    html: `<p>Hallo ${username},</p>
+<p>du (oder jemand anderes) hat ein neues Passwort für deinen <strong>Duo Forge Skin Creator</strong> Account angefordert.</p>
+<p><a href="${resetUrl}">Neues Passwort setzen</a></p>
+<p style="font-size:12px;color:#666">${resetUrl}</p>
+<p>Der Link ist <strong>1 Stunde</strong> gültig und kann nur einmal verwendet werden.</p>
+<p>Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert.</p>
+<p>Duo Forge Games</p>`,
+  });
+  await client.close();
+}
+
 const secret = () => Deno.env.get("SKIN_JWT_SECRET") || Deno.env.get("ADMIN_JWT_SECRET") || "";
+
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -71,14 +118,27 @@ Deno.serve(async (req) => {
         if (password.length < 8 || password.length > 200) {
           return json({ error: "Password must be at least 8 characters" }, { status: 400 }, origin);
         }
+        const email = String(body.email ?? "").trim().toLowerCase();
+        if (email && (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 255)) {
+          return json({ error: "Invalid email address" }, { status: 400 }, origin);
+        }
         const { data: existing } = await sb.from("skin_creator_users").select("id").ilike("username", username).maybeSingle();
         if (existing) return json({ error: "Username already taken" }, { status: 409 }, origin);
+        if (email) {
+          const { data: mailTaken } = await sb.from("skin_creator_users").select("id").ilike("email", email).maybeSingle();
+          if (mailTaken) return json({ error: "This email is already in use" }, { status: 409 }, origin);
+        }
         const password_hash = await hashPassword(password);
-        const { data, error } = await sb.from("skin_creator_users").insert({ username, password_hash }).select("id, username").single();
+        const { data, error } = await sb
+          .from("skin_creator_users")
+          .insert({ username, password_hash, email: email || null })
+          .select("id, username")
+          .single();
         if (error) {
-          if (String(error.message).includes("duplicate")) return json({ error: "Username already taken" }, { status: 409 }, origin);
+          if (String(error.message).includes("duplicate")) return json({ error: "Username or email already taken" }, { status: 409 }, origin);
           throw error;
         }
+
         const token = await signJwt({ sub: data.id, username: data.username }, jwtSecret, 30 * 24 * 60 * 60, ISS);
         return json({ token, user: data }, { status: 200 }, origin);
       }
@@ -139,7 +199,63 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ rows: data ?? [], user: { id: claims.sub, username: claims.username } }, { status: 200 }, origin);
       }
+      case "request_password_reset": {
+        // Always answers { ok: true } so account/email existence can't be probed.
+        if (!rateLimit(`skinreset:${ip}`, 10, 60 * 60 * 1000)) return json({ error: "Too many attempts" }, { status: 429 }, origin);
+        const identifier = String(body.identifier ?? "").trim();
+        if (!identifier || identifier.length > 255) return json({ ok: true }, { status: 200 }, origin);
+        try {
+          const col = identifier.includes("@") ? "email" : "username";
+          const { data: user } = await sb
+            .from("skin_creator_users")
+            .select("id, username, email")
+            .ilike(col, identifier)
+            .maybeSingle();
+          if (user?.email) {
+            const raw = `${crypto.randomUUID()}${toHex(crypto.getRandomValues(new Uint8Array(24)))}`;
+            const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+            const { error } = await sb
+              .from("skin_creator_users")
+              .update({ reset_token_hash: await sha256Hex(raw), reset_token_expires_at: expires })
+              .eq("id", user.id);
+            if (error) throw error;
+            await sendResetMail(user.email, user.username, `${SITE_URL()}/skincreator/reset-password?token=${raw}`);
+          }
+        } catch (e) {
+          console.error("password reset request failed", e);
+        }
+        await new Promise((r) => setTimeout(r, 250));
+        return json({ ok: true }, { status: 200 }, origin);
+      }
+      case "confirm_password_reset": {
+        if (!rateLimit(`skinresetconfirm:${ip}`, 20, 60 * 60 * 1000)) return json({ error: "Too many attempts" }, { status: 429 }, origin);
+        const rawToken = String(body.token ?? "").trim();
+        const newPassword = String(body.new_password ?? "");
+        if (newPassword.length < 8 || newPassword.length > 200) {
+          return json({ error: "Password must be at least 8 characters" }, { status: 400 }, origin);
+        }
+        if (!rawToken || rawToken.length > 500) return json({ error: "Link ungültig oder abgelaufen" }, { status: 400 }, origin);
+        const { data: user } = await sb
+          .from("skin_creator_users")
+          .select("id, reset_token_expires_at")
+          .eq("reset_token_hash", await sha256Hex(rawToken))
+          .gt("reset_token_expires_at", new Date().toISOString())
+          .maybeSingle();
+        if (!user) return json({ error: "Link ungültig oder abgelaufen" }, { status: 400 }, origin);
+        const { error } = await sb
+          .from("skin_creator_users")
+          .update({
+            password_hash: await hashPassword(newPassword),
+            reset_token_hash: null,
+            reset_token_expires_at: null,
+          })
+          .eq("id", user.id)
+          .not("reset_token_hash", "is", null);
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
       default:
+
         return json({ error: "Unknown op" }, { status: 400 }, origin);
     }
   } catch (e) {

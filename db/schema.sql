@@ -402,3 +402,15 @@ drop policy if exists "public submit skins" on public.skin_submissions;
 create policy "public submit skins" on public.skin_submissions
   for insert to anon, authenticated
   with check (status = 'pending' and user_id is null and char_length(discord_name) between 1 and 120);
+
+-- ---------------------------------------------------------------------------
+-- Skin Creator: optional email + password reset (added later)
+-- ---------------------------------------------------------------------------
+alter table public.skin_creator_users
+  add column if not exists email text,
+  add column if not exists reset_token_hash text,
+  add column if not exists reset_token_expires_at timestamptz;
+create unique index if not exists skin_creator_users_email_lower_idx
+  on public.skin_creator_users (lower(email)) where email is not null;
+create index if not exists skin_creator_users_reset_token_idx
+  on public.skin_creator_users (reset_token_hash) where reset_token_hash is not null;
