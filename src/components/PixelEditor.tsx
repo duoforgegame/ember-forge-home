@@ -45,6 +45,8 @@ export function PixelEditor({
   const undoRef = useRef<Uint8ClampedArray[]>([]);
   const redoRef = useRef<Uint8ClampedArray[]>([]);
   const drawingRef = useRef(false);
+  /** Pixels already touched by the current stroke, so opacity never stacks twice. */
+  const strokeRef = useRef<Set<number>>(new Set());
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const panRef = useRef<{ x: number; y: number; sl: number; st: number } | null>(null);
   const templateRef = useRef<HTMLImageElement | null>(null);
@@ -158,14 +160,20 @@ export function PixelEditor({
   const setPixel = (x: number, y: number, erase: boolean) => {
     if (!paintable(x, y)) return;
     const buf = bufRef.current;
-    const i = (y * W + x) * 4;
+    const key = y * W + x;
+    const i = key * 4;
     if (erase) {
       buf[i] = buf[i + 1] = buf[i + 2] = buf[i + 3] = 0;
+      strokeRef.current.add(key);
       return;
     }
+    // Each pixel is painted at most once per stroke, so opacity stays as chosen.
+    if (strokeRef.current.has(key)) return;
+    strokeRef.current.add(key);
     const [r, g, b] = hexToRgb(color);
     const a = Math.round((alpha / 100) * 255);
     // alpha-composite over existing pixel so partial transparency stacks predictably
+
     const sa = a / 255;
     const da = buf[i + 3] / 255;
     const outA = sa + da * (1 - sa);
@@ -251,6 +259,7 @@ export function PixelEditor({
     if (tool === "picker") { pick(x, y); return; }
     if (!paintable(x, y)) return; // outside the weapon shape → ignore silently
     pushUndo();
+    strokeRef.current = new Set();
     drawingRef.current = true;
     if (tool === "fill") floodFill(x, y, false);
     else setPixel(x, y, tool === "eraser");
