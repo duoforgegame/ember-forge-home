@@ -58,28 +58,28 @@ async function sendResetMail(to: string, username: string, resetUrl: string): Pr
       auth: { username: Deno.env.get("SMTP_USER")!, password: Deno.env.get("SMTP_PASS")! },
     },
   });
-  const text = `Hallo ${username},
+  const text = `Hi ${username},
 
-du (oder jemand anderes) hat ein neues Passwort für deinen Duo Forge Skin Creator Account angefordert.
+you (or someone else) requested a new password for your Duo Forge Skin Creator account.
 
-Neues Passwort setzen:
+Set a new password:
 ${resetUrl}
 
-Der Link ist 1 Stunde gültig und kann nur einmal verwendet werden.
-Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren, dein Passwort bleibt unverändert.
+The link is valid for 1 hour and can only be used once.
+If you did not request this, you can simply ignore this email, your password stays unchanged.
 
 Duo Forge Games`;
   await client.send({
     from: Deno.env.get("SMTP_FROM")!,
     to,
-    subject: "Passwort zurücksetzen – Duo Forge Skin Creator",
+    subject: "Reset your password, Duo Forge Skin Creator",
     content: text,
-    html: `<p>Hallo ${username},</p>
-<p>du (oder jemand anderes) hat ein neues Passwort für deinen <strong>Duo Forge Skin Creator</strong> Account angefordert.</p>
-<p><a href="${resetUrl}">Neues Passwort setzen</a></p>
+    html: `<p>Hi ${username},</p>
+<p>you (or someone else) requested a new password for your <strong>Duo Forge Skin Creator</strong> account.</p>
+<p><a href="${resetUrl}">Set a new password</a></p>
 <p style="font-size:12px;color:#666">${resetUrl}</p>
-<p>Der Link ist <strong>1 Stunde</strong> gültig und kann nur einmal verwendet werden.</p>
-<p>Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren, dein Passwort bleibt unverändert.</p>
+<p>The link is valid for <strong>1 hour</strong> and can only be used once.</p>
+<p>If you did not request this, you can simply ignore this email, your password stays unchanged.</p>
 <p>Duo Forge Games</p>`,
   });
   await client.close();
@@ -234,14 +234,14 @@ Deno.serve(async (req) => {
         if (newPassword.length < 8 || newPassword.length > 200) {
           return json({ error: "Password must be at least 8 characters" }, { status: 400 }, origin);
         }
-        if (!rawToken || rawToken.length > 500) return json({ error: "Link ungültig oder abgelaufen" }, { status: 400 }, origin);
+        if (!rawToken || rawToken.length > 500) return json({ error: "Link is invalid or expired" }, { status: 400 }, origin);
         const { data: user } = await sb
           .from("skin_creator_users")
           .select("id, reset_token_expires_at")
           .eq("reset_token_hash", await sha256Hex(rawToken))
           .gt("reset_token_expires_at", new Date().toISOString())
           .maybeSingle();
-        if (!user) return json({ error: "Link ungültig oder abgelaufen" }, { status: 400 }, origin);
+        if (!user) return json({ error: "Link is invalid or expired" }, { status: 400 }, origin);
         const { error } = await sb
           .from("skin_creator_users")
           .update({
