@@ -432,9 +432,13 @@ export function PixelEditor({
           </div>
 
           <div className="rounded-sm border border-border bg-background/50 p-2 text-[11px] leading-relaxed text-muted-foreground">
-            Brush paints single pixels. Fill floods matching pixels. Pipette picks a colour from your layer.
+            {maskReady
+              ? "You can only paint inside the weapon shape — the darkened area is ignored. Fill floods matching pixels and stops at the weapon's edges."
+              : "Brush paints single pixels. Fill floods matching pixels."}{" "}
+            Pipette picks a colour from your layer. Your export contains only your painted pixels — the background stays transparent.
             Touch/stylus painting is supported — use the Pan tool to move the canvas.
           </div>
+
         </aside>
       </div>
     </div>
