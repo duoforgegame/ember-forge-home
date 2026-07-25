@@ -259,6 +259,7 @@ export function PixelEditor({
     if (tool === "picker") { pick(x, y); return; }
     if (!paintable(x, y)) return; // outside the weapon shape → ignore silently
     pushUndo();
+    strokeRef.current = new Set();
     drawingRef.current = true;
     if (tool === "fill") floodFill(x, y, false);
     else setPixel(x, y, tool === "eraser");
