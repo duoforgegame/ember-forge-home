@@ -375,3 +375,30 @@ select v.name, v.ord from (values
   ('Pistols',1),('MPs',2),('Assault Rifles',3),('Shotguns',4),('Sniper',5),('Knifes',6),('Specials',7)
 ) as v(name, ord)
 where not exists (select 1 from public.weapon_categories);
+
+-- ============================================================
+-- SKIN CREATOR PLAYER ACCOUNTS (lightweight, username + password only)
+-- Completely separate from the /admin login. Never exposed to anon/authenticated.
+-- ============================================================
+create table if not exists public.skin_creator_users (
+  id uuid primary key default gen_random_uuid(),
+  username text unique not null,
+  password_hash text not null,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists skin_creator_users_username_lower_idx
+  on public.skin_creator_users (lower(username));
+grant all on public.skin_creator_users to service_role;
+alter table public.skin_creator_users enable row level security;
+-- no anon/authenticated policies: all access happens through the skin-auth edge function
+
+alter table public.skin_submissions
+  add column if not exists user_id uuid references public.skin_creator_users(id) on delete set null;
+create index if not exists skin_submissions_user_idx on public.skin_submissions(user_id);
+
+-- guests may only insert submissions without an account link; logged-in users
+-- submit through the skin-auth edge function (service role sets user_id server-side)
+drop policy if exists "public submit skins" on public.skin_submissions;
+create policy "public submit skins" on public.skin_submissions
+  for insert to anon, authenticated
+  with check (status = 'pending' and user_id is null and char_length(discord_name) between 1 and 120);

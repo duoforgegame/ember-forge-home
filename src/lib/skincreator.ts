@@ -1,4 +1,6 @@
 import { supabase } from "./supabase";
+import { getSkinToken, skinAuthCall } from "./skinauth";
+
 
 /** Configurable upload endpoint on the IONOS VPS (see server/skincreator-upload). */
 export const UPLOAD_ENDPOINT_URL =
@@ -66,6 +68,11 @@ export async function submitSkin(input: {
   discord_name: string;
   email?: string;
 }) {
+  // Logged-in players submit through the edge function so the server sets user_id.
+  if (getSkinToken()) {
+    await skinAuthCall({ op: "submit", ...input, player_name: input.player_name?.trim() || null, email: input.email?.trim() || null }, true);
+    return;
+  }
   const { error } = await supabase.from("skin_submissions").insert({
     weapon_id: input.weapon_id,
     pixel_data: input.pixel_data,
@@ -77,6 +84,42 @@ export async function submitSkin(input: {
   });
   if (error) throw error;
 }
+
+/** Renders painted pixels onto a transparent canvas (template is never baked in). */
+export function pixelsToCanvas(pixels: PixelDatum[], width: number, height: number): HTMLCanvasElement {
+  const cv = document.createElement("canvas");
+  cv.width = Math.max(1, width);
+  cv.height = Math.max(1, height);
+  const ctx = cv.getContext("2d")!;
+  const img = ctx.createImageData(cv.width, cv.height);
+  for (const p of pixels) {
+    if (p.x < 0 || p.y < 0 || p.x >= cv.width || p.y >= cv.height) continue;
+    const i = (p.y * cv.width + p.x) * 4;
+    img.data[i] = p.r; img.data[i + 1] = p.g; img.data[i + 2] = p.b; img.data[i + 3] = p.a;
+  }
+  ctx.putImageData(img, 0, 0);
+  return cv;
+}
+
+/** Triggers a real browser download of a canvas as a transparent PNG. */
+export async function downloadCanvasPng(canvas: HTMLCanvasElement, filename: string) {
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("Could not encode PNG");
+  downloadBlob(blob, filename);
+}
+
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
 
 /** Curated 32-colour pixel-art palette. */
 export const PALETTE = [

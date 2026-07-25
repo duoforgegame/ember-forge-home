@@ -1,12 +1,31 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Trash2, Upload, Check, X } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Upload, Check, X, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminCall, adminLogin, getToken, clearToken, uploadPressAsset } from "@/lib/api";
-import { fetchCategories, fetchWeapons, type SkinSubmission, type Weapon, type WeaponCategory } from "@/lib/skincreator";
+import {
+  fetchCategories, fetchWeapons, pixelsToCanvas, downloadCanvasPng,
+  type SkinSubmission, type Weapon, type WeaponCategory,
+} from "@/lib/skincreator";
+
+/** Rebuilds the skin as a transparent PNG from the stored pixel data and saves it to disk. */
+async function downloadSkin(s: SkinSubmission) {
+  try {
+    const w = s.weapons?.canvas_width || 64;
+    const h = s.weapons?.canvas_height || 32;
+    const pixels = Array.isArray(s.pixel_data) ? s.pixel_data : [];
+    if (!pixels.length) { toast.error("This submission has no pixel data"); return; }
+    const canvas = pixelsToCanvas(pixels, w, h);
+    const name = `${(s.weapons?.name || "skin").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${s.id.slice(0, 8)}.png`;
+    await downloadCanvasPng(canvas, name);
+  } catch (e) {
+    toast.error((e as Error).message || "Download failed");
+  }
+}
+
 
 const STATUSES = ["pending", "approved", "rejected"] as const;
 
@@ -290,11 +309,10 @@ function SubmissionsPanel() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => setStatus(s.id, "approved")}><Check className="mr-1 h-3.5 w-3.5" /> Approve</Button>
                 <Button size="sm" variant="outline" onClick={() => setStatus(s.id, "rejected")}><X className="mr-1 h-3.5 w-3.5" /> Reject</Button>
-                {s.preview_image_url && (
-                  <a href={s.preview_image_url} download target="_blank" rel="noreferrer" className="inline-flex items-center rounded-md border border-border px-3 text-xs text-muted-foreground hover:text-foreground">
-                    Download PNG
-                  </a>
-                )}
+                <Button size="sm" variant="outline" onClick={() => downloadSkin(s)}>
+                  <Download className="mr-1 h-3.5 w-3.5" /> Download PNG
+                </Button>
+
                 <Button size="sm" variant="ghost" className="ml-auto text-destructive" onClick={() => remove(s.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
               </div>
             </div>

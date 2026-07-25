@@ -98,3 +98,9 @@ Visit `https://duoforgegames.com/admin` — not linked anywhere on the site and 
    for the ready-to-run Express service and the nginx snippet. Point the frontend at it via
    `VITE_SKIN_UPLOAD_ENDPOINT` in `.env` (default `https://duoforgegames.com/api/skin-upload`).
 4. Manage weapons/templates and moderate submissions at `/skincreator/admin` (same admin password).
+
+## Skin Creator player accounts (update)
+
+1. Run the new SQL at the end of `db/schema.sql` (table `skin_creator_users`, `skin_submissions.user_id`, updated insert policy).
+2. Deploy the new edge function: `supabase functions deploy skin-auth`
+3. Optional secret: `SKIN_JWT_SECRET` (falls back to `ADMIN_JWT_SECRET` if unset).

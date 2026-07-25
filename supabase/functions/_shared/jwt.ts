@@ -15,9 +15,14 @@ function b64urlDecode(s: string): Uint8Array {
 async function key(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
 }
-export async function signJwt(payload: Record<string, unknown>, secret: string, ttlSeconds = 8 * 60 * 60): Promise<string> {
+export async function signJwt(
+  payload: Record<string, unknown>,
+  secret: string,
+  ttlSeconds = 8 * 60 * 60,
+  iss = "duoforge-admin",
+): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const body = { iss: "duoforge-admin", iat: now, exp: now + ttlSeconds, ...payload };
+  const body = { iss, iat: now, exp: now + ttlSeconds, ...payload };
   const header = { alg: "HS256", typ: "JWT" };
   const h = b64url(JSON.stringify(header));
   const p = b64url(JSON.stringify(body));
@@ -25,7 +30,11 @@ export async function signJwt(payload: Record<string, unknown>, secret: string, 
   const sig = new Uint8Array(await crypto.subtle.sign("HMAC", await key(secret), encoder.encode(data)));
   return `${data}.${b64url(sig)}`;
 }
-export async function verifyJwt(token: string, secret: string): Promise<Record<string, unknown> | null> {
+export async function verifyJwt(
+  token: string,
+  secret: string,
+  iss = "duoforge-admin",
+): Promise<Record<string, unknown> | null> {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   const [h, p, s] = parts;
@@ -35,7 +44,8 @@ export async function verifyJwt(token: string, secret: string): Promise<Record<s
     const payload = JSON.parse(new TextDecoder().decode(b64urlDecode(p))) as Record<string, unknown>;
     const exp = payload.exp as number | undefined;
     if (exp && Math.floor(Date.now() / 1000) > exp) return null;
-    if (payload.iss !== "duoforge-admin") return null;
+    if (payload.iss !== iss) return null;
     return payload;
   } catch { return null; }
 }
+
