@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PixelEditor } from "@/components/PixelEditor";
+import { SkinAccountBar } from "@/components/SkinAccountBar";
+
 import {
   fetchCategories, fetchWeapons, submitSkin, uploadPreviewPng,
   type PixelDatum, type Weapon, type WeaponCategory,
@@ -89,6 +91,9 @@ export default function SkinCreator() {
             community skins can make it into the game.
           </p>
         </header>
+
+        <SkinAccountBar />
+
 
         {/* Stepper */}
         <ol className="mb-8 flex flex-wrap gap-2 text-[11px] uppercase tracking-wider">
