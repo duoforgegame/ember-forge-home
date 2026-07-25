@@ -199,7 +199,63 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ rows: data ?? [], user: { id: claims.sub, username: claims.username } }, { status: 200 }, origin);
       }
+      case "request_password_reset": {
+        // Always answers { ok: true } so account/email existence can't be probed.
+        if (!rateLimit(`skinreset:${ip}`, 10, 60 * 60 * 1000)) return json({ error: "Too many attempts" }, { status: 429 }, origin);
+        const identifier = String(body.identifier ?? "").trim();
+        if (!identifier || identifier.length > 255) return json({ ok: true }, { status: 200 }, origin);
+        try {
+          const col = identifier.includes("@") ? "email" : "username";
+          const { data: user } = await sb
+            .from("skin_creator_users")
+            .select("id, username, email")
+            .ilike(col, identifier)
+            .maybeSingle();
+          if (user?.email) {
+            const raw = `${crypto.randomUUID()}${toHex(crypto.getRandomValues(new Uint8Array(24)))}`;
+            const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+            const { error } = await sb
+              .from("skin_creator_users")
+              .update({ reset_token_hash: await sha256Hex(raw), reset_token_expires_at: expires })
+              .eq("id", user.id);
+            if (error) throw error;
+            await sendResetMail(user.email, user.username, `${SITE_URL()}/skincreator/reset-password?token=${raw}`);
+          }
+        } catch (e) {
+          console.error("password reset request failed", e);
+        }
+        await new Promise((r) => setTimeout(r, 250));
+        return json({ ok: true }, { status: 200 }, origin);
+      }
+      case "confirm_password_reset": {
+        if (!rateLimit(`skinresetconfirm:${ip}`, 20, 60 * 60 * 1000)) return json({ error: "Too many attempts" }, { status: 429 }, origin);
+        const rawToken = String(body.token ?? "").trim();
+        const newPassword = String(body.new_password ?? "");
+        if (newPassword.length < 8 || newPassword.length > 200) {
+          return json({ error: "Password must be at least 8 characters" }, { status: 400 }, origin);
+        }
+        if (!rawToken || rawToken.length > 500) return json({ error: "Link ungültig oder abgelaufen" }, { status: 400 }, origin);
+        const { data: user } = await sb
+          .from("skin_creator_users")
+          .select("id, reset_token_expires_at")
+          .eq("reset_token_hash", await sha256Hex(rawToken))
+          .gt("reset_token_expires_at", new Date().toISOString())
+          .maybeSingle();
+        if (!user) return json({ error: "Link ungültig oder abgelaufen" }, { status: 400 }, origin);
+        const { error } = await sb
+          .from("skin_creator_users")
+          .update({
+            password_hash: await hashPassword(newPassword),
+            reset_token_hash: null,
+            reset_token_expires_at: null,
+          })
+          .eq("id", user.id)
+          .not("reset_token_hash", "is", null);
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
       default:
+
         return json({ error: "Unknown op" }, { status: 400 }, origin);
     }
   } catch (e) {

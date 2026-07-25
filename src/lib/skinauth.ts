@@ -37,15 +37,29 @@ export async function skinAuthCall(body: Record<string, unknown>, withToken = fa
   return parsed;
 }
 
-async function authenticate(op: "login" | "register", username: string, password: string): Promise<SkinUser> {
-  const out = await skinAuthCall({ op, username, password });
+async function authenticate(
+  op: "login" | "register",
+  username: string,
+  password: string,
+  email?: string,
+): Promise<SkinUser> {
+  const out = await skinAuthCall({ op, username, password, ...(email ? { email } : {}) });
   localStorage.setItem(TOKEN_KEY, out.token);
   localStorage.setItem(USER_KEY, JSON.stringify(out.user));
   return out.user as SkinUser;
 }
 
 export const skinLogin = (username: string, password: string) => authenticate("login", username, password);
-export const skinRegister = (username: string, password: string) => authenticate("register", username, password);
+export const skinRegister = (username: string, password: string, email?: string) =>
+  authenticate("register", username, password, email);
+
+/** Always resolves — the backend never reveals whether the account/email exists. */
+export const requestPasswordReset = (identifier: string) =>
+  skinAuthCall({ op: "request_password_reset", identifier });
+
+export const confirmPasswordReset = (token: string, new_password: string) =>
+  skinAuthCall({ op: "confirm_password_reset", token, new_password });
+
 
 export type MySubmission = {
   id: string;
