@@ -33,7 +33,7 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
         ? await skinRegister(username.trim(), password, email.trim() || undefined)
         : await skinLogin(username.trim(), password);
       apply(u);
-      toast.success(mode === "register" ? `Account created — welcome, ${u.username}!` : `Welcome back, ${u.username}!`);
+      toast.success(mode === "register" ? `Account created, welcome, ${u.username}!` : `Welcome back, ${u.username}!`);
       close();
     } catch (e) {
       toast.error((e as Error).message || "Something went wrong");
@@ -74,7 +74,7 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
         ) : (
           <>
             <span className="text-muted-foreground">
-              You are creating <span className="font-semibold text-foreground">as a guest</span> — no account needed.
+              You are creating <span className="font-semibold text-foreground">as a guest</span>, no account needed.
               Create one to track the status of your submissions.
             </span>
             <div className="ml-auto flex flex-wrap gap-2">
@@ -97,8 +97,8 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
             </DialogTitle>
             <DialogDescription>
               {mode === "forgot"
-                ? "Gib deinen Username oder deine E-Mail ein — wir schicken dir einen Reset-Link, falls eine E-Mail hinterlegt ist."
-                : "No email required — just a username and password so you can follow your submissions."}
+                ? "Gib deinen Username oder deine E-Mail ein, wir schicken dir einen Reset-Link, falls eine E-Mail hinterlegt ist."
+                : "No email required, just a username and password so you can follow your submissions."}
             </DialogDescription>
           </DialogHeader>
 

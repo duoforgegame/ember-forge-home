@@ -41,7 +41,7 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   return diff === 0;
 }
 
-/** SHA-256 hex — used for reset tokens (high-entropy, so no salt/stretching needed). */
+/** SHA-256 hex, used for reset tokens (high-entropy, so no salt/stretching needed). */
 async function sha256Hex(input: string): Promise<string> {
   return toHex(await crypto.subtle.digest("SHA-256", enc.encode(input)));
 }
@@ -66,7 +66,7 @@ Neues Passwort setzen:
 ${resetUrl}
 
 Der Link ist 1 Stunde gültig und kann nur einmal verwendet werden.
-Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert.
+Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren, dein Passwort bleibt unverändert.
 
 Duo Forge Games`;
   await client.send({
@@ -79,7 +79,7 @@ Duo Forge Games`;
 <p><a href="${resetUrl}">Neues Passwort setzen</a></p>
 <p style="font-size:12px;color:#666">${resetUrl}</p>
 <p>Der Link ist <strong>1 Stunde</strong> gültig und kann nur einmal verwendet werden.</p>
-<p>Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert.</p>
+<p>Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren, dein Passwort bleibt unverändert.</p>
 <p>Duo Forge Games</p>`,
   });
   await client.close();

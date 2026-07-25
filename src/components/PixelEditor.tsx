@@ -254,7 +254,7 @@ export function PixelEditor({
   const clearAll = () => { pushUndo(); bufRef.current = new Uint8ClampedArray(W * H * 4); redraw(); };
 
   const exportSkin = () => {
-    // Export ONLY the user's painted layer — fully transparent everywhere else.
+    // Export ONLY the user's painted layer: fully transparent everywhere else.
     const out = document.createElement("canvas");
     out.width = W; out.height = H;
     const ctx = out.getContext("2d")!;
@@ -286,7 +286,7 @@ export function PixelEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="mr-2 h-4 w-4" /> Back to weapons</Button>
         <div className="text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">{weapon.name}</span> — {W}×{H} px
+          <span className="font-semibold text-foreground">{weapon.name}</span>: {W}×{H} px
         </div>
         <Button size="sm" onClick={exportSkin}><Check className="mr-2 h-4 w-4" /> Done / Submit</Button>
       </div>
@@ -420,7 +420,7 @@ export function PixelEditor({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Brush opacity — {alpha}%</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Brush opacity: {alpha}%</Label>
             <input
               type="range"
               min={0}
@@ -433,10 +433,10 @@ export function PixelEditor({
 
           <div className="rounded-sm border border-border bg-background/50 p-2 text-[11px] leading-relaxed text-muted-foreground">
             {maskReady
-              ? "You can only paint inside the weapon shape — the darkened area is ignored. Fill floods matching pixels and stops at the weapon's edges."
+              ? "You can only paint inside the weapon shape. The darkened area is ignored. Fill floods matching pixels and stops at the weapon's edges."
               : "Brush paints single pixels. Fill floods matching pixels."}{" "}
-            Pipette picks a colour from your layer. Your export contains only your painted pixels — the background stays transparent.
-            Touch/stylus painting is supported — use the Pan tool to move the canvas.
+            Pipette picks a colour from your layer. Your export contains only your painted pixels, the background stays transparent.
+            Touch/stylus painting is supported. Use the Pan tool to move the canvas.
           </div>
 
         </aside>

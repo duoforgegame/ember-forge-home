@@ -153,7 +153,7 @@ function WeaponsPanel() {
       img.onload = () => update(i, { template_image_url: url, canvas_width: img.naturalWidth, canvas_height: img.naturalHeight });
       img.src = url;
       update(i, { template_image_url: url });
-      toast.success("Template uploaded — canvas size auto-detected");
+      toast.success("Template uploaded, canvas size auto-detected");
     } catch (e) { toast.error((e as Error).message); }
   };
 
@@ -205,7 +205,7 @@ function WeaponsPanel() {
                     onChange={(e) => update(i, { category_id: e.target.value || null })}
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                   >
-                    <option value="">—</option>
+                    <option value="">-</option>
                     {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
@@ -300,7 +300,7 @@ function SubmissionsPanel() {
                 </div>
                 <div className="min-w-0 text-xs">
                   <div className="font-semibold text-foreground">{s.weapons?.name ?? "Unknown weapon"}</div>
-                  <div className="text-muted-foreground">{s.player_name || "—"} · <span className="font-mono">{s.discord_name}</span></div>
+                  <div className="text-muted-foreground">{s.player_name || "-"} · <span className="font-mono">{s.discord_name}</span></div>
                   {s.email && <div className="truncate text-muted-foreground">{s.email}</div>}
                   <div className="text-muted-foreground">{new Date(s.created_at).toLocaleString()}</div>
                   <div className="mt-1 inline-block rounded-sm border border-border px-1.5 py-0.5 uppercase tracking-wider text-muted-foreground">{s.status}</div>
