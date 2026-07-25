@@ -68,9 +68,11 @@ ${resetUrl}
 The link is valid for 1 hour and can only be used once.
 If you did not request this, you can simply ignore this email, your password stays unchanged.
 
+Please do not reply to this message. This mailbox cannot receive emails.
+
 Duo Forge Games`;
   await client.send({
-    from: Deno.env.get("SMTP_FROM")!,
+    from: Deno.env.get("SKIN_RESET_FROM") || "no-reply@duoforgegames.com",
     to,
     subject: "Reset your password, Duo Forge Skin Creator",
     content: text,
@@ -80,6 +82,7 @@ Duo Forge Games`;
 <p style="font-size:12px;color:#666">${resetUrl}</p>
 <p>The link is valid for <strong>1 hour</strong> and can only be used once.</p>
 <p>If you did not request this, you can simply ignore this email, your password stays unchanged.</p>
+<p style="font-size:12px;color:#666">Please do not reply to this message. This mailbox cannot receive emails.</p>
 <p>Duo Forge Games</p>`,
   });
   await client.close();
