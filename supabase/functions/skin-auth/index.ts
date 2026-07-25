@@ -71,14 +71,27 @@ Deno.serve(async (req) => {
         if (password.length < 8 || password.length > 200) {
           return json({ error: "Password must be at least 8 characters" }, { status: 400 }, origin);
         }
+        const email = String(body.email ?? "").trim().toLowerCase();
+        if (email && (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 255)) {
+          return json({ error: "Invalid email address" }, { status: 400 }, origin);
+        }
         const { data: existing } = await sb.from("skin_creator_users").select("id").ilike("username", username).maybeSingle();
         if (existing) return json({ error: "Username already taken" }, { status: 409 }, origin);
+        if (email) {
+          const { data: mailTaken } = await sb.from("skin_creator_users").select("id").ilike("email", email).maybeSingle();
+          if (mailTaken) return json({ error: "This email is already in use" }, { status: 409 }, origin);
+        }
         const password_hash = await hashPassword(password);
-        const { data, error } = await sb.from("skin_creator_users").insert({ username, password_hash }).select("id, username").single();
+        const { data, error } = await sb
+          .from("skin_creator_users")
+          .insert({ username, password_hash, email: email || null })
+          .select("id, username")
+          .single();
         if (error) {
-          if (String(error.message).includes("duplicate")) return json({ error: "Username already taken" }, { status: 409 }, origin);
+          if (String(error.message).includes("duplicate")) return json({ error: "Username or email already taken" }, { status: 409 }, origin);
           throw error;
         }
+
         const token = await signJwt({ sub: data.id, username: data.username }, jwtSecret, 30 * 24 * 60 * 60, ISS);
         return json({ token, user: data }, { status: 200 }, origin);
       }
