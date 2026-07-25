@@ -347,6 +347,15 @@ export function PixelEditor({
                 />
               )}
               <canvas
+                ref={maskCanvasRef}
+                width={W}
+                height={H}
+                aria-hidden
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                style={{ imageRendering: "pixelated" }}
+              />
+
+              <canvas
                 ref={canvasRef}
                 width={W}
                 height={H}
