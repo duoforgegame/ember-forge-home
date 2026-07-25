@@ -104,3 +104,13 @@ Visit `https://duoforgegames.com/admin` — not linked anywhere on the site and 
 1. Run the new SQL at the end of `db/schema.sql` (table `skin_creator_users`, `skin_submissions.user_id`, updated insert policy).
 2. Deploy the new edge function: `supabase functions deploy skin-auth`
 3. Optional secret: `SKIN_JWT_SECRET` (falls back to `ADMIN_JWT_SECRET` if unset).
+
+## Skin Creator password reset (update)
+
+1. Run the new SQL at the end of `db/schema.sql` (columns `email`, `reset_token_hash`,
+   `reset_token_expires_at` on `skin_creator_users`).
+2. Redeploy the edge function: `supabase functions deploy skin-auth`
+3. No new mail service needed — the reset mail is sent over the existing IONOS SMTP
+   secrets (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`).
+4. Optional secret `SITE_URL` (defaults to `https://duoforgegames.com`) controls the
+   domain used in the reset link.
