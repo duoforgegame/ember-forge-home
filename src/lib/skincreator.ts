@@ -128,3 +128,35 @@ export const PALETTE = [
   "#257179", "#29366f", "#3b5dc9", "#41a6f6", "#73eff7", "#b57ff5", "#e26df8", "#ff77a8",
   "#7b3f00", "#a9662a", "#d9a066", "#eec39a", "#4b4b4b", "#7a7a7a", "#2b1d1d", "#8f1f1f",
 ];
+
+/** Composites the weapon template underneath the painted pixels (transparent background). */
+export async function renderSkinWithTemplate(
+  templateUrl: string | null | undefined,
+  pixels: PixelDatum[],
+  width: number,
+  height: number,
+): Promise<HTMLCanvasElement> {
+  const W = Math.max(1, width);
+  const H = Math.max(1, height);
+  const cv = document.createElement("canvas");
+  cv.width = W;
+  cv.height = H;
+  const ctx = cv.getContext("2d")!;
+  ctx.imageSmoothingEnabled = false;
+  if (templateUrl) {
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image();
+        el.crossOrigin = "anonymous";
+        el.onload = () => resolve(el);
+        el.onerror = () => reject(new Error("Could not load weapon template"));
+        el.src = templateUrl;
+      });
+      ctx.drawImage(img, 0, 0, W, H);
+    } catch {
+      /* template unavailable, export the painted pixels only */
+    }
+  }
+  ctx.drawImage(pixelsToCanvas(pixels, W, H), 0, 0);
+  return cv;
+}

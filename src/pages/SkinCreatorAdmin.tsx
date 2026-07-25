@@ -7,18 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminCall, adminLogin, getToken, clearToken, uploadPressAsset } from "@/lib/api";
 import {
-  fetchCategories, fetchWeapons, pixelsToCanvas, downloadCanvasPng,
+  fetchCategories, fetchWeapons, renderSkinWithTemplate, downloadCanvasPng,
   type SkinSubmission, type Weapon, type WeaponCategory,
 } from "@/lib/skincreator";
+import { SkinPreview } from "@/components/SkinPreview";
 
-/** Rebuilds the skin as a transparent PNG from the stored pixel data and saves it to disk. */
+/** Rebuilds the skin (weapon template plus painted pixels) as a PNG and saves it to disk. */
 async function downloadSkin(s: SkinSubmission) {
   try {
     const w = s.weapons?.canvas_width || 64;
     const h = s.weapons?.canvas_height || 32;
     const pixels = Array.isArray(s.pixel_data) ? s.pixel_data : [];
     if (!pixels.length) { toast.error("This submission has no pixel data"); return; }
-    const canvas = pixelsToCanvas(pixels, w, h);
+    const canvas = await renderSkinWithTemplate(s.weapons?.template_image_url, pixels, w, h);
     const name = `${(s.weapons?.name || "skin").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${s.id.slice(0, 8)}.png`;
     await downloadCanvasPng(canvas, name);
   } catch (e) {
@@ -293,10 +294,12 @@ function SubmissionsPanel() {
           {visible.map((s) => (
             <div key={s.id} className="rounded-lg border border-border bg-card p-3">
               <div className="flex gap-3">
-                <div className="flex h-24 w-32 shrink-0 items-center justify-center rounded-sm bg-[#111]">
-                  {s.preview_image_url
-                    ? <img src={s.preview_image_url} alt="skin" className="max-h-full max-w-full" style={{ imageRendering: "pixelated" }} />
-                    : <span className="text-[10px] text-muted-foreground">no preview</span>}
+                <div className="flex h-24 w-32 shrink-0 items-center justify-center rounded-sm bg-[#111] p-1">
+                  {s.weapons && Array.isArray(s.pixel_data) && s.pixel_data.length
+                    ? <SkinPreview weapon={{ ...s.weapons, template_image_url: s.weapons.template_image_url ?? "" }} pixels={s.pixel_data} scale={2} />
+                    : s.preview_image_url
+                      ? <img src={s.preview_image_url} alt="skin" className="max-h-full max-w-full" style={{ imageRendering: "pixelated" }} />
+                      : <span className="text-[10px] text-muted-foreground">no preview</span>}
                 </div>
                 <div className="min-w-0 text-xs">
                   <div className="font-semibold text-foreground">{s.weapons?.name ?? "Unknown weapon"}</div>
