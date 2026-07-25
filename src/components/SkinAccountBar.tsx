@@ -96,7 +96,9 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
               {mode === "register" ? "Create account" : mode === "forgot" ? "Forgot password?" : "Sign in"}
             </DialogTitle>
             <DialogDescription>
-              {mode === "forgot"
+              {resetSent
+                ? "Check your inbox for the reset link."
+                : mode === "forgot"
                 ? "Enter your username or email. If an email is on file, we will send you a reset link."
                 : "No email required, just a username and password so you can follow your submissions."}
             </DialogDescription>
@@ -107,8 +109,8 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
               {resetSent ? (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    If an account with an email on file exists, the reset link is on its way.
-                    The link is valid for 1 hour.
+                    If an account with this email exists, we just sent you a link to reset your password.
+                    The link is valid for one hour. Check your inbox, and your spam folder if you don't see it.
                   </p>
                   <Button className="w-full" variant="outline" onClick={() => { setResetSent(false); setMode("login"); }}>
                     Back to sign in
