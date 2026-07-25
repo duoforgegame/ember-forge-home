@@ -4,6 +4,8 @@ import { preflight, json } from "../_shared/cors.ts";
 import { signJwt, verifyJwt } from "../_shared/jwt.ts";
 import { rateLimit, clientIp } from "../_shared/ratelimit.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+
 
 const ISS = "duoforge-skinuser";
 const ITERATIONS = 120_000;
@@ -39,7 +41,52 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   return diff === 0;
 }
 
+/** SHA-256 hex — used for reset tokens (high-entropy, so no salt/stretching needed). */
+async function sha256Hex(input: string): Promise<string> {
+  return toHex(await crypto.subtle.digest("SHA-256", enc.encode(input)));
+}
+
+const SITE_URL = () => (Deno.env.get("SITE_URL") || "https://duoforgegames.com").replace(/\/+$/, "");
+
+/** Sends the reset mail over the same IONOS SMTP setup the contact form uses. */
+async function sendResetMail(to: string, username: string, resetUrl: string): Promise<void> {
+  const client = new SMTPClient({
+    connection: {
+      hostname: Deno.env.get("SMTP_HOST")!,
+      port: Number(Deno.env.get("SMTP_PORT") ?? "465"),
+      tls: (Deno.env.get("SMTP_SECURE") ?? "true") === "true",
+      auth: { username: Deno.env.get("SMTP_USER")!, password: Deno.env.get("SMTP_PASS")! },
+    },
+  });
+  const text = `Hallo ${username},
+
+du (oder jemand anderes) hat ein neues Passwort für deinen Duo Forge Skin Creator Account angefordert.
+
+Neues Passwort setzen:
+${resetUrl}
+
+Der Link ist 1 Stunde gültig und kann nur einmal verwendet werden.
+Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert.
+
+Duo Forge Games`;
+  await client.send({
+    from: Deno.env.get("SMTP_FROM")!,
+    to,
+    subject: "Passwort zurücksetzen – Duo Forge Skin Creator",
+    content: text,
+    html: `<p>Hallo ${username},</p>
+<p>du (oder jemand anderes) hat ein neues Passwort für deinen <strong>Duo Forge Skin Creator</strong> Account angefordert.</p>
+<p><a href="${resetUrl}">Neues Passwort setzen</a></p>
+<p style="font-size:12px;color:#666">${resetUrl}</p>
+<p>Der Link ist <strong>1 Stunde</strong> gültig und kann nur einmal verwendet werden.</p>
+<p>Falls du die Anfrage nicht selbst gestellt hast, kannst du diese E-Mail einfach ignorieren — dein Passwort bleibt unverändert.</p>
+<p>Duo Forge Games</p>`,
+  });
+  await client.close();
+}
+
 const secret = () => Deno.env.get("SKIN_JWT_SECRET") || Deno.env.get("ADMIN_JWT_SECRET") || "";
+
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
