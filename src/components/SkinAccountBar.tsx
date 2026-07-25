@@ -93,11 +93,11 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {mode === "register" ? "Create account" : mode === "forgot" ? "Passwort vergessen?" : "Sign in"}
+              {mode === "register" ? "Create account" : mode === "forgot" ? "Forgot password?" : "Sign in"}
             </DialogTitle>
             <DialogDescription>
               {mode === "forgot"
-                ? "Gib deinen Username oder deine E-Mail ein, wir schicken dir einen Reset-Link, falls eine E-Mail hinterlegt ist."
+                ? "Enter your username or email. If an email is on file, we will send you a reset link."
                 : "No email required, just a username and password so you can follow your submissions."}
             </DialogDescription>
           </DialogHeader>
@@ -173,7 +173,7 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
               </Button>
               {mode === "login" && (
                 <button className="w-full text-center text-xs text-muted-foreground hover:text-primary" onClick={() => setMode("forgot")}>
-                  Passwort vergessen?
+                  Forgot password?
                 </button>
               )}
               <button
