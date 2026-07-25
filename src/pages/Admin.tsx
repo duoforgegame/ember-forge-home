@@ -30,7 +30,9 @@ const TABS = ["Projects", "Featured", "Team", "About", "Socials", "Header", "Foo
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
-  const [authed, setAuthed] = useState<boolean>(!!getToken());
+  // Always require the password again when the panel is opened.
+  useEffect(() => { clearToken(); }, []);
+  const [authed, setAuthed] = useState<boolean>(false);
   return authed ? <Dashboard onLogout={() => setAuthed(false)} /> : <Login onOk={() => setAuthed(true)} />;
 }
 
