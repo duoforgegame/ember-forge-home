@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PixelEditor } from "@/components/PixelEditor";
 import { SkinAccountBar } from "@/components/SkinAccountBar";
+import { SkinPreview } from "@/components/SkinPreview";
+
 
 import {
   fetchCategories, fetchWeapons, submitSkin, uploadPreviewPng,
@@ -169,12 +171,13 @@ export default function SkinCreator() {
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">Preview</div>
-              <div className="flex items-center justify-center rounded-sm bg-[#111] p-6">
-                <img src={result.dataUrl} alt="Your skin" className="max-h-72" style={{ imageRendering: "pixelated", width: weapon.canvas_width * 6 }} />
+              <div className="flex items-center justify-center overflow-auto rounded-sm bg-[#111] p-6">
+                <SkinPreview weapon={weapon} pixels={result.pixels} scale={6} />
               </div>
               <div className="mt-3 text-xs text-muted-foreground">
                 {weapon.name} · {result.pixels.length} painted pixels
               </div>
+
               <Button variant="ghost" size="sm" className="mt-3" onClick={() => setStep("editor")}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Keep editing
               </Button>
