@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSkinUser, listMySubmissions, type MySubmission } from "@/lib/skinauth";
+import { SkinPreview } from "@/components/SkinPreview";
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "border-amber-500/60 bg-amber-500/10 text-amber-400",
