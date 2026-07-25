@@ -314,3 +314,64 @@ insert into public.site_featured_game (id) values (1) on conflict (id) do nothin
 
 
 
+
+-- ============================================================
+-- SKIN CREATOR (Unboxed community pixel art skins)
+-- ============================================================
+create table if not exists public.weapon_categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  sort_order integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+grant select on public.weapon_categories to anon, authenticated;
+grant all on public.weapon_categories to service_role;
+alter table public.weapon_categories enable row level security;
+drop policy if exists "public read weapon categories" on public.weapon_categories;
+create policy "public read weapon categories" on public.weapon_categories for select to anon, authenticated using (true);
+
+create table if not exists public.weapons (
+  id uuid primary key default gen_random_uuid(),
+  category_id uuid references public.weapon_categories(id) on delete cascade,
+  name text not null,
+  template_image_url text not null default '',
+  canvas_width integer not null default 64,
+  canvas_height integer not null default 32,
+  active boolean not null default true,
+  sort_order integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+create index if not exists weapons_category_idx on public.weapons(category_id);
+grant select on public.weapons to anon, authenticated;
+grant all on public.weapons to service_role;
+alter table public.weapons enable row level security;
+drop policy if exists "public read weapons" on public.weapons;
+create policy "public read weapons" on public.weapons for select to anon, authenticated using (true);
+
+create table if not exists public.skin_submissions (
+  id uuid primary key default gen_random_uuid(),
+  weapon_id uuid references public.weapons(id) on delete set null,
+  pixel_data jsonb not null default '[]'::jsonb,
+  preview_image_url text not null default '',
+  player_name text,
+  discord_name text not null,
+  email text,
+  status text not null default 'pending',
+  created_at timestamptz not null default now()
+);
+create index if not exists skin_submissions_weapon_idx on public.skin_submissions(weapon_id);
+create index if not exists skin_submissions_status_idx on public.skin_submissions(status);
+grant insert on public.skin_submissions to anon, authenticated;
+grant all on public.skin_submissions to service_role;
+alter table public.skin_submissions enable row level security;
+drop policy if exists "public submit skins" on public.skin_submissions;
+create policy "public submit skins" on public.skin_submissions
+  for insert to anon, authenticated
+  with check (status = 'pending' and char_length(discord_name) between 1 and 120);
+
+-- seed default categories
+insert into public.weapon_categories (name, sort_order)
+select v.name, v.ord from (values
+  ('Pistols',1),('MPs',2),('Assault Rifles',3),('Shotguns',4),('Sniper',5),('Knifes',6),('Specials',7)
+) as v(name, ord)
+where not exists (select 1 from public.weapon_categories);
