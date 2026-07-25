@@ -13,6 +13,8 @@ const PressKit = lazy(() => import("./pages/PressKit"));
 const GamePage = lazy(() => import("./pages/GamePage"));
 const SkinCreator = lazy(() => import("./pages/SkinCreator"));
 const SkinCreatorAdmin = lazy(() => import("./pages/SkinCreatorAdmin"));
+const MySkins = lazy(() => import("./pages/MySkins"));
+
 
 export default function App() {
   const location = useLocation();
@@ -32,7 +34,9 @@ export default function App() {
           <Route path="/press/:slug" element={<PressKit />} />
           <Route path="/games/:slug" element={<GamePage />} />
           <Route path="/skincreator" element={<SkinCreator />} />
+          <Route path="/skincreator/my-skins" element={<MySkins />} />
           <Route path="/skincreator/admin" element={<SkinCreatorAdmin />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
