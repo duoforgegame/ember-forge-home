@@ -24,6 +24,7 @@ export type SkinSubmission = {
   weapon_id: string | null;
   pixel_data: PixelDatum[];
   preview_image_url: string;
+  skin_name: string | null;
   player_name: string | null;
   discord_name: string;
   email: string | null;
@@ -64,19 +65,21 @@ export async function submitSkin(input: {
   weapon_id: string;
   pixel_data: PixelDatum[];
   preview_image_url: string;
+  skin_name?: string;
   player_name?: string;
   discord_name: string;
   email?: string;
 }) {
   // Logged-in players submit through the edge function so the server sets user_id.
   if (getSkinToken()) {
-    await skinAuthCall({ op: "submit", ...input, player_name: input.player_name?.trim() || null, email: input.email?.trim() || null }, true);
+    await skinAuthCall({ op: "submit", ...input, skin_name: input.skin_name?.trim() || null, player_name: input.player_name?.trim() || null, email: input.email?.trim() || null }, true);
     return;
   }
   const { error } = await supabase.from("skin_submissions").insert({
     weapon_id: input.weapon_id,
     pixel_data: input.pixel_data,
     preview_image_url: input.preview_image_url,
+    skin_name: input.skin_name?.trim() || null,
     player_name: input.player_name?.trim() || null,
     discord_name: input.discord_name.trim(),
     email: input.email?.trim() || null,
