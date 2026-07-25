@@ -160,14 +160,20 @@ export function PixelEditor({
   const setPixel = (x: number, y: number, erase: boolean) => {
     if (!paintable(x, y)) return;
     const buf = bufRef.current;
-    const i = (y * W + x) * 4;
+    const key = y * W + x;
+    const i = key * 4;
     if (erase) {
       buf[i] = buf[i + 1] = buf[i + 2] = buf[i + 3] = 0;
+      strokeRef.current.add(key);
       return;
     }
+    // Each pixel is painted at most once per stroke, so opacity stays as chosen.
+    if (strokeRef.current.has(key)) return;
+    strokeRef.current.add(key);
     const [r, g, b] = hexToRgb(color);
     const a = Math.round((alpha / 100) * 255);
     // alpha-composite over existing pixel so partial transparency stacks predictably
+
     const sa = a / 255;
     const da = buf[i + 3] / 255;
     const outA = sa + da * (1 - sa);
