@@ -26,7 +26,9 @@ export type AdminOp =
   | { op: "list_submissions" }
   | { op: "delete_submission"; id: string }
   | { op: "sign_cover_upload"; ext: string }
-  | { op: "sign_upload"; kind: "cover" | "press_image" | "press_logo" | "press_zip"; ext: string };
+  | { op: "sign_upload"; kind: "cover" | "press_image" | "press_logo" | "press_zip" | "weapon_template"; ext: string }
+  | { op: "list_skin_submissions" }
+  | { op: "set_skin_status"; id: string; status: string };
 
 export async function adminCall(body: AdminOp): Promise<any> {
   const token = getToken();
@@ -69,7 +71,7 @@ export async function uploadProjectCover(file: File): Promise<string> {
 
 export async function uploadPressAsset(
   file: File,
-  kind: "press_image" | "press_logo" | "press_zip",
+  kind: "press_image" | "press_logo" | "press_zip" | "weapon_template",
 ): Promise<string> {
   const ext = (file.name.split(".").pop() || "").toLowerCase();
   const { token, path, publicUrl, bucket } = await adminCall({ op: "sign_upload", kind, ext });
