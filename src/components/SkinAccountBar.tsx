@@ -162,7 +162,7 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
                       onKeyDown={(e) => e.key === "Enter" && submit()}
                     />
                     <p className="text-[11px] text-muted-foreground">
-                      Ohne E-Mail kann dein Passwort bei Verlust nicht zurückgesetzt werden.
+                      Without an email, your password cannot be reset if lost.
                     </p>
                   </div>
                 </>
