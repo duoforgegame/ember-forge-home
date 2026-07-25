@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
         if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
         const { data, error } = await sb
           .from("skin_submissions")
-          .select("id, status, created_at, preview_image_url, player_name, discord_name, weapon_id, weapons(id, name, canvas_width, canvas_height, template_image_url, category_id)")
+          .select("id, status, created_at, preview_image_url, player_name, discord_name, weapon_id, pixel_data, weapons(id, name, canvas_width, canvas_height, template_image_url, category_id)")
           .eq("user_id", String(claims.sub))
           .order("created_at", { ascending: false })
           .limit(500);

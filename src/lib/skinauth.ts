@@ -68,7 +68,8 @@ export type MySubmission = {
   preview_image_url: string;
   player_name: string | null;
   discord_name: string;
-  weapons?: { id: string; name: string; canvas_width: number; canvas_height: number } | null;
+  pixel_data?: { x: number; y: number; r: number; g: number; b: number; a: number }[] | null;
+  weapons?: { id: string; name: string; canvas_width: number; canvas_height: number; template_image_url?: string } | null;
 };
 
 export async function listMySubmissions(): Promise<MySubmission[]> {

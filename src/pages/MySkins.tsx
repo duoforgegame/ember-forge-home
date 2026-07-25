@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSkinUser, listMySubmissions, type MySubmission } from "@/lib/skinauth";
+import { SkinPreview } from "@/components/SkinPreview";
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "border-amber-500/60 bg-amber-500/10 text-amber-400",
@@ -54,10 +55,13 @@ export default function MySkins() {
             {rows.map((s) => (
               <article key={s.id} className="overflow-hidden rounded-lg border border-border bg-card">
                 <div className="flex h-36 items-center justify-center bg-[#111] p-3">
-                  {s.preview_image_url
-                    ? <img src={s.preview_image_url} alt={`Skin for ${s.weapons?.name ?? "weapon"}`} className="max-h-full max-w-full" style={{ imageRendering: "pixelated" }} />
-                    : <span className="text-[11px] text-muted-foreground">no preview</span>}
+                  {s.weapons && s.pixel_data?.length
+                    ? <SkinPreview weapon={{ ...s.weapons, template_image_url: s.weapons.template_image_url ?? "" }} pixels={s.pixel_data} scale={4} />
+                    : s.preview_image_url
+                      ? <img src={s.preview_image_url} alt={`Skin for ${s.weapons?.name ?? "weapon"}`} className="max-h-full max-w-full" style={{ imageRendering: "pixelated" }} />
+                      : <span className="text-[11px] text-muted-foreground">no preview</span>}
                 </div>
+
                 <div className="space-y-1.5 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold">{s.weapons?.name ?? "Unknown weapon"}</span>
