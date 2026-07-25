@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { adminCall, adminLogin, getToken, clearToken, uploadPressAsset } from "@/lib/api";
+import { adminCall, adminLogin, clearToken, uploadPressAsset } from "@/lib/api";
 import {
   fetchCategories, fetchWeapons, renderSkinWithTemplate, downloadCanvasPng,
   type SkinSubmission, type Weapon, type WeaponCategory,
@@ -31,7 +31,9 @@ async function downloadSkin(s: SkinSubmission) {
 const STATUSES = ["pending", "approved", "rejected"] as const;
 
 export default function SkinCreatorAdmin() {
-  const [authed, setAuthed] = useState(!!getToken());
+  // Always require the password again when the panel is opened.
+  useEffect(() => { clearToken(); }, []);
+  const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<"weapons" | "submissions" | "users">("weapons");
@@ -330,7 +332,17 @@ function SubmissionsPanel() {
                   <div className="text-muted-foreground">{s.player_name || "-"} · <span className="font-mono">{s.discord_name}</span></div>
                   {s.email && <div className="truncate text-muted-foreground">{s.email}</div>}
                   <div className="text-muted-foreground">{new Date(s.created_at).toLocaleString()}</div>
-                  <div className="mt-1 inline-block rounded-sm border border-border px-1.5 py-0.5 uppercase tracking-wider text-muted-foreground">{s.status}</div>
+                  <div
+                    className={`mt-1 inline-block rounded-sm border px-1.5 py-0.5 uppercase tracking-wider ${
+                      s.status === "approved"
+                        ? "border-green-500/60 bg-green-500/10 text-green-500"
+                        : s.status === "rejected"
+                          ? "border-red-500/60 bg-red-500/10 text-red-500"
+                          : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    {s.status}
+                  </div>
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">

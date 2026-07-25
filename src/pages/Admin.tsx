@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { adminLogin, adminCall, getToken, clearToken, uploadProjectCover, uploadPressAsset, slugify } from "@/lib/api";
+import { adminLogin, adminCall, clearToken, uploadProjectCover, uploadPressAsset, slugify } from "@/lib/api";
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 import { FeaturedGameCard } from "@/components/FeaturedGameCard";
@@ -30,7 +30,9 @@ const TABS = ["Projects", "Featured", "Team", "About", "Socials", "Header", "Foo
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
-  const [authed, setAuthed] = useState<boolean>(!!getToken());
+  // Always require the password again when the panel is opened.
+  useEffect(() => { clearToken(); }, []);
+  const [authed, setAuthed] = useState<boolean>(false);
   return authed ? <Dashboard onLogout={() => setAuthed(false)} /> : <Login onOk={() => setAuthed(true)} />;
 }
 
