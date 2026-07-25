@@ -28,7 +28,11 @@ export type AdminOp =
   | { op: "sign_cover_upload"; ext: string }
   | { op: "sign_upload"; kind: "cover" | "press_image" | "press_logo" | "press_zip" | "weapon_template"; ext: string }
   | { op: "list_skin_submissions" }
-  | { op: "set_skin_status"; id: string; status: string };
+  | { op: "set_skin_status"; id: string; status: string }
+  | { op: "list_skin_users" }
+  | { op: "admin_delete_skin_user"; id: string }
+  | { op: "admin_reset_skin_user_password"; username: string }
+  | { op: "bulk_delete_submissions_by_status"; status: "approved" | "rejected" };
 
 export async function adminCall(body: AdminOp): Promise<any> {
   const token = getToken();
