@@ -294,10 +294,12 @@ function SubmissionsPanel() {
           {visible.map((s) => (
             <div key={s.id} className="rounded-lg border border-border bg-card p-3">
               <div className="flex gap-3">
-                <div className="flex h-24 w-32 shrink-0 items-center justify-center rounded-sm bg-[#111]">
-                  {s.preview_image_url
-                    ? <img src={s.preview_image_url} alt="skin" className="max-h-full max-w-full" style={{ imageRendering: "pixelated" }} />
-                    : <span className="text-[10px] text-muted-foreground">no preview</span>}
+                <div className="flex h-24 w-32 shrink-0 items-center justify-center rounded-sm bg-[#111] p-1">
+                  {s.weapons && Array.isArray(s.pixel_data) && s.pixel_data.length
+                    ? <SkinPreview weapon={{ ...s.weapons, template_image_url: s.weapons.template_image_url ?? "" }} pixels={s.pixel_data} scale={2} />
+                    : s.preview_image_url
+                      ? <img src={s.preview_image_url} alt="skin" className="max-h-full max-w-full" style={{ imageRendering: "pixelated" }} />
+                      : <span className="text-[10px] text-muted-foreground">no preview</span>}
                 </div>
                 <div className="min-w-0 text-xs">
                   <div className="font-semibold text-foreground">{s.weapons?.name ?? "Unknown weapon"}</div>
