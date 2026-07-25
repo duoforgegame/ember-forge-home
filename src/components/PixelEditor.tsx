@@ -179,13 +179,29 @@ export function PixelEditor({
     buf[i + 3] = Math.round(outA * 255);
   };
 
-  /** Flood fill that is bounded by both colour edges and the weapon's alpha mask. */
+  /** Tolerance (per channel, squared distance) for template colour regions. */
+  const TPL_TOLERANCE = 32;
+
+  /**
+   * Flood fill bounded by: the painted layer's own colour edges, the weapon's
+   * alpha mask, and the colour regions of the original template (barrel, grip,
+   * stock, etc. stay separate fill areas).
+   */
   const floodFill = (x: number, y: number, erase: boolean) => {
     if (!paintable(x, y)) return;
     const buf = bufRef.current;
+    const tpl = tplDataRef.current;
     const at = (px: number, py: number) => (py * W + px) * 4;
     const start = at(x, y);
     const target = [buf[start], buf[start + 1], buf[start + 2], buf[start + 3]];
+    const tplTarget = tpl ? [tpl[start], tpl[start + 1], tpl[start + 2]] : null;
+    const sameTemplateRegion = (p: number) => {
+      if (!tpl || !tplTarget) return true;
+      const dr = tpl[p] - tplTarget[0];
+      const dg = tpl[p + 1] - tplTarget[1];
+      const db = tpl[p + 2] - tplTarget[2];
+      return Math.sqrt(dr * dr + dg * dg + db * db) <= TPL_TOLERANCE;
+    };
     const [r, g, b] = erase ? [0, 0, 0] : hexToRgb(color);
     const a = erase ? 0 : Math.round((alpha / 100) * 255);
     if (target[0] === r && target[1] === g && target[2] === b && target[3] === a) return;
@@ -198,11 +214,13 @@ export function PixelEditor({
       if (seen[idx]) continue;
       const p = idx * 4;
       if (buf[p] !== target[0] || buf[p + 1] !== target[1] || buf[p + 2] !== target[2] || buf[p + 3] !== target[3]) continue;
+      if (!sameTemplateRegion(p)) continue;
       seen[idx] = 1;
       buf[p] = r; buf[p + 1] = g; buf[p + 2] = b; buf[p + 3] = a;
       stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
     }
   };
+
 
   const pick = (x: number, y: number) => {
     const buf = bufRef.current;
