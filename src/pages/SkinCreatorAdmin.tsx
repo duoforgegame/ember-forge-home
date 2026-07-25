@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { adminCall, adminLogin, getToken, clearToken, uploadPressAsset } from "@/lib/api";
+import { adminCall, adminLogin, clearToken, uploadPressAsset } from "@/lib/api";
 import {
   fetchCategories, fetchWeapons, renderSkinWithTemplate, downloadCanvasPng,
   type SkinSubmission, type Weapon, type WeaponCategory,
