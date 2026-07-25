@@ -45,6 +45,8 @@ export function PixelEditor({
   const undoRef = useRef<Uint8ClampedArray[]>([]);
   const redoRef = useRef<Uint8ClampedArray[]>([]);
   const drawingRef = useRef(false);
+  /** Pixels already touched by the current stroke, so opacity never stacks twice. */
+  const strokeRef = useRef<Set<number>>(new Set());
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const panRef = useRef<{ x: number; y: number; sl: number; st: number } | null>(null);
   const templateRef = useRef<HTMLImageElement | null>(null);
