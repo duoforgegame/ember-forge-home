@@ -35,8 +35,9 @@ export function SkinPreview({
       className="relative"
       style={{
         width: W * scale,
-        height: H * scale,
+        height: "auto",
         maxWidth: "100%",
+        maxHeight: "100%",
         aspectRatio: `${W} / ${H}`,
       }}
     >
