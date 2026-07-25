@@ -14,6 +14,8 @@ const GamePage = lazy(() => import("./pages/GamePage"));
 const SkinCreator = lazy(() => import("./pages/SkinCreator"));
 const SkinCreatorAdmin = lazy(() => import("./pages/SkinCreatorAdmin"));
 const MySkins = lazy(() => import("./pages/MySkins"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+
 
 
 export default function App() {
@@ -35,6 +37,8 @@ export default function App() {
           <Route path="/games/:slug" element={<GamePage />} />
           <Route path="/skincreator" element={<SkinCreator />} />
           <Route path="/skincreator/my-skins" element={<MySkins />} />
+          <Route path="/skincreator/reset-password" element={<ResetPassword />} />
+
           <Route path="/skincreator/admin" element={<SkinCreatorAdmin />} />
 
           <Route path="*" element={<NotFound />} />
