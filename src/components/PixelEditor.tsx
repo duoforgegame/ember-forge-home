@@ -96,6 +96,7 @@ export function PixelEditor({
 
   useEffect(() => {
     maskRef.current = new Uint8Array(W * H).fill(1);
+    tplDataRef.current = null;
     setMaskReady(false);
     if (!weapon.template_image_url) { drawMaskOverlay(); return; }
     let cancelled = false;
@@ -111,6 +112,7 @@ export function PixelEditor({
         octx.imageSmoothingEnabled = false;
         octx.drawImage(img, 0, 0, W, H);
         const data = octx.getImageData(0, 0, W, H).data;
+        tplDataRef.current = data;
         const mask = new Uint8Array(W * H);
         for (let i = 0; i < W * H; i++) mask[i] = data[i * 4 + 3] > 0 ? 1 : 0;
         // A fully transparent (or fully opaque) template gives no useful mask.
@@ -120,6 +122,7 @@ export function PixelEditor({
       } catch { /* cross-origin template: keep the whole canvas paintable */ }
       drawMaskOverlay();
     };
+
     img.onerror = () => { if (!cancelled) drawMaskOverlay(); };
     img.src = weapon.template_image_url;
     return () => { cancelled = true; };
