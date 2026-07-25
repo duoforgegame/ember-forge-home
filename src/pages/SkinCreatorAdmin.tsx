@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Trash2, Upload, Check, X, Download } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Upload, Check, X, Download, KeyRound, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ export default function SkinCreatorAdmin() {
   const [authed, setAuthed] = useState(!!getToken());
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<"weapons" | "submissions">("weapons");
+  const [tab, setTab] = useState<"weapons" | "submissions" | "users">("weapons");
 
   const login = async () => {
     setBusy(true);
@@ -74,7 +74,7 @@ export default function SkinCreatorAdmin() {
         </div>
 
         <div className="mb-6 flex gap-2">
-          {(["weapons", "submissions"] as const).map((t) => (
+          {(["weapons", "submissions", "users"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -85,7 +85,7 @@ export default function SkinCreatorAdmin() {
           ))}
         </div>
 
-        {tab === "weapons" ? <WeaponsPanel /> : <SubmissionsPanel />}
+        {tab === "weapons" ? <WeaponsPanel /> : tab === "submissions" ? <SubmissionsPanel /> : <UsersPanel />}
       </div>
     </main>
   );
@@ -269,6 +269,20 @@ function SubmissionsPanel() {
     setRows((r) => r.filter((s) => s.id !== id));
   };
 
+  const bulkDelete = async (status: "approved" | "rejected") => {
+    const count = rows.filter((r) => r.status === status).length;
+    if (count === 0) { toast.info(`No ${status} submissions to delete.`); return; }
+    const ok = window.confirm(
+      `This will permanently delete ${count} ${status} submission${count === 1 ? "" : "s"}, including their preview images. This cannot be undone.`,
+    );
+    if (!ok) return;
+    try {
+      const res = await adminCall({ op: "bulk_delete_submissions_by_status", status });
+      setRows((r) => r.filter((s2) => s2.status !== status));
+      toast.success(`Deleted ${res?.deleted ?? count} ${status} submissions.`);
+    } catch (e) { toast.error((e as Error).message); }
+  };
+
   const visible = filter === "all" ? rows : rows.filter((r) => r.status === filter);
 
   if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
@@ -285,6 +299,15 @@ function SubmissionsPanel() {
             {s} ({s === "all" ? rows.length : rows.filter((r) => r.status === s).length})
           </button>
         ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => bulkDelete("approved")}>
+          <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete all approved
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => bulkDelete("rejected")}>
+          <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete all rejected
+        </Button>
       </div>
 
       {visible.length === 0 ? (
@@ -322,6 +345,103 @@ function SubmissionsPanel() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+type SkinUserRow = {
+  id: string;
+  username: string;
+  created_at: string;
+  has_email: boolean;
+  submission_count: number;
+};
+
+function UsersPanel() {
+  const [rows, setRows] = useState<SkinUserRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const { rows } = await adminCall({ op: "list_skin_users" });
+      setRows(rows as SkinUserRow[]);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const sorted = sortDir
+    ? [...rows].sort((a, b) => (sortDir === "asc" ? a.submission_count - b.submission_count : b.submission_count - a.submission_count))
+    : rows;
+
+  const sendReset = async (u: SkinUserRow) => {
+    setBusyId(u.id);
+    try {
+      const res = await adminCall({ op: "admin_reset_skin_user_password", username: u.username });
+      if (res?.sent) toast.success(`Password reset link sent to ${u.username}.`);
+      else toast.warning(`No email on file for ${u.username}, nothing was sent.`);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusyId(null); }
+  };
+
+  const remove = async (u: SkinUserRow) => {
+    const ok = window.confirm(
+      `Delete the account "${u.username}"? Their ${u.submission_count} submission${u.submission_count === 1 ? "" : "s"} will be kept and turned into guest submissions (the account link is removed). This cannot be undone.`,
+    );
+    if (!ok) return;
+    setBusyId(u.id);
+    try {
+      await adminCall({ op: "admin_delete_skin_user", id: u.id });
+      setRows((r) => r.filter((x) => x.id !== u.id));
+      toast.success("Account deleted.");
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusyId(null); }
+  };
+
+  if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
+  if (rows.length === 0) return <p className="text-sm text-muted-foreground">No registered accounts yet.</p>;
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 font-medium">Username</th>
+            <th className="px-3 py-2 font-medium">
+              <button
+                className="inline-flex items-center gap-1 hover:text-primary"
+                onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+              >
+                Skins <ArrowUpDown className="h-3 w-3" />
+                {sortDir ? <span className="text-[10px]">{sortDir}</span> : null}
+              </button>
+            </th>
+            <th className="px-3 py-2 font-medium">Created</th>
+            <th className="px-3 py-2 text-right font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((u) => (
+            <tr key={u.id} className="border-b border-border/60 last:border-0">
+              <td className="px-3 py-2 font-medium text-foreground">{u.username}</td>
+              <td className="px-3 py-2 tabular-nums text-muted-foreground">{u.submission_count}</td>
+              <td className="px-3 py-2 text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
+              <td className="px-3 py-2">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button size="sm" variant="outline" disabled={busyId === u.id} onClick={() => sendReset(u)}>
+                    <KeyRound className="mr-1 h-3.5 w-3.5" /> Send password reset link
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-destructive" disabled={busyId === u.id} onClick={() => remove(u)}>
+                    <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete account
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
