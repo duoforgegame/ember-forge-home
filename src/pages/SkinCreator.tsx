@@ -113,7 +113,7 @@ export default function SkinCreator() {
           <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
         ) : step === "categories" ? (
           categories.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No weapon categories yet — check back soon.</p>
+            <p className="text-sm text-muted-foreground">No weapon categories yet, check back soon.</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map((c) => (
@@ -206,7 +206,7 @@ export default function SkinCreator() {
           <div className="rounded-lg border border-primary/40 bg-primary/5 p-8 text-center">
             <h2 className="font-display text-2xl font-bold">Skin submitted!</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Thanks for forging with us. Our team will review your skin — keep an eye on our Discord for updates.
+              Thanks for forging with us. Our team will review your skin. Keep an eye on our Discord for updates.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Button

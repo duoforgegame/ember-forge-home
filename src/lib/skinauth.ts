@@ -53,7 +53,7 @@ export const skinLogin = (username: string, password: string) => authenticate("l
 export const skinRegister = (username: string, password: string, email?: string) =>
   authenticate("register", username, password, email);
 
-/** Always resolves — the backend never reveals whether the account/email exists. */
+/** Always resolves: the backend never reveals whether the account/email exists. */
 export const requestPasswordReset = (identifier: string) =>
   skinAuthCall({ op: "request_password_reset", identifier });
 
