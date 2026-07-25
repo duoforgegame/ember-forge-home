@@ -110,7 +110,7 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
                 <>
                   <p className="text-sm text-muted-foreground">
                     If an account with this email exists, we just sent you a link to reset your password.
-                    The link is valid for one hour. Check your inbox, and your spam folder if you don't see it.
+                    The link is valid for one hour. Check your inbox, and also check your spam folder if you do not see it.
                   </p>
                   <Button className="w-full" variant="outline" onClick={() => { setResetSent(false); setMode("login"); }}>
                     Back to sign in
