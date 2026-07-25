@@ -107,17 +107,17 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
               {resetSent ? (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Falls ein Account mit einer hinterlegten E-Mail existiert, ist der Reset-Link jetzt unterwegs.
-                    Der Link ist 1 Stunde gültig.
+                    If an account with an email on file exists, the reset link is on its way.
+                    The link is valid for 1 hour.
                   </p>
                   <Button className="w-full" variant="outline" onClick={() => { setResetSent(false); setMode("login"); }}>
-                    Zurück zum Login
+                    Back to sign in
                   </Button>
                 </>
               ) : (
                 <>
                   <div className="space-y-1.5">
-                    <Label htmlFor="sa-ident">Username oder E-Mail</Label>
+                    <Label htmlFor="sa-ident">Username or email</Label>
                     <Input
                       id="sa-ident" value={identifier} maxLength={255}
                       onChange={(e) => setIdentifier(e.target.value)}
@@ -125,10 +125,10 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
                     />
                   </div>
                   <Button className="w-full" onClick={sendReset} disabled={busy || !identifier.trim()}>
-                    {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Reset-Link senden
+                    {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Send reset link
                   </Button>
                   <button className="w-full text-center text-xs text-muted-foreground hover:text-primary" onClick={() => setMode("login")}>
-                    Zurück zum Login
+                    Back to sign in
                   </button>
                 </>
               )}
@@ -155,7 +155,7 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
                     <Input id="sa-confirm" type="password" value={confirm} maxLength={200} autoComplete="new-password" onChange={(e) => setConfirm(e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="sa-email">E-Mail (optional, für Passwort-Reset)</Label>
+                    <Label htmlFor="sa-email">Email (optional, for password reset)</Label>
                     <Input
                       id="sa-email" type="email" value={email} maxLength={255} autoComplete="email"
                       onChange={(e) => setEmail(e.target.value)}
