@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { PixelEditor } from "@/components/PixelEditor";
 import { SkinAccountBar } from "@/components/SkinAccountBar";
 import { SkinPreview } from "@/components/SkinPreview";
+import { SkinLanguageSwitcher } from "@/components/SkinLanguageSwitcher";
+
 
 
 import {
@@ -83,9 +85,13 @@ export default function SkinCreator() {
     <main className="min-h-screen bg-background pb-24 pt-10">
       <div className="mx-auto w-full max-w-6xl px-4">
         <header className="mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-primary">
-            <ArrowLeft className="h-3.5 w-3.5" /> Duo Forge Games
-          </Link>
+          <div className="flex items-start justify-between gap-4">
+            <Link to="/" className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-primary">
+              <ArrowLeft className="h-3.5 w-3.5" /> Duo Forge Games
+            </Link>
+            <SkinLanguageSwitcher />
+          </div>
+
           <h1 className="mt-4 font-display text-3xl font-bold tracking-tight sm:text-4xl">
             Unboxed <span className="text-primary">Skin Creator</span>
           </h1>
