@@ -438,3 +438,35 @@ grant select on public.public_skin_gallery to anon, authenticated;
 grant all on public.public_skin_gallery to service_role;
 create index if not exists skin_submissions_status_created_idx
   on public.skin_submissions(status, created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- Skin Creator: community upvotes (account required, one vote per skin)
+-- ---------------------------------------------------------------------------
+create table if not exists public.skin_votes (
+  id uuid primary key default gen_random_uuid(),
+  submission_id uuid not null references public.skin_submissions(id) on delete cascade,
+  user_id uuid not null references public.skin_creator_users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (submission_id, user_id)
+);
+create index if not exists skin_votes_submission_idx on public.skin_votes(submission_id);
+create index if not exists skin_votes_user_idx on public.skin_votes(user_id);
+grant all on public.skin_votes to service_role;
+alter table public.skin_votes enable row level security;
+-- no anon/authenticated policies: voting happens through the skin-auth edge function
+
+-- gallery view now also exposes the public vote count
+create or replace view public.public_skin_gallery as
+  select s.id,
+         s.preview_image_url,
+         s.skin_name,
+         s.player_name,
+         s.created_at,
+         w.name as weapon_name,
+         (select count(*) from public.skin_votes v where v.submission_id = s.id) as vote_count
+    from public.skin_submissions s
+    left join public.weapons w on w.id = s.weapon_id
+   where s.status = 'approved';
+alter view public.public_skin_gallery set (security_invoker = off);
+grant select on public.public_skin_gallery to anon, authenticated;
+grant all on public.public_skin_gallery to service_role;
