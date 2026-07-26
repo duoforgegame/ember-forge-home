@@ -156,6 +156,64 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ rows: data ?? [], user: { id: claims.sub, username: claims.username } }, { status: 200 }, origin);
       }
+      case "my_votes": {
+        const auth = req.headers.get("authorization") ?? "";
+        const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+        const claims = token ? await verifyJwt(token, jwtSecret, ISS) : null;
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        const { data, error } = await sb
+          .from("skin_votes")
+          .select("submission_id")
+          .eq("user_id", String(claims.sub))
+          .limit(5000);
+        if (error) throw error;
+        return json({ ids: (data ?? []).map((r: any) => r.submission_id) }, { status: 200 }, origin);
+      }
+      case "toggle_vote": {
+        const auth = req.headers.get("authorization") ?? "";
+        const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+        const claims = token ? await verifyJwt(token, jwtSecret, ISS) : null;
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        if (!rateLimit(`skinvote:${claims.sub}`, 120, 60 * 60 * 1000)) {
+          return json({ error: "Too many votes, please slow down" }, { status: 429 }, origin);
+        }
+        const submission_id = String(body.submission_id ?? "");
+        if (!submission_id) return json({ error: "Missing submission" }, { status: 400 }, origin);
+
+        // Only approved skins (the ones visible in the public gallery) can be voted on.
+        const { data: sub } = await sb
+          .from("skin_submissions")
+          .select("id, status")
+          .eq("id", submission_id)
+          .maybeSingle();
+        if (!sub || sub.status !== "approved") return json({ error: "Skin not found" }, { status: 404 }, origin);
+
+        const { data: existing } = await sb
+          .from("skin_votes")
+          .select("id")
+          .eq("submission_id", submission_id)
+          .eq("user_id", String(claims.sub))
+          .maybeSingle();
+
+        let voted: boolean;
+        if (existing) {
+          const { error } = await sb.from("skin_votes").delete().eq("id", existing.id);
+          if (error) throw error;
+          voted = false;
+        } else {
+          const { error } = await sb
+            .from("skin_votes")
+            .insert({ submission_id, user_id: String(claims.sub) });
+          // unique constraint means a duplicate is simply an already existing vote
+          if (error && !String(error.message).includes("duplicate")) throw error;
+          voted = true;
+        }
+        const { count } = await sb
+          .from("skin_votes")
+          .select("id", { count: "exact", head: true })
+          .eq("submission_id", submission_id);
+        return json({ voted, vote_count: count ?? 0 }, { status: 200 }, origin);
+
       case "request_password_reset": {
         // Always answers { ok: true } so account/email existence can't be probed.
         if (!rateLimit(`skinreset:${ip}`, 10, 60 * 60 * 1000)) return json({ error: "Too many attempts" }, { status: 429 }, origin);
