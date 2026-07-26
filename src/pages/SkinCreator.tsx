@@ -10,6 +10,8 @@ import { SkinAccountBar } from "@/components/SkinAccountBar";
 import { SkinPreview } from "@/components/SkinPreview";
 import { SkinLanguageSwitcher } from "@/components/SkinLanguageSwitcher";
 import { CommunityGallery } from "@/components/CommunityGallery";
+import { HowItWorksDialog } from "@/components/HowItWorksDialog";
+
 
 
 
@@ -91,7 +93,10 @@ export default function SkinCreator() {
             <Link to="/" className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-primary">
               <ArrowLeft className="h-3.5 w-3.5" /> Duo Forge Games
             </Link>
-            <SkinLanguageSwitcher />
+            <div className="flex items-center gap-2">
+              <HowItWorksDialog />
+              <SkinLanguageSwitcher />
+            </div>
           </div>
 
           <h1 className="mt-4 font-display text-3xl font-bold tracking-tight sm:text-4xl">
@@ -99,8 +104,10 @@ export default function SkinCreator() {
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Pick a weapon, paint your pixel art skin on the template and submit it to the team. Approved
-            community skins can make it into the game.
+            community skins can make it into the game, but approval is no guarantee that a skin will be
+            added to Unboxed.
           </p>
+
         </header>
 
         <SkinAccountBar />
