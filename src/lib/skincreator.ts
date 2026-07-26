@@ -163,3 +163,23 @@ export async function renderSkinWithTemplate(
   ctx.drawImage(pixelsToCanvas(pixels, W, H), 0, 0);
   return cv;
 }
+
+export type GallerySkin = {
+  id: string;
+  preview_image_url: string;
+  skin_name: string | null;
+  player_name: string | null;
+  created_at: string;
+  weapon_name: string | null;
+};
+
+/** Public, login-free read of approved community skins (paginated). */
+export async function fetchGallerySkins(offset = 0, limit = 20): Promise<GallerySkin[]> {
+  const { data, error } = await supabase
+    .from("public_skin_gallery")
+    .select("id, preview_image_url, skin_name, player_name, created_at, weapon_name")
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return (data ?? []) as GallerySkin[];
+}

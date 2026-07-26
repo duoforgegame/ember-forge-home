@@ -416,3 +416,25 @@ create unique index if not exists skin_creator_users_email_lower_idx
   on public.skin_creator_users (lower(email)) where email is not null;
 create index if not exists skin_creator_users_reset_token_idx
   on public.skin_creator_users (reset_token_hash) where reset_token_hash is not null;
+
+-- ---------------------------------------------------------------------------
+-- Skin Creator: public Community Gallery (approved skins only)
+-- A view is used instead of a table policy so private columns
+-- (discord_name, email, pixel_data, user_id) are never queryable by anon.
+-- security_invoker stays off, so the view bypasses RLS on the base table.
+-- ---------------------------------------------------------------------------
+create or replace view public.public_skin_gallery as
+  select s.id,
+         s.preview_image_url,
+         s.skin_name,
+         s.player_name,
+         s.created_at,
+         w.name as weapon_name
+    from public.skin_submissions s
+    left join public.weapons w on w.id = s.weapon_id
+   where s.status = 'approved';
+alter view public.public_skin_gallery set (security_invoker = off);
+grant select on public.public_skin_gallery to anon, authenticated;
+grant all on public.public_skin_gallery to service_role;
+create index if not exists skin_submissions_status_created_idx
+  on public.skin_submissions(status, created_at desc);
