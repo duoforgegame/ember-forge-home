@@ -233,7 +233,10 @@ export default function SkinCreator() {
             </div>
           </div>
         ) : null}
+
+        <CommunityGallery />
       </div>
+
     </main>
   );
 }
