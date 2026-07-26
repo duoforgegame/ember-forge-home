@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { PixelEditor } from "@/components/PixelEditor";
 import { SkinAccountBar } from "@/components/SkinAccountBar";
 import { SkinPreview } from "@/components/SkinPreview";
+import { SkinLanguageSwitcher } from "@/components/SkinLanguageSwitcher";
+
 
 
 import {
