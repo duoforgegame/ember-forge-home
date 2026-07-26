@@ -77,3 +77,15 @@ export async function listMySubmissions(): Promise<MySubmission[]> {
   const out = await skinAuthCall({ op: "list_my_submissions" }, true);
   return (out.rows ?? []) as MySubmission[];
 }
+
+/** Ids of the gallery skins the signed-in user already upvoted. */
+export async function listMyVotes(): Promise<string[]> {
+  const out = await skinAuthCall({ op: "my_votes" }, true);
+  return (out.ids ?? []) as string[];
+}
+
+/** Adds or removes the user's single upvote for a skin. */
+export async function toggleSkinVote(submissionId: string): Promise<{ voted: boolean; vote_count: number }> {
+  const out = await skinAuthCall({ op: "toggle_vote", submission_id: submissionId }, true);
+  return { voted: !!out.voted, vote_count: Number(out.vote_count ?? 0) };
+}

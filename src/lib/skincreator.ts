@@ -171,13 +171,14 @@ export type GallerySkin = {
   player_name: string | null;
   created_at: string;
   weapon_name: string | null;
+  vote_count: number;
 };
 
 /** Public, login-free read of approved community skins (paginated). */
 export async function fetchGallerySkins(offset = 0, limit = 20): Promise<GallerySkin[]> {
   const { data, error } = await supabase
     .from("public_skin_gallery")
-    .select("id, preview_image_url, skin_name, player_name, created_at, weapon_name")
+    .select("id, preview_image_url, skin_name, player_name, created_at, weapon_name, vote_count")
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
   if (error) throw error;
