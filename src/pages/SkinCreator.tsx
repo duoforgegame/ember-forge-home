@@ -11,6 +11,7 @@ import { SkinPreview } from "@/components/SkinPreview";
 import { SkinLanguageSwitcher } from "@/components/SkinLanguageSwitcher";
 import { CommunityGallery } from "@/components/CommunityGallery";
 import { HowItWorksDialog } from "@/components/HowItWorksDialog";
+import { Turnstile, resetTurnstile } from "@/components/Turnstile";
 
 
 
@@ -33,6 +34,7 @@ export default function SkinCreator() {
   const [result, setResult] = useState<{ dataUrl: string; pixels: PixelDatum[] } | null>(null);
   const [form, setForm] = useState({ skin_name: "", player_name: "", email: "" });
   const [sending, setSending] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -57,6 +59,7 @@ export default function SkinCreator() {
   const handleSubmit = async () => {
     if (!weapon || !result) return;
     if (!form.skin_name.trim()) { toast.error("Skin name is required"); return; }
+    if (!captchaToken) { toast.error("Please complete the verification checkbox"); return; }
     setSending(true);
     try {
       let previewUrl = "";
@@ -75,9 +78,13 @@ export default function SkinCreator() {
         skin_name: form.skin_name,
         player_name: form.player_name,
         email: form.email,
+        turnstile_token: captchaToken,
       });
       setStep("done");
     } catch (e) {
+      // Turnstile tokens are single use, hand the user a fresh one for the retry.
+      setCaptchaToken("");
+      resetTurnstile();
       toast.error((e as Error).message || "Submission failed");
     } finally {
       setSending(false);
@@ -212,7 +219,10 @@ export default function SkinCreator() {
                 <Label htmlFor="sc-email">Email (optional)</Label>
                 <Input id="sc-email" type="email" value={form.email} maxLength={255} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
-              <Button onClick={handleSubmit} disabled={sending || !form.skin_name.trim()} className="w-full">
+              <div className="pt-1">
+                <Turnstile onToken={setCaptchaToken} />
+              </div>
+              <Button onClick={handleSubmit} disabled={sending || !form.skin_name.trim() || !captchaToken} className="w-full">
                 {sending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting…</> : "Submit skin"}
               </Button>
               <p className="text-[11px] text-muted-foreground">
