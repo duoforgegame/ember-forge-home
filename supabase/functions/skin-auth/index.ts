@@ -44,6 +44,53 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
 
 const secret = () => Deno.env.get("SKIN_JWT_SECRET") || Deno.env.get("ADMIN_JWT_SECRET") || "";
 
+async function readSkinClaims(req: Request, jwtSecret: string): Promise<any | null> {
+  const auth = req.headers.get("authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const claims = token ? await verifyJwt(token, jwtSecret, ISS) : null;
+  return claims?.sub ? claims : null;
+}
+
+async function toggleAccountVote(sb: any, userId: string, submissionId: string): Promise<{ voted: boolean; vote_count: number }> {
+  if (!submissionId) throw new Error("Missing submission");
+
+  const { data: sub, error: subError } = await sb
+    .from("skin_submissions")
+    .select("id, status")
+    .eq("id", submissionId)
+    .maybeSingle();
+  if (subError) throw subError;
+  if (!sub || !["approved", "in_game"].includes(String(sub.status))) throw new Error("Skin not found");
+
+  const { data: existing, error: existingError } = await sb
+    .from("skin_votes")
+    .select("id")
+    .eq("submission_id", submissionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+
+  let voted: boolean;
+  if (existing) {
+    const { error } = await sb.from("skin_votes").delete().eq("id", existing.id);
+    if (error) throw error;
+    voted = false;
+  } else {
+    const { error } = await sb
+      .from("skin_votes")
+      .insert({ submission_id: submissionId, user_id: userId });
+    if (error && !String(error.message).includes("duplicate")) throw error;
+    voted = true;
+  }
+
+  const { count, error: countError } = await sb
+    .from("skin_votes")
+    .select("id", { count: "exact", head: true })
+    .eq("submission_id", submissionId);
+  if (countError) throw countError;
+  return { voted, vote_count: count ?? 0 };
+}
+
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -182,11 +229,10 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ rows: data ?? [], user: { id: claims.sub, username: claims.username } }, { status: 200 }, origin);
       }
-      case "my_votes": {
-        const auth = req.headers.get("authorization") ?? "";
-        const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-        const claims = token ? await verifyJwt(token, jwtSecret, ISS) : null;
-        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+      case "my_votes":
+      case "gallery_my_upvotes": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Please sign in to upvote skins" }, { status: 401 }, origin);
         const { data, error } = await sb
           .from("skin_votes")
           .select("submission_id")
@@ -195,50 +241,23 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ ids: (data ?? []).map((r: any) => r.submission_id) }, { status: 200 }, origin);
       }
-      case "toggle_vote": {
-        const auth = req.headers.get("authorization") ?? "";
-        const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-        const claims = token ? await verifyJwt(token, jwtSecret, ISS) : null;
-        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+      case "toggle_vote":
+      case "gallery_toggle_upvote": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Please sign in to upvote skins" }, { status: 401 }, origin);
         if (!rateLimit(`skinvote:${claims.sub}`, 120, 60 * 60 * 1000)) {
           return json({ error: "Too many votes, please slow down" }, { status: 429 }, origin);
         }
-        const submission_id = String(body.submission_id ?? "");
-        if (!submission_id) return json({ error: "Missing submission" }, { status: 400 }, origin);
-
-        // Only approved skins (the ones visible in the public gallery) can be voted on.
-        const { data: sub } = await sb
-          .from("skin_submissions")
-          .select("id, status")
-          .eq("id", submission_id)
-          .maybeSingle();
-        if (!sub || !["approved", "in_game"].includes(String(sub.status))) return json({ error: "Skin not found" }, { status: 404 }, origin);
-
-        const { data: existing } = await sb
-          .from("skin_votes")
-          .select("id")
-          .eq("submission_id", submission_id)
-          .eq("user_id", String(claims.sub))
-          .maybeSingle();
-
-        let voted: boolean;
-        if (existing) {
-          const { error } = await sb.from("skin_votes").delete().eq("id", existing.id);
-          if (error) throw error;
-          voted = false;
-        } else {
-          const { error } = await sb
-            .from("skin_votes")
-            .insert({ submission_id, user_id: String(claims.sub) });
-          // unique constraint means a duplicate is simply an already existing vote
-          if (error && !String(error.message).includes("duplicate")) throw error;
-          voted = true;
+        const submissionId = String(body.submission_id ?? body.skin_id ?? "");
+        try {
+          const result = await toggleAccountVote(sb, String(claims.sub), submissionId);
+          return json(result, { status: 200 }, origin);
+        } catch (voteError) {
+          const message = (voteError as Error).message;
+          if (message === "Missing submission") return json({ error: message }, { status: 400 }, origin);
+          if (message === "Skin not found") return json({ error: message }, { status: 404 }, origin);
+          throw voteError;
         }
-        const { count } = await sb
-          .from("skin_votes")
-          .select("id", { count: "exact", head: true })
-          .eq("submission_id", submission_id);
-        return json({ voted, vote_count: count ?? 0 }, { status: 200 }, origin);
       }
       case "request_password_reset": {
         // Always answers { ok: true } so account/email existence can't be probed.
