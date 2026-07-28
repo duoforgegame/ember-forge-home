@@ -470,3 +470,55 @@ create or replace view public.public_skin_gallery as
 alter view public.public_skin_gallery set (security_invoker = off);
 grant select on public.public_skin_gallery to anon, authenticated;
 grant all on public.public_skin_gallery to service_role;
+
+-- ---------------------------------------------------------------------------
+-- Skin Creator: anonymous browser based upvotes + "in_game" status
+-- ---------------------------------------------------------------------------
+create table if not exists public.skin_upvotes (
+  id uuid primary key default gen_random_uuid(),
+  submission_id uuid not null references public.skin_submissions(id) on delete cascade,
+  voter_key text not null,
+  created_at timestamptz not null default now(),
+  unique (submission_id, voter_key)
+);
+create index if not exists skin_upvotes_submission_idx on public.skin_upvotes(submission_id);
+create index if not exists skin_upvotes_voter_idx on public.skin_upvotes(voter_key);
+grant select, insert, delete on public.skin_upvotes to anon, authenticated;
+grant all on public.skin_upvotes to service_role;
+alter table public.skin_upvotes enable row level security;
+
+drop policy if exists "public read upvotes" on public.skin_upvotes;
+create policy "public read upvotes" on public.skin_upvotes
+  for select to anon, authenticated using (true);
+
+drop policy if exists "public add upvote" on public.skin_upvotes;
+create policy "public add upvote" on public.skin_upvotes
+  for insert to anon, authenticated
+  with check (
+    char_length(voter_key) between 8 and 64
+    and exists (
+      select 1 from public.skin_submissions s
+       where s.id = submission_id and s.status in ('approved', 'in_game')
+    )
+  );
+
+drop policy if exists "public remove own upvote" on public.skin_upvotes;
+create policy "public remove own upvote" on public.skin_upvotes
+  for delete to anon, authenticated using (true);
+
+-- gallery now also lists in_game skins and counts the anonymous upvotes
+create or replace view public.public_skin_gallery as
+  select s.id,
+         s.preview_image_url,
+         s.skin_name,
+         s.player_name,
+         s.created_at,
+         s.status,
+         w.name as weapon_name,
+         (select count(*) from public.skin_upvotes v where v.submission_id = s.id) as vote_count
+    from public.skin_submissions s
+    left join public.weapons w on w.id = s.weapon_id
+   where s.status in ('approved', 'in_game');
+alter view public.public_skin_gallery set (security_invoker = off);
+grant select on public.public_skin_gallery to anon, authenticated;
+grant all on public.public_skin_gallery to service_role;
