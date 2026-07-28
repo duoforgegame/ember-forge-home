@@ -172,12 +172,16 @@ export type GallerySkin = {
   weapon_name: string | null;
   status: string;
   vote_count: number;
+  pixel_data?: PixelDatum[] | null;
+  template_image_url?: string | null;
+  canvas_width?: number | null;
+  canvas_height?: number | null;
 };
 
 export type GallerySort = "newest" | "top";
 
 const GALLERY_COLUMNS =
-  "id, preview_image_url, skin_name, player_name, created_at, status, weapon_name, vote_count";
+  "id, preview_image_url, skin_name, player_name, created_at, status, weapon_name, vote_count, pixel_data, template_image_url, canvas_width, canvas_height";
 
 /** Public, login-free read of approved and in game community skins (paginated). */
 export async function fetchGallerySkins(offset = 0, limit = 20, sort: GallerySort = "newest"): Promise<GallerySkin[]> {
