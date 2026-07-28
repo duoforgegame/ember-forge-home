@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowBigUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SkinPreview } from "@/components/SkinPreview";
 import {
   fetchGallerySkins,
   listMyUpvotes,
@@ -134,7 +135,18 @@ export function CommunityGallery() {
                         In Game
                       </span>
                     )}
-                    {s.preview_image_url ? (
+                    {Array.isArray(s.pixel_data) && s.pixel_data.length > 0 ? (
+                      <SkinPreview
+                        weapon={{
+                          name: s.weapon_name || "",
+                          template_image_url: s.template_image_url || "",
+                          canvas_width: s.canvas_width || 64,
+                          canvas_height: s.canvas_height || 32,
+                        }}
+                        pixels={s.pixel_data}
+                        scale={4}
+                      />
+                    ) : s.preview_image_url ? (
                       <img
                         src={s.preview_image_url}
                         alt={s.skin_name || s.weapon_name || "Community skin"}

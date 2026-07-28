@@ -532,3 +532,33 @@ grant all on public.public_skin_gallery to service_role;
 -- ============================================================
 drop policy if exists "public submit skins" on public.skin_submissions;
 revoke insert on public.skin_submissions from anon, authenticated;
+
+-- ============================================================
+-- Fix: allow the "in_game" status and show the weapon template
+-- behind the painted pixels in the public community gallery.
+-- ============================================================
+alter table public.skin_submissions drop constraint if exists skin_submissions_status_check;
+alter table public.skin_submissions
+  add constraint skin_submissions_status_check
+  check (status in ('pending', 'approved', 'rejected', 'in_game'));
+
+drop view if exists public.public_skin_gallery;
+create or replace view public.public_skin_gallery as
+  select s.id,
+         s.preview_image_url,
+         s.skin_name,
+         s.player_name,
+         s.created_at,
+         s.status,
+         s.pixel_data,
+         w.name as weapon_name,
+         w.template_image_url,
+         w.canvas_width,
+         w.canvas_height,
+         (select count(*) from public.skin_upvotes v where v.submission_id = s.id) as vote_count
+    from public.skin_submissions s
+    left join public.weapons w on w.id = s.weapon_id
+   where s.status in ('approved', 'in_game');
+alter view public.public_skin_gallery set (security_invoker = off);
+grant select on public.public_skin_gallery to anon, authenticated;
+grant all on public.public_skin_gallery to service_role;
