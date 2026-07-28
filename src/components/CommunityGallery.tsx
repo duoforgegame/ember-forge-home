@@ -2,52 +2,67 @@ import { useEffect, useState } from "react";
 import { ArrowBigUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { fetchGallerySkins, type GallerySkin } from "@/lib/skincreator";
-import { getSkinUser, listMyVotes, toggleSkinVote } from "@/lib/skinauth";
+import {
+  fetchGallerySkins,
+  listMyUpvotes,
+  toggleSkinUpvote,
+  type GallerySkin,
+  type GallerySort,
+} from "@/lib/skincreator";
 
 const PAGE_SIZE = 20;
+
+const SORTS: { id: GallerySort; label: string }[] = [
+  { id: "newest", label: "Newest" },
+  { id: "top", label: "Most upvoted" },
+];
 
 export function CommunityGallery() {
   const [skins, setSkins] = useState<GallerySkin[]>([]);
   const [loading, setLoading] = useState(true);
   const [more, setMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [sort, setSort] = useState<GallerySort>("newest");
   const [myVotes, setMyVotes] = useState<Set<string>>(new Set());
   const [voting, setVoting] = useState<string | null>(null);
-  const signedIn = !!getSkinUser();
 
-  const load = async (offset: number) => {
-    const rows = await fetchGallerySkins(offset, PAGE_SIZE);
+  const markVoted = async (rows: GallerySkin[]) => {
+    try {
+      const ids = await listMyUpvotes(rows.map((r) => r.id));
+      setMyVotes((prev) => new Set([...prev, ...ids]));
+    } catch {
+      /* votes stay unmarked, voting still works */
+    }
+  };
+
+  const load = async (offset: number, nextSort: GallerySort) => {
+    const rows = await fetchGallerySkins(offset, PAGE_SIZE, nextSort);
     setSkins((prev) => (offset === 0 ? rows : [...prev, ...rows]));
     setHasMore(rows.length === PAGE_SIZE);
+    void markVoted(rows);
   };
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
     (async () => {
       try {
-        await load(0);
+        if (active) await load(0, sort);
       } catch (e) {
         toast.error((e as Error).message || "Could not load the community gallery");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     })();
-  }, []);
-
-  useEffect(() => {
-    if (!signedIn) {
-      setMyVotes(new Set());
-      return;
-    }
-    listMyVotes()
-      .then((ids) => setMyVotes(new Set(ids)))
-      .catch(() => { /* votes stay unmarked, voting still works */ });
-  }, [signedIn]);
+    return () => {
+      active = false;
+    };
+  }, [sort]);
 
   const loadMore = async () => {
     setMore(true);
     try {
-      await load(skins.length);
+      await load(skins.length, sort);
     } catch (e) {
       toast.error((e as Error).message || "Could not load more skins");
     } finally {
@@ -56,13 +71,10 @@ export function CommunityGallery() {
   };
 
   const vote = async (id: string) => {
-    if (!signedIn) {
-      toast.error("Sign in to upvote community skins");
-      return;
-    }
     setVoting(id);
+    const mine = myVotes.has(id);
     try {
-      const { voted, vote_count } = await toggleSkinVote(id);
+      const { voted, vote_count } = await toggleSkinUpvote(id, mine);
       setMyVotes((prev) => {
         const next = new Set(prev);
         if (voted) next.add(id); else next.delete(id);
@@ -82,11 +94,26 @@ export function CommunityGallery() {
         Community <span className="text-primary">Gallery</span>
       </h2>
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Skins created by the community and approved by our team.{" "}
-        {signedIn
-          ? "You can give every skin one upvote, click again to take it back."
-          : "Sign in with a free account to upvote skins, one vote per skin."}
+        Skins created by the community and approved by our team. You can give every skin one upvote, click again to take
+        it back. No account needed, one vote per skin and browser.
       </p>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {SORTS.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setSort(s.id)}
+            className={`rounded-sm border px-3 py-1 text-xs uppercase tracking-wider transition-colors ${
+              sort === s.id
+                ? "border-primary/60 bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+            aria-pressed={sort === s.id}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
         <div className="mt-6 flex items-center gap-2 text-muted-foreground">
@@ -101,7 +128,12 @@ export function CommunityGallery() {
               const mine = myVotes.has(s.id);
               return (
                 <article key={s.id} className="overflow-hidden rounded-lg border border-border bg-card">
-                  <div className="flex h-36 items-center justify-center bg-[#111] p-3">
+                  <div className="relative flex h-36 items-center justify-center bg-[#111] p-3">
+                    {s.status === "in_game" && (
+                      <span className="absolute left-2 top-2 rounded-sm border border-primary/60 bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                        In Game
+                      </span>
+                    )}
                     {s.preview_image_url ? (
                       <img
                         src={s.preview_image_url}
@@ -129,7 +161,7 @@ export function CommunityGallery() {
                         disabled={voting === s.id}
                         aria-pressed={mine}
                         aria-label={mine ? "Remove your upvote" : "Upvote this skin"}
-                        title={signedIn ? (mine ? "Remove your upvote" : "Upvote this skin") : "Sign in to upvote"}
+                        title={mine ? "Remove your upvote" : "Upvote this skin"}
                       >
                         {voting === s.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
