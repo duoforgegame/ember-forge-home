@@ -211,37 +211,24 @@ export function getVoterKey(): string {
   return key;
 }
 
-/** Ids of gallery skins this browser already upvoted. */
+/** Ids of gallery skins this browser already upvoted (via edge function, service role). */
 export async function listMyUpvotes(submissionIds: string[]): Promise<string[]> {
   if (submissionIds.length === 0) return [];
-  const { data, error } = await supabase
-    .from("skin_upvotes")
-    .select("submission_id")
-    .eq("voter_key", getVoterKey())
-    .in("submission_id", submissionIds);
-  if (error) throw error;
-  return (data ?? []).map((r: { submission_id: string }) => r.submission_id);
+  const out = await skinAuthCall({
+    op: "gallery_my_upvotes",
+    voter_key: getVoterKey(),
+    submission_ids: submissionIds,
+  });
+  return (out?.ids ?? []) as string[];
 }
 
 /** Adds or removes this browser's single upvote for a skin, returns the fresh count. */
-export async function toggleSkinUpvote(submissionId: string, currentlyVoted: boolean): Promise<{ voted: boolean; vote_count: number }> {
-  const voter_key = getVoterKey();
-  if (currentlyVoted) {
-    const { error } = await supabase
-      .from("skin_upvotes")
-      .delete()
-      .eq("submission_id", submissionId)
-      .eq("voter_key", voter_key);
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from("skin_upvotes").insert({ submission_id: submissionId, voter_key });
-    // a duplicate simply means the vote already exists
-    if (error && !`${error.message}`.toLowerCase().includes("duplicate")) throw error;
-  }
-  const { count, error: countErr } = await supabase
-    .from("skin_upvotes")
-    .select("id", { count: "exact", head: true })
-    .eq("submission_id", submissionId);
-  if (countErr) throw countErr;
-  return { voted: !currentlyVoted, vote_count: count ?? 0 };
+export async function toggleSkinUpvote(submissionId: string, _currentlyVoted: boolean): Promise<{ voted: boolean; vote_count: number }> {
+  const out = await skinAuthCall({
+    op: "gallery_toggle_upvote",
+    voter_key: getVoterKey(),
+    submission_id: submissionId,
+  });
+  return { voted: !!out?.voted, vote_count: Number(out?.vote_count ?? 0) };
 }
+
