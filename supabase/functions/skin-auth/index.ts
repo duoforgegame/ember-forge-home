@@ -239,6 +239,58 @@ Deno.serve(async (req) => {
           .select("id", { count: "exact", head: true })
           .eq("submission_id", submission_id);
         return json({ voted, vote_count: count ?? 0 }, { status: 200 }, origin);
+      }
+      case "gallery_my_upvotes": {
+        const voter_key = String(body.voter_key ?? "");
+        const ids: string[] = Array.isArray(body.submission_ids) ? body.submission_ids.map(String).slice(0, 200) : [];
+        if (voter_key.length < 8 || voter_key.length > 64 || ids.length === 0) return json({ ids: [] }, { status: 200 }, origin);
+        const { data, error } = await sb
+          .from("skin_upvotes")
+          .select("submission_id")
+          .eq("voter_key", voter_key)
+          .in("submission_id", ids);
+        if (error) throw error;
+        return json({ ids: (data ?? []).map((r: any) => r.submission_id) }, { status: 200 }, origin);
+      }
+      case "gallery_toggle_upvote": {
+        const voter_key = String(body.voter_key ?? "");
+        const submission_id = String(body.submission_id ?? "");
+        if (voter_key.length < 8 || voter_key.length > 64) return json({ error: "Invalid voter key" }, { status: 400 }, origin);
+        if (!submission_id) return json({ error: "Missing submission" }, { status: 400 }, origin);
+        if (!rateLimit(`skinupvote:${ip}`, 300, 60 * 60 * 1000)) {
+          return json({ error: "Too many votes, please slow down" }, { status: 429 }, origin);
+        }
+        const { data: sub } = await sb
+          .from("skin_submissions")
+          .select("id, status")
+          .eq("id", submission_id)
+          .maybeSingle();
+        if (!sub || !["approved", "in_game"].includes(String(sub.status))) {
+          return json({ error: "Skin not found" }, { status: 404 }, origin);
+        }
+        const { data: existing } = await sb
+          .from("skin_upvotes")
+          .select("id")
+          .eq("submission_id", submission_id)
+          .eq("voter_key", voter_key)
+          .maybeSingle();
+        let voted: boolean;
+        if (existing) {
+          const { error } = await sb.from("skin_upvotes").delete().eq("id", existing.id);
+          if (error) throw error;
+          voted = false;
+        } else {
+          const { error } = await sb.from("skin_upvotes").insert({ submission_id, voter_key });
+          if (error && !String(error.message).toLowerCase().includes("duplicate")) throw error;
+          voted = true;
+        }
+        const { count } = await sb
+          .from("skin_upvotes")
+          .select("id", { count: "exact", head: true })
+          .eq("submission_id", submission_id);
+        return json({ voted, vote_count: count ?? 0 }, { status: 200 }, origin);
+      }
+
 
       case "request_password_reset": {
         // Always answers { ok: true } so account/email existence can't be probed.
