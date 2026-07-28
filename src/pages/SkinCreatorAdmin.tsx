@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Trash2, Upload, Check, X, Download, KeyRound, ArrowUpDown } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Upload, Check, X, Download, KeyRound, ArrowUpDown, Gamepad2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
