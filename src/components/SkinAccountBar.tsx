@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getSkinUser, requestPasswordReset, skinLogin, skinLogout, skinRegister, type SkinUser } from "@/lib/skinauth";
+import { useSkinT } from "@/lib/skin-i18n";
 
 type Mode = "login" | "register" | "forgot" | null;
 
 export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser | null) => void }) {
+  const { t } = useSkinT();
   const [user, setUser] = useState<SkinUser | null>(() => getSkinUser());
   const [mode, setMode] = useState<Mode>(null);
   const [username, setUsername] = useState("");
@@ -26,17 +28,17 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
   const close = () => { setMode(null); setPassword(""); setConfirm(""); setResetSent(false); };
 
   const submit = async () => {
-    if (mode === "register" && password !== confirm) { toast.error("Passwords do not match"); return; }
+    if (mode === "register" && password !== confirm) { toast.error(t("passwordsNoMatch")); return; }
     setBusy(true);
     try {
       const u = mode === "register"
         ? await skinRegister(username.trim(), password, email.trim() || undefined)
         : await skinLogin(username.trim(), password);
       apply(u);
-      toast.success(mode === "register" ? `Account created, welcome, ${u.username}!` : `Welcome back, ${u.username}!`);
+      toast.success(mode === "register" ? `${t("accountCreated")}, ${u.username}!` : `${t("welcomeBack")}, ${u.username}!`);
       close();
     } catch (e) {
-      toast.error((e as Error).message || "Something went wrong");
+      toast.error((e as Error).message || t("somethingWrong"));
     } finally {
       setBusy(false);
     }
@@ -48,7 +50,7 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
       await requestPasswordReset(identifier.trim());
       setResetSent(true);
     } catch (e) {
-      toast.error((e as Error).message || "Something went wrong");
+      toast.error((e as Error).message || t("somethingWrong"));
     } finally {
       setBusy(false);
     }
@@ -60,29 +62,29 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
         {user ? (
           <>
             <span className="text-muted-foreground">
-              Signed in as <span className="font-semibold text-foreground">{user.username}</span>
+              {t("signedInAs")} <span className="font-semibold text-foreground">{user.username}</span>
             </span>
             <div className="ml-auto flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline">
-                <Link to="/skincreator/my-skins"><Images className="mr-1.5 h-3.5 w-3.5" /> My skins</Link>
+                <Link to="/skincreator/my-skins"><Images className="mr-1.5 h-3.5 w-3.5" /> {t("mySkins")}</Link>
               </Button>
               <Button size="sm" variant="ghost" onClick={() => { skinLogout(); apply(null); }}>
-                <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
+                <LogOut className="mr-1.5 h-3.5 w-3.5" /> {t("signOut")}
               </Button>
             </div>
           </>
         ) : (
           <>
             <span className="text-muted-foreground">
-              You are creating <span className="font-semibold text-foreground">as a guest</span>, no account needed.
-              Create one to track the status of your submissions.
+              {t("guestLine1")} <span className="font-semibold text-foreground">{t("guestAsGuest")}</span>
+              {t("guestLine2")}
             </span>
             <div className="ml-auto flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setMode("login")}>
-                <LogIn className="mr-1.5 h-3.5 w-3.5" /> Sign in
+                <LogIn className="mr-1.5 h-3.5 w-3.5" /> {t("signIn")}
               </Button>
               <Button size="sm" onClick={() => setMode("register")}>
-                <UserPlus className="mr-1.5 h-3.5 w-3.5" /> Create account
+                <UserPlus className="mr-1.5 h-3.5 w-3.5" /> {t("createAccount")}
               </Button>
             </div>
           </>
@@ -93,14 +95,14 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {mode === "register" ? "Create account" : mode === "forgot" ? "Forgot password?" : "Sign in"}
+              {mode === "register" ? t("createAccount") : mode === "forgot" ? t("forgotPassword") : t("signIn")}
             </DialogTitle>
             <DialogDescription>
               {resetSent
-                ? "Check your inbox for the reset link."
+                ? t("resetSentShort")
                 : mode === "forgot"
-                ? "Enter your username or email. If an email is on file, we will send you a reset link."
-                : "No email required, just a username and password so you can follow your submissions."}
+                ? t("resetDescription")
+                : t("signInDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -108,18 +110,15 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
             <div className="space-y-3">
               {resetSent ? (
                 <>
-                  <p className="text-sm text-muted-foreground">
-                    If an account with this email exists, we just sent you a link to reset your password.
-                    The link is valid for one hour. Check your inbox, and also check your spam folder if you do not see it.
-                  </p>
+                  <p className="text-sm text-muted-foreground">{t("resetSentLong")}</p>
                   <Button className="w-full" variant="outline" onClick={() => { setResetSent(false); setMode("login"); }}>
-                    Back to sign in
+                    {t("backToSignIn")}
                   </Button>
                 </>
               ) : (
                 <>
                   <div className="space-y-1.5">
-                    <Label htmlFor="sa-ident">Username or email</Label>
+                    <Label htmlFor="sa-ident">{t("usernameOrEmail")}</Label>
                     <Input
                       id="sa-ident" value={identifier} maxLength={255}
                       onChange={(e) => setIdentifier(e.target.value)}
@@ -127,10 +126,10 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
                     />
                   </div>
                   <Button className="w-full" onClick={sendReset} disabled={busy || !identifier.trim()}>
-                    {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Send reset link
+                    {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} {t("sendResetLink")}
                   </Button>
                   <button className="w-full text-center text-xs text-muted-foreground hover:text-primary" onClick={() => setMode("login")}>
-                    Back to sign in
+                    {t("backToSignIn")}
                   </button>
                 </>
               )}
@@ -138,11 +137,11 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
           ) : (
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="sa-user">Username</Label>
+                <Label htmlFor="sa-user">{t("username")}</Label>
                 <Input id="sa-user" value={username} maxLength={24} autoComplete="username" onChange={(e) => setUsername(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="sa-pass">Password</Label>
+                <Label htmlFor="sa-pass">{t("password")}</Label>
                 <Input
                   id="sa-pass" type="password" value={password} maxLength={200}
                   autoComplete={mode === "register" ? "new-password" : "current-password"}
@@ -153,36 +152,34 @@ export function SkinAccountBar({ onUserChange }: { onUserChange?: (u: SkinUser |
               {mode === "register" && (
                 <>
                   <div className="space-y-1.5">
-                    <Label htmlFor="sa-confirm">Confirm password</Label>
+                    <Label htmlFor="sa-confirm">{t("confirmPassword")}</Label>
                     <Input id="sa-confirm" type="password" value={confirm} maxLength={200} autoComplete="new-password" onChange={(e) => setConfirm(e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="sa-email">Email (optional, for password reset)</Label>
+                    <Label htmlFor="sa-email">{t("emailOptionalReset")}</Label>
                     <Input
                       id="sa-email" type="email" value={email} maxLength={255} autoComplete="email"
                       onChange={(e) => setEmail(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && submit()}
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      Without an email, your password cannot be reset if lost.
-                    </p>
+                    <p className="text-[11px] text-muted-foreground">{t("noEmailWarning")}</p>
                   </div>
                 </>
               )}
               <Button className="w-full" onClick={submit} disabled={busy || !username.trim() || !password}>
                 {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {mode === "register" ? "Create account" : "Sign in"}
+                {mode === "register" ? t("createAccount") : t("signIn")}
               </Button>
               {mode === "login" && (
                 <button className="w-full text-center text-xs text-muted-foreground hover:text-primary" onClick={() => setMode("forgot")}>
-                  Forgot password?
+                  {t("forgotPassword")}
                 </button>
               )}
               <button
                 className="w-full text-center text-xs text-muted-foreground hover:text-primary"
                 onClick={() => setMode(mode === "register" ? "login" : "register")}
               >
-                {mode === "register" ? "Already have an account? Sign in" : "No account yet? Create one"}
+                {mode === "register" ? t("haveAccount") : t("noAccountYet")}
               </button>
             </div>
           )}
