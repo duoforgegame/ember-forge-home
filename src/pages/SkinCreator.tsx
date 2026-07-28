@@ -31,7 +31,7 @@ export default function SkinCreator() {
   const [category, setCategory] = useState<WeaponCategory | null>(null);
   const [weapon, setWeapon] = useState<Weapon | null>(null);
   const [result, setResult] = useState<{ dataUrl: string; pixels: PixelDatum[] } | null>(null);
-  const [form, setForm] = useState({ skin_name: "", player_name: "", discord_name: "", email: "" });
+  const [form, setForm] = useState({ skin_name: "", player_name: "", email: "" });
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function SkinCreator() {
 
   const handleSubmit = async () => {
     if (!weapon || !result) return;
-    if (!form.discord_name.trim()) { toast.error("Discord name is required"); return; }
+    if (!form.skin_name.trim()) { toast.error("Skin name is required"); return; }
     setSending(true);
     try {
       let previewUrl = "";
@@ -74,7 +74,6 @@ export default function SkinCreator() {
         preview_image_url: previewUrl,
         skin_name: form.skin_name,
         player_name: form.player_name,
-        discord_name: form.discord_name,
         email: form.email,
       });
       setStep("done");
@@ -202,26 +201,22 @@ export default function SkinCreator() {
             <div className="space-y-4 rounded-lg border border-border bg-card p-4">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Your details</div>
               <div className="space-y-1.5">
-                <Label htmlFor="sc-skin-name">Skin name</Label>
+                <Label htmlFor="sc-skin-name">Skin name *</Label>
                 <Input id="sc-skin-name" value={form.skin_name} maxLength={80} onChange={(e) => setForm({ ...form, skin_name: e.target.value })} placeholder="Give your skin a name" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="sc-player">In-game / artist name</Label>
+                <Label htmlFor="sc-player">Your Name</Label>
                 <Input id="sc-player" value={form.player_name} maxLength={80} onChange={(e) => setForm({ ...form, player_name: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sc-discord">Discord name *</Label>
-                <Input id="sc-discord" required value={form.discord_name} maxLength={120} onChange={(e) => setForm({ ...form, discord_name: e.target.value })} placeholder="yourname" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="sc-email">Email (optional)</Label>
                 <Input id="sc-email" type="email" value={form.email} maxLength={255} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
-              <Button onClick={handleSubmit} disabled={sending} className="w-full">
+              <Button onClick={handleSubmit} disabled={sending || !form.skin_name.trim()} className="w-full">
                 {sending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting…</> : "Submit skin"}
               </Button>
               <p className="text-[11px] text-muted-foreground">
-                By submitting you allow Duo Forge Games to use your artwork in Unboxed. We may contact you on Discord about your submission.
+                By submitting you allow Duo Forge Games to use your artwork in Unboxed. We may contact you about your submission.
               </p>
             </div>
           </div>
@@ -234,7 +229,7 @@ export default function SkinCreator() {
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Button
                 variant="outline"
-                onClick={() => { setResult(null); setWeapon(null); setStep("categories"); setForm({ skin_name: "", player_name: "", discord_name: form.discord_name, email: form.email }); }}
+                onClick={() => { setResult(null); setWeapon(null); setStep("categories"); setForm({ skin_name: "", player_name: form.player_name, email: form.email }); }}
               >
                 Create another skin
               </Button>
