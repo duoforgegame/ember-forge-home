@@ -262,8 +262,13 @@ function SubmissionsPanel() {
   useEffect(() => { load(); }, []);
 
   const setStatus = async (id: string, status: string) => {
-    await adminCall({ op: "set_skin_status", id, status });
-    setRows((r) => r.map((s) => (s.id === id ? { ...s, status } : s)));
+    try {
+      await adminCall({ op: "set_skin_status", id, status });
+      setRows((r) => r.map((s) => (s.id === id ? { ...s, status } : s)));
+      toast.success(status === "in_game" ? "Marked as in game." : `Status set to ${status}.`);
+    } catch (e) {
+      toast.error((e as Error).message || "Could not update the status");
+    }
   };
   const remove = async (id: string) => {
     if (!window.confirm("Delete this submission?")) return;
