@@ -68,25 +68,23 @@ export async function submitSkin(input: {
   skin_name: string;
   player_name?: string;
   email?: string;
+  turnstile_token: string;
 }) {
   // The database still stores a contact handle column, we fill it from the artist name.
   const contact = (input.player_name?.trim() || input.skin_name.trim() || "anonymous").slice(0, 120);
   // Logged-in players submit through the edge function so the server sets user_id.
-  if (getSkinToken()) {
-    await skinAuthCall({ op: "submit", ...input, discord_name: contact, skin_name: input.skin_name.trim(), player_name: input.player_name?.trim() || null, email: input.email?.trim() || null }, true);
-    return;
-  }
-  const { error } = await supabase.from("skin_submissions").insert({
+  const payload = {
     weapon_id: input.weapon_id,
     pixel_data: input.pixel_data,
     preview_image_url: input.preview_image_url,
     skin_name: input.skin_name.trim(),
     player_name: input.player_name?.trim() || null,
-    discord_name: contact,
     email: input.email?.trim() || null,
-    status: "pending",
-  });
-  if (error) throw error;
+    discord_name: contact,
+    turnstile_token: input.turnstile_token,
+  };
+  // Both paths go through the edge function so the Turnstile token is verified server side.
+  await skinAuthCall({ op: getSkinToken() ? "submit" : "guest_submit", ...payload }, !!getSkinToken());
 }
 
 /** Renders painted pixels onto a transparent canvas (template is never baked in). */
