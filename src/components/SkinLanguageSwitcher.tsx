@@ -42,14 +42,15 @@ export function SkinLanguageSwitcher({ className = "" }: { className?: string })
           title={l.label}
           aria-label={l.label}
           aria-pressed={lang === l.code}
-          className={`rounded-sm border px-2 py-1 text-base leading-none transition-colors ${
+          className={`flex items-center justify-center rounded-sm border p-1 transition-colors ${
             lang === l.code
               ? "border-primary/60 bg-primary/10 opacity-100"
               : "border-border opacity-50 hover:opacity-100 hover:border-primary/40"
           }`}
         >
-          <span aria-hidden>{l.flag}</span>
+          <img src={l.flag} alt="" aria-hidden className="h-4 w-6 object-cover" />
         </button>
+
       ))}
     </div>
   );
