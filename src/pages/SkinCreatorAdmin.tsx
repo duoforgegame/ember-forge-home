@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Trash2, Upload, Check, X, Download, KeyRound, ArrowUpDown } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Upload, Check, X, Download, KeyRound, ArrowUpDown, Gamepad2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ async function downloadSkin(s: SkinSubmission) {
 }
 
 
-const STATUSES = ["pending", "approved", "rejected"] as const;
+const STATUSES = ["pending", "approved", "rejected", "in_game"] as const;
 
 export default function SkinCreatorAdmin() {
   // Always require the password again when the panel is opened.
@@ -298,7 +298,7 @@ function SubmissionsPanel() {
             onClick={() => setFilter(s)}
             className={`rounded-sm border px-2.5 py-1 text-xs uppercase tracking-wider ${filter === s ? "border-primary/60 bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
           >
-            {s} ({s === "all" ? rows.length : rows.filter((r) => r.status === s).length})
+            {s === "in_game" ? "in game" : s} ({s === "all" ? rows.length : rows.filter((r) => r.status === s).length})
           </button>
         ))}
       </div>
@@ -338,16 +338,23 @@ function SubmissionsPanel() {
                         ? "border-green-500/60 bg-green-500/10 text-green-500"
                         : s.status === "rejected"
                           ? "border-red-500/60 bg-red-500/10 text-red-500"
-                          : "border-border text-muted-foreground"
+                          : s.status === "in_game"
+                            ? "border-primary/60 bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground"
                     }`}
                   >
-                    {s.status}
+                    {s.status === "in_game" ? "in game" : s.status}
                   </div>
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => setStatus(s.id, "approved")}><Check className="mr-1 h-3.5 w-3.5" /> Approve</Button>
                 <Button size="sm" variant="outline" onClick={() => setStatus(s.id, "rejected")}><X className="mr-1 h-3.5 w-3.5" /> Reject</Button>
+                {(s.status === "approved" || s.status === "in_game") && (
+                  <Button size="sm" variant="outline" onClick={() => setStatus(s.id, "in_game")} disabled={s.status === "in_game"}>
+                    <Gamepad2 className="mr-1 h-3.5 w-3.5" /> Mark as In Game
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" onClick={() => downloadSkin(s)}>
                   <Download className="mr-1 h-3.5 w-3.5" /> Download PNG
                 </Button>

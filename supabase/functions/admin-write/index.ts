@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
         const id = String(body.id ?? "");
         const status = String(body.status ?? "");
         if (!id) return json({ error: "Missing id" }, { status: 400 }, origin);
-        if (!["pending", "approved", "rejected"].includes(status)) return json({ error: "Invalid status" }, { status: 400 }, origin);
+        if (!["pending", "approved", "rejected", "in_game"].includes(status)) return json({ error: "Invalid status" }, { status: 400 }, origin);
         const { error } = await sb.from("skin_submissions").update({ status }).eq("id", id);
         if (error) throw error;
         return json({ ok: true }, { status: 200 }, origin);
