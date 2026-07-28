@@ -21,9 +21,9 @@ export const skinLogout = () => {
 
 export async function skinAuthCall(body: Record<string, unknown>, withToken = false): Promise<any> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (withToken) {
-    const t = getSkinToken();
-    if (!t) throw new Error("Not signed in");
+  const t = getSkinToken();
+  if (withToken && !t) throw new Error("Not signed in");
+  if (t) {
     headers.Authorization = `Bearer ${t}`;
   }
   const res = await fetch(`${FUNCTIONS_BASE}/skin-auth`, { method: "POST", headers, body: JSON.stringify(body) });

@@ -3,6 +3,10 @@
 
 create extension if not exists "pgcrypto";
 
+-- View migration rule for this project:
+-- Before every create or replace view that changes columns, add this statement directly before it:
+-- drop view if exists public.<view_name>;
+
 -- PROJECTS
 create table if not exists public.site_projects (
   id uuid primary key default gen_random_uuid(),
@@ -423,6 +427,7 @@ create index if not exists skin_creator_users_reset_token_idx
 -- (discord_name, email, pixel_data, user_id) are never queryable by anon.
 -- security_invoker stays off, so the view bypasses RLS on the base table.
 -- ---------------------------------------------------------------------------
+drop view if exists public.public_skin_gallery;
 create or replace view public.public_skin_gallery as
   select s.id,
          s.preview_image_url,
@@ -456,6 +461,7 @@ alter table public.skin_votes enable row level security;
 -- no anon/authenticated policies: voting happens through the skin-auth edge function
 
 -- gallery view now also exposes the public vote count
+drop view if exists public.public_skin_gallery;
 create or replace view public.public_skin_gallery as
   select s.id,
          s.preview_image_url,
@@ -507,6 +513,7 @@ create policy "public remove own upvote" on public.skin_upvotes
   for delete to anon, authenticated using (true);
 
 -- gallery now also lists in_game skins and counts the anonymous upvotes
+drop view if exists public.public_skin_gallery;
 create or replace view public.public_skin_gallery as
   select s.id,
          s.preview_image_url,
