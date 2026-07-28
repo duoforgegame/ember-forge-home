@@ -171,16 +171,74 @@ export type GallerySkin = {
   player_name: string | null;
   created_at: string;
   weapon_name: string | null;
+  status: string;
   vote_count: number;
 };
 
-/** Public, login-free read of approved community skins (paginated). */
-export async function fetchGallerySkins(offset = 0, limit = 20): Promise<GallerySkin[]> {
-  const { data, error } = await supabase
-    .from("public_skin_gallery")
-    .select("id, preview_image_url, skin_name, player_name, created_at, weapon_name, vote_count")
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+export type GallerySort = "newest" | "top";
+
+const GALLERY_COLUMNS =
+  "id, preview_image_url, skin_name, player_name, created_at, status, weapon_name, vote_count";
+
+/** Public, login-free read of approved and in game community skins (paginated). */
+export async function fetchGallerySkins(offset = 0, limit = 20, sort: GallerySort = "newest"): Promise<GallerySkin[]> {
+  let q = supabase.from("public_skin_gallery").select(GALLERY_COLUMNS);
+  q = sort === "top"
+    ? q.order("vote_count", { ascending: false }).order("created_at", { ascending: false })
+    : q.order("created_at", { ascending: false });
+  const { data, error } = await q.range(offset, offset + limit - 1);
   if (error) throw error;
   return (data ?? []) as GallerySkin[];
+}
+
+const VOTER_KEY_STORAGE = "skincreator_voter_key";
+
+/** Stable anonymous identifier for this browser, used for one vote per skin. */
+export function getVoterKey(): string {
+  let key = "";
+  try {
+    key = localStorage.getItem(VOTER_KEY_STORAGE) ?? "";
+    if (!key) {
+      key = crypto.randomUUID();
+      localStorage.setItem(VOTER_KEY_STORAGE, key);
+    }
+  } catch {
+    key = key || crypto.randomUUID();
+  }
+  return key;
+}
+
+/** Ids of gallery skins this browser already upvoted. */
+export async function listMyUpvotes(submissionIds: string[]): Promise<string[]> {
+  if (submissionIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("skin_upvotes")
+    .select("submission_id")
+    .eq("voter_key", getVoterKey())
+    .in("submission_id", submissionIds);
+  if (error) throw error;
+  return (data ?? []).map((r: { submission_id: string }) => r.submission_id);
+}
+
+/** Adds or removes this browser's single upvote for a skin, returns the fresh count. */
+export async function toggleSkinUpvote(submissionId: string, currentlyVoted: boolean): Promise<{ voted: boolean; vote_count: number }> {
+  const voter_key = getVoterKey();
+  if (currentlyVoted) {
+    const { error } = await supabase
+      .from("skin_upvotes")
+      .delete()
+      .eq("submission_id", submissionId)
+      .eq("voter_key", voter_key);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("skin_upvotes").insert({ submission_id: submissionId, voter_key });
+    // a duplicate simply means the vote already exists
+    if (error && !`${error.message}`.toLowerCase().includes("duplicate")) throw error;
+  }
+  const { count, error: countErr } = await supabase
+    .from("skin_upvotes")
+    .select("id", { count: "exact", head: true })
+    .eq("submission_id", submissionId);
+  if (countErr) throw countErr;
+  return { voted: !currentlyVoted, vote_count: count ?? 0 };
 }
