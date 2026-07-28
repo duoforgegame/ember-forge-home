@@ -206,6 +206,6 @@ export async function toggleSkinUpvote(submissionId: string, _currentlyVoted: bo
   if (!getSkinToken()) throw new Error("Please sign in to upvote skins");
   const out = await skinAuthCall({ op: "toggle_vote", submission_id: submissionId }, true);
   return { voted: !!out?.voted, vote_count: Number(out?.vote_count ?? 0) };
-};
 }
+
 
