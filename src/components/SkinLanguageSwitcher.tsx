@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
+import flagUs from "@/assets/flag-us.png";
+import flagDe from "@/assets/flag-de.png";
+import flagCn from "@/assets/flag-cn.png";
+import flagJp from "@/assets/flag-jp.png";
 
 export type SkinLang = "en" | "de" | "zh" | "ja";
 
 const LANGS: { code: SkinLang; label: string; flag: string }[] = [
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "de", label: "Deutsch", flag: "🇩🇪" },
-  { code: "zh", label: "中文", flag: "🇨🇳" },
-  { code: "ja", label: "日本語", flag: "🇯🇵" },
+  { code: "en", label: "English", flag: flagUs },
+  { code: "de", label: "Deutsch", flag: flagDe },
+  { code: "zh", label: "中文", flag: flagCn },
+  { code: "ja", label: "日本語", flag: flagJp },
 ];
+
+
 
 const STORAGE_KEY = "skincreator_lang";
 
@@ -37,14 +43,15 @@ export function SkinLanguageSwitcher({ className = "" }: { className?: string })
           title={l.label}
           aria-label={l.label}
           aria-pressed={lang === l.code}
-          className={`rounded-sm border px-2 py-1 text-base leading-none transition-colors ${
+          className={`flex items-center justify-center rounded-sm border p-1 transition-colors ${
             lang === l.code
               ? "border-primary/60 bg-primary/10 opacity-100"
               : "border-border opacity-50 hover:opacity-100 hover:border-primary/40"
           }`}
         >
-          <span aria-hidden>{l.flag}</span>
+          <img src={l.flag} alt="" aria-hidden className="h-4 w-6 object-cover" />
         </button>
+
       ))}
     </div>
   );
