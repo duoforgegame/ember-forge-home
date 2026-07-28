@@ -65,23 +65,24 @@ export async function submitSkin(input: {
   weapon_id: string;
   pixel_data: PixelDatum[];
   preview_image_url: string;
-  skin_name?: string;
+  skin_name: string;
   player_name?: string;
-  discord_name: string;
   email?: string;
 }) {
+  // The database still stores a contact handle column, we fill it from the artist name.
+  const contact = (input.player_name?.trim() || input.skin_name.trim() || "anonymous").slice(0, 120);
   // Logged-in players submit through the edge function so the server sets user_id.
   if (getSkinToken()) {
-    await skinAuthCall({ op: "submit", ...input, skin_name: input.skin_name?.trim() || null, player_name: input.player_name?.trim() || null, email: input.email?.trim() || null }, true);
+    await skinAuthCall({ op: "submit", ...input, discord_name: contact, skin_name: input.skin_name.trim(), player_name: input.player_name?.trim() || null, email: input.email?.trim() || null }, true);
     return;
   }
   const { error } = await supabase.from("skin_submissions").insert({
     weapon_id: input.weapon_id,
     pixel_data: input.pixel_data,
     preview_image_url: input.preview_image_url,
-    skin_name: input.skin_name?.trim() || null,
+    skin_name: input.skin_name.trim(),
     player_name: input.player_name?.trim() || null,
-    discord_name: input.discord_name.trim(),
+    discord_name: contact,
     email: input.email?.trim() || null,
     status: "pending",
   });
