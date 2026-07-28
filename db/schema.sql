@@ -442,29 +442,6 @@ alter view public.public_skin_gallery set (security_invoker = off);
 grant select on public.public_skin_gallery to anon, authenticated;
 grant all on public.public_skin_gallery to service_role;
 
--- Final safety lock: the old anonymous browser vote table remains only for
--- historical migrations. The live app uses account based skin_votes only.
-do $$
-begin
-  if to_regclass('public.skin_upvotes') is not null then
-    execute 'drop policy if exists "public read upvotes" on public.skin_upvotes';
-    execute 'drop policy if exists "public add upvote" on public.skin_upvotes';
-    execute 'drop policy if exists "public remove own upvote" on public.skin_upvotes';
-    execute 'revoke select, insert, delete on public.skin_upvotes from anon, authenticated';
-  end if;
-end $$;
-
--- Lock the old anonymous upvote path. Voting is account based only and runs
--- through the skin-auth edge function with service_role privileges.
-do $$
-begin
-  if to_regclass('public.skin_upvotes') is not null then
-    execute 'drop policy if exists "public read upvotes" on public.skin_upvotes';
-    execute 'drop policy if exists "public add upvote" on public.skin_upvotes';
-    execute 'drop policy if exists "public remove own upvote" on public.skin_upvotes';
-    execute 'revoke select, insert, delete on public.skin_upvotes from anon, authenticated';
-  end if;
-end $$;
 create index if not exists skin_submissions_status_created_idx
   on public.skin_submissions(status, created_at desc);
 
@@ -500,6 +477,18 @@ create or replace view public.public_skin_gallery as
 alter view public.public_skin_gallery set (security_invoker = off);
 grant select on public.public_skin_gallery to anon, authenticated;
 grant all on public.public_skin_gallery to service_role;
+
+-- Final safety lock: the old anonymous browser vote table remains only for
+-- historical migrations. The live app uses account based skin_votes only.
+do $$
+begin
+  if to_regclass('public.skin_upvotes') is not null then
+    execute 'drop policy if exists "public read upvotes" on public.skin_upvotes';
+    execute 'drop policy if exists "public add upvote" on public.skin_upvotes';
+    execute 'drop policy if exists "public remove own upvote" on public.skin_upvotes';
+    execute 'revoke select, insert, delete on public.skin_upvotes from anon, authenticated';
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Skin Creator: anonymous browser based upvotes + "in_game" status
