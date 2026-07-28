@@ -522,3 +522,13 @@ create or replace view public.public_skin_gallery as
 alter view public.public_skin_gallery set (security_invoker = off);
 grant select on public.public_skin_gallery to anon, authenticated;
 grant all on public.public_skin_gallery to service_role;
+
+-- ============================================================
+-- Bot protection (Cloudflare Turnstile)
+-- Guest submissions now go through the skin-auth edge function op
+-- "guest_submit", which verifies the Turnstile token server side and
+-- inserts with the service role. The direct public insert path is removed
+-- so the captcha cannot be bypassed by calling PostgREST directly.
+-- ============================================================
+drop policy if exists "public submit skins" on public.skin_submissions;
+revoke insert on public.skin_submissions from anon, authenticated;
