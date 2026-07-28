@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
-import flagUs from "@/assets/flag-us.png.asset.json";
-import flagDe from "@/assets/flag-de.png.asset.json";
-import flagCn from "@/assets/flag-cn.png.asset.json";
-import flagJp from "@/assets/flag-jp.png.asset.json";
+import flagUs from "@/assets/flag-us.png";
+import flagDe from "@/assets/flag-de.png";
+import flagCn from "@/assets/flag-cn.png";
+import flagJp from "@/assets/flag-jp.png";
 
 export type SkinLang = "en" | "de" | "zh" | "ja";
 
 const LANGS: { code: SkinLang; label: string; flag: string }[] = [
-  { code: "en", label: "English", flag: flagUs.url },
-  { code: "de", label: "Deutsch", flag: flagDe.url },
-  { code: "zh", label: "中文", flag: flagCn.url },
-  { code: "ja", label: "日本語", flag: flagJp.url },
+  { code: "en", label: "English", flag: flagUs },
+  { code: "de", label: "Deutsch", flag: flagDe },
+  { code: "zh", label: "中文", flag: flagCn },
+  { code: "ja", label: "日本語", flag: flagJp },
 ];
+
 
 
 const STORAGE_KEY = "skincreator_lang";
