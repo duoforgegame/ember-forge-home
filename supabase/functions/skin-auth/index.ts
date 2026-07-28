@@ -339,8 +339,7 @@ Deno.serve(async (req) => {
         return json({ ok: true }, { status: 200 }, origin);
       }
       default:
-
-        return json({ error: "Unknown op" }, { status: 400 }, origin);
+        return json({ error: `Unknown op: ${String(body.op ?? "")}` }, { status: 400 }, origin);
     }
   } catch (e) {
     return json({ error: (e as Error).message }, { status: 500 }, origin);
