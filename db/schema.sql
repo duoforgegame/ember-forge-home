@@ -562,3 +562,29 @@ create or replace view public.public_skin_gallery as
 alter view public.public_skin_gallery set (security_invoker = off);
 grant select on public.public_skin_gallery to anon, authenticated;
 grant all on public.public_skin_gallery to service_role;
+
+-- ============================================================
+-- Upvotes now require a Skin Creator account.
+-- Votes live in skin_votes (user based); the anonymous browser
+-- based skin_upvotes path is no longer used by the app.
+-- ============================================================
+drop view if exists public.public_skin_gallery;
+create or replace view public.public_skin_gallery as
+  select s.id,
+         s.preview_image_url,
+         s.skin_name,
+         s.player_name,
+         s.created_at,
+         s.status,
+         s.pixel_data,
+         w.name as weapon_name,
+         w.template_image_url,
+         w.canvas_width,
+         w.canvas_height,
+         (select count(*) from public.skin_votes v where v.submission_id = s.id) as vote_count
+    from public.skin_submissions s
+    left join public.weapons w on w.id = s.weapon_id
+   where s.status in ('approved', 'in_game');
+alter view public.public_skin_gallery set (security_invoker = off);
+grant select on public.public_skin_gallery to anon, authenticated;
+grant all on public.public_skin_gallery to service_role;

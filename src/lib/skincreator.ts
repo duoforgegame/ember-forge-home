@@ -194,41 +194,18 @@ export async function fetchGallerySkins(offset = 0, limit = 20, sort: GallerySor
   return (data ?? []) as GallerySkin[];
 }
 
-const VOTER_KEY_STORAGE = "skincreator_voter_key";
-
-/** Stable anonymous identifier for this browser, used for one vote per skin. */
-export function getVoterKey(): string {
-  let key = "";
-  try {
-    key = localStorage.getItem(VOTER_KEY_STORAGE) ?? "";
-    if (!key) {
-      key = crypto.randomUUID();
-      localStorage.setItem(VOTER_KEY_STORAGE, key);
-    }
-  } catch {
-    key = key || crypto.randomUUID();
-  }
-  return key;
-}
-
-/** Ids of gallery skins this browser already upvoted (via edge function, service role). */
-export async function listMyUpvotes(submissionIds: string[]): Promise<string[]> {
-  if (submissionIds.length === 0) return [];
-  const out = await skinAuthCall({
-    op: "gallery_my_upvotes",
-    voter_key: getVoterKey(),
-    submission_ids: submissionIds,
-  });
+/** Ids of gallery skins the signed in user already upvoted. Empty when signed out. */
+export async function listMyUpvotes(_submissionIds: string[]): Promise<string[]> {
+  if (!getSkinToken()) return [];
+  const out = await skinAuthCall({ op: "my_votes" }, true);
   return (out?.ids ?? []) as string[];
 }
 
-/** Adds or removes this browser's single upvote for a skin, returns the fresh count. */
+/** Adds or removes the signed in user's single upvote for a skin, returns the fresh count. */
 export async function toggleSkinUpvote(submissionId: string, _currentlyVoted: boolean): Promise<{ voted: boolean; vote_count: number }> {
-  const out = await skinAuthCall({
-    op: "gallery_toggle_upvote",
-    voter_key: getVoterKey(),
-    submission_id: submissionId,
-  });
+  if (!getSkinToken()) throw new Error("Please sign in to upvote skins");
+  const out = await skinAuthCall({ op: "toggle_vote", submission_id: submissionId }, true);
   return { voted: !!out?.voted, vote_count: Number(out?.vote_count ?? 0) };
 }
+
 
