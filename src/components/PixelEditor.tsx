@@ -7,15 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PALETTE, type PixelDatum, type Weapon } from "@/lib/skincreator";
+import { useSkinT } from "@/lib/skin-i18n";
 
 type Tool = "brush" | "eraser" | "fill" | "picker" | "pan";
 
-const TOOLS: { id: Tool; label: string; icon: typeof Brush }[] = [
-  { id: "brush", label: "Brush (1px)", icon: Brush },
-  { id: "eraser", label: "Eraser", icon: Eraser },
-  { id: "fill", label: "Fill", icon: PaintBucket },
-  { id: "picker", label: "Pick colour", icon: Pipette },
-  { id: "pan", label: "Pan", icon: Move },
+const TOOLS: { id: Tool; labelKey: string; icon: typeof Brush }[] = [
+  { id: "brush", labelKey: "toolBrush", icon: Brush },
+  { id: "eraser", labelKey: "toolEraser", icon: Eraser },
+  { id: "fill", labelKey: "toolFill", icon: PaintBucket },
+  { id: "picker", labelKey: "toolPicker", icon: Pipette },
+  { id: "pan", labelKey: "toolPan", icon: Move },
 ];
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -36,6 +37,7 @@ export function PixelEditor({
   onBack: () => void;
   onFinish: (result: { dataUrl: string; pixels: PixelDatum[] }) => void;
 }) {
+  const { t } = useSkinT();
   const W = Math.max(1, Math.min(512, weapon.canvas_width || 64));
   const H = Math.max(1, Math.min(512, weapon.canvas_height || 32));
 
@@ -316,45 +318,45 @@ export function PixelEditor({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="mr-2 h-4 w-4" /> Back to weapons</Button>
+        <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="mr-2 h-4 w-4" /> {t("backToWeapons")}</Button>
         <div className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{weapon.name}</span>: {W}×{H} px
         </div>
-        <Button size="sm" onClick={exportSkin}><Check className="mr-2 h-4 w-4" /> Done / Submit</Button>
+        <Button size="sm" onClick={exportSkin}><Check className="mr-2 h-4 w-4" /> {t("doneSubmit")}</Button>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
         {/* Canvas area */}
         <div className="rounded-lg border border-border bg-card p-3">
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            {TOOLS.map((t) => (
+            {TOOLS.map((tl) => (
               <button
-                key={t.id}
-                title={t.label}
-                onClick={() => setTool(t.id)}
+                key={tl.id}
+                title={t(tl.labelKey)}
+                onClick={() => setTool(tl.id)}
                 className={`rounded-sm border p-2 transition-colors ${
-                  tool === t.id ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                  tool === tl.id ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <t.icon className="h-4 w-4" />
+                <tl.icon className="h-4 w-4" />
               </button>
             ))}
             <span className="mx-1 h-6 w-px bg-border" />
-            <button title="Undo" onClick={undo} disabled={!undoRef.current.length} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><Undo2 className="h-4 w-4" /></button>
-            <button title="Redo" onClick={redo} disabled={!redoRef.current.length} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><Redo2 className="h-4 w-4" /></button>
+            <button title={t("undo")} onClick={undo} disabled={!undoRef.current.length} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><Undo2 className="h-4 w-4" /></button>
+            <button title={t("redo")} onClick={redo} disabled={!redoRef.current.length} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-foreground disabled:opacity-40"><Redo2 className="h-4 w-4" /></button>
             <span className="mx-1 h-6 w-px bg-border" />
-            <button title="Zoom out" onClick={() => setScale((s) => Math.max(4, s - 2))} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-foreground"><ZoomOut className="h-4 w-4" /></button>
+            <button title={t("zoomOut")} onClick={() => setScale((s) => Math.max(4, s - 2))} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-foreground"><ZoomOut className="h-4 w-4" /></button>
             <span className="min-w-10 text-center text-xs text-muted-foreground">{scale}×</span>
-            <button title="Zoom in" onClick={() => setScale((s) => Math.min(40, s + 2))} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-foreground"><ZoomIn className="h-4 w-4" /></button>
+            <button title={t("zoomIn")} onClick={() => setScale((s) => Math.min(40, s + 2))} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-foreground"><ZoomIn className="h-4 w-4" /></button>
             <span className="mx-1 h-6 w-px bg-border" />
             <button
-              title="Toggle template"
+              title={t("toggleTemplate")}
               onClick={() => setShowTemplate((v) => !v)}
               className={`flex items-center gap-1.5 rounded-sm border px-2 py-2 text-xs ${showTemplate ? "border-primary/60 text-primary" : "border-border text-muted-foreground"}`}
             >
-              {showTemplate ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} Template
+              {showTemplate ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} {t("template")}
             </button>
-            <button title="Clear canvas" onClick={clearAll} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+            <button title={t("clearCanvas")} onClick={clearAll} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
           </div>
 
           <div ref={scrollRef} className="max-h-[70vh] overflow-auto rounded-sm bg-[#111] p-6">
@@ -415,7 +417,7 @@ export function PixelEditor({
         {/* Palette panel */}
         <aside className="space-y-4 rounded-lg border border-border bg-card p-3">
           <div>
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Palette</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("palette")}</Label>
             <div className="mt-2 grid grid-cols-8 gap-1">
               {PALETTE.map((c) => (
                 <button
@@ -430,7 +432,7 @@ export function PixelEditor({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Colour</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("colour")}</Label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -452,7 +454,7 @@ export function PixelEditor({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Brush opacity: {alpha}%</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("brushOpacity")}: {alpha}%</Label>
             <input
               type="range"
               min={0}
@@ -464,11 +466,8 @@ export function PixelEditor({
           </div>
 
           <div className="rounded-sm border border-border bg-background/50 p-2 text-[11px] leading-relaxed text-muted-foreground">
-            {maskReady
-              ? "You can only paint inside the weapon shape. The darkened area is ignored. Fill floods matching pixels and stops at the weapon's edges."
-              : "Brush paints single pixels. Fill floods matching pixels."}{" "}
-            Pipette picks a colour from your layer. Your export contains only your painted pixels, the background stays transparent.
-            Touch/stylus painting is supported. Use the Pan tool to move the canvas.
+            {maskReady ? t("helpMasked") : t("helpPlain")}{" "}
+            {t("helpTail")}
           </div>
 
         </aside>
