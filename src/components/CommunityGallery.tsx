@@ -3,6 +3,7 @@ import { ArrowBigUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SkinPreview } from "@/components/SkinPreview";
+import { getSkinToken } from "@/lib/skinauth";
 import {
   fetchGallerySkins,
   listMyUpvotes,
@@ -26,6 +27,7 @@ export function CommunityGallery() {
   const [sort, setSort] = useState<GallerySort>("newest");
   const [myVotes, setMyVotes] = useState<Set<string>>(new Set());
   const [voting, setVoting] = useState<string | null>(null);
+  const signedIn = !!getSkinToken();
 
   const markVoted = async (rows: GallerySkin[]) => {
     try {
@@ -72,6 +74,10 @@ export function CommunityGallery() {
   };
 
   const vote = async (id: string) => {
+    if (!getSkinToken()) {
+      toast.error("Please sign in to upvote skins");
+      return;
+    }
     setVoting(id);
     const mine = myVotes.has(id);
     try {
@@ -95,8 +101,8 @@ export function CommunityGallery() {
         Community <span className="text-primary">Gallery</span>
       </h2>
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Skins created by the community and approved by our team. You can give every skin one upvote, click again to take
-        it back. No account needed, one vote per skin and browser.
+        Skins created by the community and approved by our team. Sign in with your Skin Creator account to upvote,
+        one vote per skin, click again to take it back.
       </p>
 
       <div className="mt-5 flex flex-wrap gap-2">
@@ -173,7 +179,7 @@ export function CommunityGallery() {
                         disabled={voting === s.id}
                         aria-pressed={mine}
                         aria-label={mine ? "Remove your upvote" : "Upvote this skin"}
-                        title={mine ? "Remove your upvote" : "Upvote this skin"}
+                        title={signedIn ? (mine ? "Remove your upvote" : "Upvote this skin") : "Sign in to upvote"}
                       >
                         {voting === s.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
