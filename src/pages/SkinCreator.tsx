@@ -196,10 +196,15 @@ export default function SkinCreator() {
           </div>
         ) : step === "editor" && weapon ? (
           <PixelEditor
+            key={draft?.id ?? weapon.id}
             weapon={weapon}
-            onBack={() => setStep("weapons")}
+            initialPixels={draft?.weapon_template_id === weapon.id ? draft?.canvas_data ?? null : null}
+            initialDraftId={draft?.weapon_template_id === weapon.id ? draft?.id ?? null : null}
+            initialDraftName={draft?.weapon_template_id === weapon.id ? draft?.name ?? null : null}
+            onBack={() => { setDraft(null); setStep("weapons"); }}
             onFinish={(r) => { setResult(r); setStep("submit"); }}
           />
+
         ) : step === "submit" && weapon && result ? (
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-4">
