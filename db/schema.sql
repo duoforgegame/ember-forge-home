@@ -608,3 +608,31 @@ create or replace view public.public_skin_gallery as
 alter view public.public_skin_gallery set (security_invoker = off);
 grant select on public.public_skin_gallery to anon, authenticated;
 grant all on public.public_skin_gallery to service_role;
+
+-- ============================================================
+-- Skin Creator drafts: logged in users can save a paint job and
+-- continue later. All access goes through the skin-auth edge
+-- function (service role), so no anon/authenticated grants.
+-- ============================================================
+create table if not exists public.skin_creator_drafts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.skin_creator_users(id) on delete cascade,
+  weapon_template_id uuid references public.weapons(id) on delete cascade,
+  canvas_data jsonb not null default '[]'::jsonb,
+  name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists skin_creator_drafts_user_idx
+  on public.skin_creator_drafts (user_id, updated_at desc);
+
+grant all on public.skin_creator_drafts to service_role;
+alter table public.skin_creator_drafts enable row level security;
+
+-- Users are not Supabase auth users, they hold a skin-auth JWT, so
+-- direct PostgREST access stays closed and the edge function scopes
+-- every read, write and delete to the token's user_id.
+drop policy if exists "no direct access to drafts" on public.skin_creator_drafts;
+create policy "no direct access to drafts"
+  on public.skin_creator_drafts for select using (false);
+revoke all on public.skin_creator_drafts from anon, authenticated;
