@@ -355,7 +355,7 @@ export function PixelEditor({
 
   const onPointerUp = () => { drawingRef.current = false; panRef.current = null; };
 
-  const clearAll = () => { pushUndo(); bufRef.current = new Uint8ClampedArray(W * H * 4); redraw(); };
+  const clearAll = () => { pushUndo(); bufRef.current = new Uint8ClampedArray(W * H * 4); redraw(); setConfirmClear(false); };
 
   const exportSkin = () => {
     // Export ONLY the user's painted layer: fully transparent everywhere else.
