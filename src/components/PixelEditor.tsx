@@ -622,6 +622,19 @@ export function PixelEditor({
 
         </aside>
       </div>
+
+      <AlertDialog open={confirmClear} onOpenChange={(o) => { if (!o) setConfirmClear(false); }}>
+        <AlertDialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("clearCanvasTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("clearCanvasBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); clearAll(); }}>{t("deleteDraftConfirm")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
