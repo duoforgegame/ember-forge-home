@@ -175,7 +175,7 @@ export default function SkinCreator() {
                 {inCategory.map((w) => (
                   <button
                     key={w.id}
-                    onClick={() => { setDraft(null); setWeapon(w); setStep("editor"); }}
+                    onClick={() => { setDraft(null); setResult(null); setWeapon(w); setStep("editor"); }}
                     className="group overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-primary/60"
                   >
                     <div className="flex h-32 items-center justify-center bg-[#111] p-3">
@@ -198,7 +198,7 @@ export default function SkinCreator() {
           <PixelEditor
             key={draft?.id ?? weapon.id}
             weapon={weapon}
-            initialPixels={draft?.weapon_template_id === weapon.id ? draft?.canvas_data ?? null : null}
+            initialPixels={draft?.weapon_template_id === weapon.id ? draft?.canvas_data ?? null : result?.pixels ?? null}
             initialDraftId={draft?.weapon_template_id === weapon.id ? draft?.id ?? null : null}
             initialDraftName={draft?.weapon_template_id === weapon.id ? draft?.name ?? null : null}
             onBack={() => { setDraft(null); setStep("weapons"); }}
