@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Brush, Eraser, Pipette, PaintBucket, Undo2, Redo2, ZoomIn, ZoomOut, Move,
-  Eye, EyeOff, Trash2, ArrowLeft, Check,
+  Eye, EyeOff, Trash2, ArrowLeft, Check, Save, Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PALETTE, type PixelDatum, type Weapon } from "@/lib/skincreator";
+import { getSkinUser, saveSkinDraft } from "@/lib/skinauth";
 import { useSkinT } from "@/lib/skin-i18n";
+
 
 type Tool = "brush" | "eraser" | "fill" | "picker" | "pan";
 
