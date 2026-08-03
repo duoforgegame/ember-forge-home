@@ -24,6 +24,8 @@ type Step = "categories" | "weapons" | "editor" | "submit" | "done";
 
 export default function SkinCreator() {
   const { t } = useSkinT();
+  const location = useLocation();
+  const resumeDraft = (location.state as { draft?: { id: string; name: string | null; weapon_template_id: string | null; canvas_data: PixelDatum[] | null } } | null)?.draft ?? null;
   const [step, setStep] = useState<Step>("categories");
   const [categories, setCategories] = useState<WeaponCategory[]>([]);
   const [weapons, setWeapons] = useState<Weapon[]>([]);
@@ -34,13 +36,23 @@ export default function SkinCreator() {
   const [form, setForm] = useState({ skin_name: "", player_name: "", email: "" });
   const [sending, setSending] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [draft, setDraft] = useState(resumeDraft);
 
   useEffect(() => {
     (async () => {
       try {
         const [cats, wps] = await Promise.all([fetchCategories(), fetchWeapons()]);
         setCategories(cats);
-        setWeapons(wps.filter((w) => w.active));
+        const active = wps.filter((w) => w.active);
+        setWeapons(active);
+        if (resumeDraft?.weapon_template_id) {
+          const target = wps.find((w) => w.id === resumeDraft.weapon_template_id);
+          if (target) {
+            setCategory(cats.find((c) => c.id === target.category_id) ?? null);
+            setWeapon(target);
+            setStep("editor");
+          }
+        }
       } catch (e) {
         toast.error((e as Error).message || t("couldNotLoadWeapons"));
       } finally {
@@ -49,6 +61,7 @@ export default function SkinCreator() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const inCategory = useMemo(
     () => weapons.filter((w) => w.category_id === category?.id),
