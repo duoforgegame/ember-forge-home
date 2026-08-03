@@ -78,6 +78,10 @@ export function PixelEditor({
   const [showTemplate, setShowTemplate] = useState(true);
   const [historyTick, setHistoryTick] = useState(0);
   const [maskReady, setMaskReady] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId ?? null);
+  const [draftName, setDraftName] = useState(initialDraftName ?? "");
+  const [savingDraft, setSavingDraft] = useState(false);
+  const signedIn = !!getSkinUser();
 
   const redraw = useCallback(() => {
     const cv = canvasRef.current;
@@ -90,6 +94,23 @@ export function PixelEditor({
   }, [W, H]);
 
   useEffect(() => { redraw(); }, [redraw]);
+
+  /** Restore a saved draft's paint layer into the working buffer. */
+  useEffect(() => {
+    if (!initialPixels?.length) return;
+    const buf = new Uint8ClampedArray(W * H * 4);
+    for (const p of initialPixels) {
+      if (p.x < 0 || p.y < 0 || p.x >= W || p.y >= H) continue;
+      const i = (p.y * W + p.x) * 4;
+      buf[i] = p.r; buf[i + 1] = p.g; buf[i + 2] = p.b; buf[i + 3] = p.a;
+    }
+    bufRef.current = buf;
+    undoRef.current = [];
+    redoRef.current = [];
+    redraw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPixels, W, H]);
+
 
   /** Paint the "you can't draw here" overlay from the alpha mask. */
   const drawMaskOverlay = useCallback(() => {
