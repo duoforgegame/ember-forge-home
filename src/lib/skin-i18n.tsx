@@ -102,6 +102,7 @@ const en: Dict = {
   palette: "Palette",
   colour: "Colour",
   brushOpacity: "Brush opacity",
+  brightness: "Brightness",
   helpMasked:
     "You can only paint inside the weapon shape. The darkened area is ignored. Fill floods matching pixels and stops at the weapon's edges.",
   helpPlain: "Brush paints single pixels. Fill floods matching pixels.",
@@ -296,6 +297,7 @@ const de: Dict = {
   palette: "Palette",
   colour: "Farbe",
   brushOpacity: "Deckkraft",
+  brightness: "Helligkeit",
   helpMasked:
     "Du kannst nur innerhalb der Waffenform malen. Der abgedunkelte Bereich wird ignoriert. Das Füllwerkzeug füllt passende Pixel und stoppt an den Kanten der Waffe.",
   helpPlain: "Der Pinsel malt einzelne Pixel. Das Füllwerkzeug füllt passende Pixel.",
@@ -483,6 +485,7 @@ const zh: Dict = {
   palette: "调色板",
   colour: "颜色",
   brushOpacity: "画笔不透明度",
+  brightness: "亮度",
   helpMasked:
     "你只能在武器形状内绘制，变暗的区域会被忽略。填充工具会填充相同的像素并在武器边缘处停止。",
   helpPlain: "画笔逐个绘制像素。填充工具会填充相同的像素。",
@@ -670,6 +673,7 @@ const ja: Dict = {
   palette: "パレット",
   colour: "カラー",
   brushOpacity: "ブラシの不透明度",
+  brightness: "明るさ",
   helpMasked:
     "武器の形の内側にのみ描画できます。暗くなっている部分は無視されます。塗りつぶしは同じ色のピクセルを塗り、武器の輪郭で止まります。",
   helpPlain: "ブラシは1ピクセルずつ描画します。塗りつぶしは同じ色のピクセルを塗ります。",
