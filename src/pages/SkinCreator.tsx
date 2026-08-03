@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ type Step = "categories" | "weapons" | "editor" | "submit" | "done";
 
 export default function SkinCreator() {
   const { t } = useSkinT();
+  const location = useLocation();
+  const resumeDraft = (location.state as { draft?: { id: string; name: string | null; weapon_template_id: string | null; canvas_data: PixelDatum[] | null } } | null)?.draft ?? null;
   const [step, setStep] = useState<Step>("categories");
   const [categories, setCategories] = useState<WeaponCategory[]>([]);
   const [weapons, setWeapons] = useState<Weapon[]>([]);
@@ -33,13 +36,23 @@ export default function SkinCreator() {
   const [form, setForm] = useState({ skin_name: "", player_name: "", email: "" });
   const [sending, setSending] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [draft, setDraft] = useState(resumeDraft);
 
   useEffect(() => {
     (async () => {
       try {
         const [cats, wps] = await Promise.all([fetchCategories(), fetchWeapons()]);
         setCategories(cats);
-        setWeapons(wps.filter((w) => w.active));
+        const active = wps.filter((w) => w.active);
+        setWeapons(active);
+        if (resumeDraft?.weapon_template_id) {
+          const target = wps.find((w) => w.id === resumeDraft.weapon_template_id);
+          if (target) {
+            setCategory(cats.find((c) => c.id === target.category_id) ?? null);
+            setWeapon(target);
+            setStep("editor");
+          }
+        }
       } catch (e) {
         toast.error((e as Error).message || t("couldNotLoadWeapons"));
       } finally {
@@ -48,6 +61,7 @@ export default function SkinCreator() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const inCategory = useMemo(
     () => weapons.filter((w) => w.category_id === category?.id),
@@ -161,7 +175,7 @@ export default function SkinCreator() {
                 {inCategory.map((w) => (
                   <button
                     key={w.id}
-                    onClick={() => { setWeapon(w); setStep("editor"); }}
+                    onClick={() => { setDraft(null); setWeapon(w); setStep("editor"); }}
                     className="group overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-primary/60"
                   >
                     <div className="flex h-32 items-center justify-center bg-[#111] p-3">
@@ -182,10 +196,15 @@ export default function SkinCreator() {
           </div>
         ) : step === "editor" && weapon ? (
           <PixelEditor
+            key={draft?.id ?? weapon.id}
             weapon={weapon}
-            onBack={() => setStep("weapons")}
+            initialPixels={draft?.weapon_template_id === weapon.id ? draft?.canvas_data ?? null : null}
+            initialDraftId={draft?.weapon_template_id === weapon.id ? draft?.id ?? null : null}
+            initialDraftName={draft?.weapon_template_id === weapon.id ? draft?.name ?? null : null}
+            onBack={() => { setDraft(null); setStep("weapons"); }}
             onFinish={(r) => { setResult(r); setStep("submit"); }}
           />
+
         ) : step === "submit" && weapon && result ? (
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-4">

@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Brush, Eraser, Pipette, PaintBucket, Undo2, Redo2, ZoomIn, ZoomOut, Move,
-  Eye, EyeOff, Trash2, ArrowLeft, Check,
+  Eye, EyeOff, Trash2, ArrowLeft, Check, Save, Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PALETTE, type PixelDatum, type Weapon } from "@/lib/skincreator";
+import { getSkinUser, saveSkinDraft } from "@/lib/skinauth";
 import { useSkinT } from "@/lib/skin-i18n";
+
 
 type Tool = "brush" | "eraser" | "fill" | "picker" | "pan";
 
@@ -32,11 +35,18 @@ export function PixelEditor({
   weapon,
   onBack,
   onFinish,
+  initialPixels,
+  initialDraftId,
+  initialDraftName,
 }: {
   weapon: Weapon;
   onBack: () => void;
   onFinish: (result: { dataUrl: string; pixels: PixelDatum[] }) => void;
+  initialPixels?: PixelDatum[] | null;
+  initialDraftId?: string | null;
+  initialDraftName?: string | null;
 }) {
+
   const { t } = useSkinT();
   const W = Math.max(1, Math.min(512, weapon.canvas_width || 64));
   const H = Math.max(1, Math.min(512, weapon.canvas_height || 32));
@@ -68,6 +78,10 @@ export function PixelEditor({
   const [showTemplate, setShowTemplate] = useState(true);
   const [historyTick, setHistoryTick] = useState(0);
   const [maskReady, setMaskReady] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId ?? null);
+  const [draftName, setDraftName] = useState(initialDraftName ?? "");
+  const [savingDraft, setSavingDraft] = useState(false);
+  const signedIn = !!getSkinUser();
 
   const redraw = useCallback(() => {
     const cv = canvasRef.current;
@@ -80,6 +94,23 @@ export function PixelEditor({
   }, [W, H]);
 
   useEffect(() => { redraw(); }, [redraw]);
+
+  /** Restore a saved draft's paint layer into the working buffer. */
+  useEffect(() => {
+    if (!initialPixels?.length) return;
+    const buf = new Uint8ClampedArray(W * H * 4);
+    for (const p of initialPixels) {
+      if (p.x < 0 || p.y < 0 || p.x >= W || p.y >= H) continue;
+      const i = (p.y * W + p.x) * 4;
+      buf[i] = p.r; buf[i + 1] = p.g; buf[i + 2] = p.b; buf[i + 3] = p.a;
+    }
+    bufRef.current = buf;
+    undoRef.current = [];
+    redoRef.current = [];
+    redraw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPixels, W, H]);
+
 
   /** Paint the "you can't draw here" overlay from the alpha mask. */
   const drawMaskOverlay = useCallback(() => {
@@ -309,6 +340,37 @@ export function PixelEditor({
     onFinish({ dataUrl, pixels });
   };
 
+  /** Collects the masked paint layer as plain pixel data (draft storage format). */
+  const collectPixels = (): PixelDatum[] => {
+    const buf = bufRef.current;
+    const pixels: PixelDatum[] = [];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        if (buf[i + 3] === 0 || maskRef.current[y * W + x] === 0) continue;
+        pixels.push({ x, y, r: buf[i], g: buf[i + 1], b: buf[i + 2], a: buf[i + 3] });
+      }
+    }
+    return pixels;
+  };
+
+  const saveDraft = async () => {
+    setSavingDraft(true);
+    try {
+      const id = await saveSkinDraft({
+        draft_id: draftId,
+        weapon_template_id: weapon.id,
+        canvas_data: collectPixels(),
+        name: draftName.trim() || null,
+      });
+      setDraftId(id);
+      toast.success(t("draftSaved"));
+    } catch (e) {
+      toast.error((e as Error).message || t("draftSaveFailed"));
+    } finally {
+      setSavingDraft(false);
+    }
+  };
 
   const cssW = W * scale;
   const cssH = H * scale;
@@ -322,8 +384,19 @@ export function PixelEditor({
         <div className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{weapon.name}</span>: {W}×{H} px
         </div>
-        <Button size="sm" onClick={exportSkin}><Check className="mr-2 h-4 w-4" /> {t("doneSubmit")}</Button>
+        <div className="flex items-center gap-2">
+          {signedIn && (
+            <Button size="sm" variant="outline" onClick={saveDraft} disabled={savingDraft}>
+              {savingDraft
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Save className="mr-2 h-4 w-4" />}
+              {draftId ? t("updateDraft") : t("saveDraft")}
+            </Button>
+          )}
+          <Button size="sm" onClick={exportSkin}><Check className="mr-2 h-4 w-4" /> {t("doneSubmit")}</Button>
+        </div>
       </div>
+
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
         {/* Canvas area */}
@@ -464,6 +537,22 @@ export function PixelEditor({
               className="w-full accent-primary"
             />
           </div>
+
+          {signedIn && (
+            <div className="space-y-2">
+              <Label htmlFor="sc-draft-name" className="text-xs uppercase tracking-wider text-muted-foreground">{t("draftNameLabel")}</Label>
+              <Input
+                id="sc-draft-name"
+                value={draftName}
+                maxLength={80}
+                onChange={(e) => setDraftName(e.target.value)}
+                placeholder={t("draftNamePlaceholder")}
+                className="h-9 text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">{t("draftHelp")}</p>
+            </div>
+          )}
+
 
           <div className="rounded-sm border border-border bg-background/50 p-2 text-[11px] leading-relaxed text-muted-foreground">
             {maskReady ? t("helpMasked") : t("helpPlain")}{" "}

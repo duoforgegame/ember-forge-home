@@ -259,7 +259,71 @@ Deno.serve(async (req) => {
           throw voteError;
         }
       }
+      case "save_draft": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        if (!rateLimit(`skindraft:${claims.sub}`, 300, 60 * 60 * 1000)) {
+          return json({ error: "Too many saves, please slow down" }, { status: 429 }, origin);
+        }
+        const weapon_template_id = String(body.weapon_template_id ?? "");
+        if (!weapon_template_id) return json({ error: "Weapon is required" }, { status: 400 }, origin);
+        const canvas_data = Array.isArray(body.canvas_data) ? body.canvas_data.slice(0, 300_000) : [];
+        const name = body.name ? String(body.name).slice(0, 80) : null;
+        const draftId = body.draft_id ? String(body.draft_id) : "";
+
+        if (draftId) {
+          const { data, error } = await sb
+            .from("skin_creator_drafts")
+            .update({ canvas_data, name, weapon_template_id, updated_at: new Date().toISOString() })
+            .eq("id", draftId)
+            .eq("user_id", String(claims.sub))
+            .select("id")
+            .maybeSingle();
+          if (error) throw error;
+          if (data) return json({ id: data.id }, { status: 200 }, origin);
+        }
+
+        const { count } = await sb
+          .from("skin_creator_drafts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", String(claims.sub));
+        if ((count ?? 0) >= 50) return json({ error: "Draft limit reached, please delete an older draft" }, { status: 400 }, origin);
+
+        const { data, error } = await sb
+          .from("skin_creator_drafts")
+          .insert({ user_id: String(claims.sub), weapon_template_id, canvas_data, name })
+          .select("id")
+          .single();
+        if (error) throw error;
+        return json({ id: data.id }, { status: 200 }, origin);
+      }
+      case "list_drafts": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        const { data, error } = await sb
+          .from("skin_creator_drafts")
+          .select("id, name, canvas_data, weapon_template_id, created_at, updated_at, weapons:weapon_template_id(id, name, canvas_width, canvas_height, template_image_url, category_id)")
+          .eq("user_id", String(claims.sub))
+          .order("updated_at", { ascending: false })
+          .limit(100);
+        if (error) throw error;
+        return json({ rows: data ?? [] }, { status: 200 }, origin);
+      }
+      case "delete_draft": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        const draftId = String(body.draft_id ?? "");
+        if (!draftId) return json({ error: "Missing draft" }, { status: 400 }, origin);
+        const { error } = await sb
+          .from("skin_creator_drafts")
+          .delete()
+          .eq("id", draftId)
+          .eq("user_id", String(claims.sub));
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
       case "request_password_reset": {
+
         // Always answers { ok: true } so account/email existence can't be probed.
         if (!rateLimit(`skinreset:${ip}`, 10, 60 * 60 * 1000)) return json({ error: "Too many attempts" }, { status: 429 }, origin);
         const identifier = String(body.identifier ?? "").trim();

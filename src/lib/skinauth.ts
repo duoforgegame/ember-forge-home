@@ -89,3 +89,50 @@ export async function toggleSkinVote(submissionId: string): Promise<{ voted: boo
   const out = await skinAuthCall({ op: "toggle_vote", submission_id: submissionId }, true);
   return { voted: !!out.voted, vote_count: Number(out.vote_count ?? 0) };
 }
+
+export type SkinDraft = {
+  id: string;
+  name: string | null;
+  weapon_template_id: string | null;
+  canvas_data: { x: number; y: number; r: number; g: number; b: number; a: number }[] | null;
+  created_at: string;
+  updated_at: string;
+  weapons?: {
+    id: string;
+    name: string;
+    canvas_width: number;
+    canvas_height: number;
+    template_image_url?: string;
+    category_id?: string | null;
+  } | null;
+};
+
+/** Creates or updates a draft for the signed in user, returns the draft id. */
+export async function saveSkinDraft(input: {
+  draft_id?: string | null;
+  weapon_template_id: string;
+  canvas_data: { x: number; y: number; r: number; g: number; b: number; a: number }[];
+  name?: string | null;
+}): Promise<string> {
+  const out = await skinAuthCall(
+    {
+      op: "save_draft",
+      draft_id: input.draft_id || undefined,
+      weapon_template_id: input.weapon_template_id,
+      canvas_data: input.canvas_data,
+      name: input.name || null,
+    },
+    true,
+  );
+  return String(out.id);
+}
+
+export async function listMyDrafts(): Promise<SkinDraft[]> {
+  const out = await skinAuthCall({ op: "list_drafts" }, true);
+  return (out.rows ?? []) as SkinDraft[];
+}
+
+export async function deleteSkinDraft(draftId: string): Promise<void> {
+  await skinAuthCall({ op: "delete_draft", draft_id: draftId }, true);
+}
+
