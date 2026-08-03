@@ -117,6 +117,7 @@ export function PixelEditor({
   const [maskReady, setMaskReady] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(initialDraftId ?? null);
   const [draftName, setDraftName] = useState(initialDraftName ?? "");
+  const [confirmClear, setConfirmClear] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const signedIn = !!getSkinUser();
   const paintColor = adjustBrightness(color, brightness);
