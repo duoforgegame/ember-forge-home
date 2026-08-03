@@ -13,6 +13,8 @@ import {
   type MySubmission, type SkinDraft,
 } from "@/lib/skinauth";
 import { SkinPreview } from "@/components/SkinPreview";
+import { CreateCasePanel } from "@/components/CreateCasePanel";
+
 import { SkinLanguageSwitcher } from "@/components/SkinLanguageSwitcher";
 import { useSkinT } from "@/lib/skin-i18n";
 
@@ -98,7 +100,13 @@ export default function MySkins() {
             <TabsList>
               <TabsTrigger value="submissions">{t("tabSubmissions")} ({rows.length})</TabsTrigger>
               <TabsTrigger value="drafts">{t("tabDrafts")} ({drafts.length})</TabsTrigger>
+              <TabsTrigger value="case">{t("tabCreateCase")}</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="case" className="mt-6">
+              <CreateCasePanel />
+            </TabsContent>
+
 
             <TabsContent value="submissions" className="mt-6">
               {rows.length === 0 ? (
