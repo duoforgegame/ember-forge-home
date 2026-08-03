@@ -31,6 +31,38 @@ function hexToRgb(hex: string): [number, number, number] {
 const rgbToHex = (r: number, g: number, b: number) =>
   "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
 
+/** Shift a hex colour's HSL lightness by `amount` percentage points (-50..50). */
+function adjustBrightness(hex: string, amount: number): string {
+  if (!amount) return hex;
+  const [r0, g0, b0] = hexToRgb(hex).map((v) => v / 255);
+  const max = Math.max(r0, g0, b0);
+  const min = Math.min(r0, g0, b0);
+  let h = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  if (d !== 0) {
+    if (max === r0) h = ((g0 - b0) / d) % 6;
+    else if (max === g0) h = (b0 - r0) / d + 2;
+    else h = (r0 - g0) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const nl = Math.max(0, Math.min(1, l + amount / 100));
+  const c = (1 - Math.abs(2 * nl - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = nl - c / 2;
+  let rgb: [number, number, number] = [0, 0, 0];
+  if (h < 60) rgb = [c, x, 0];
+  else if (h < 120) rgb = [x, c, 0];
+  else if (h < 180) rgb = [0, c, x];
+  else if (h < 240) rgb = [0, x, c];
+  else if (h < 300) rgb = [x, 0, c];
+  else rgb = [c, 0, x];
+  return rgbToHex(...(rgb.map((v) => Math.round((v + m) * 255)) as [number, number, number]));
+}
+
+
 export function PixelEditor({
   weapon,
   onBack,
