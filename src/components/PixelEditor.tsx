@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label";
 import { PALETTE, type PixelDatum, type Weapon } from "@/lib/skincreator";
 import { getSkinUser, saveSkinDraft } from "@/lib/skinauth";
 import { useSkinT } from "@/lib/skin-i18n";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 type Tool = "brush" | "eraser" | "fill" | "picker" | "pan";
@@ -113,6 +117,7 @@ export function PixelEditor({
   const [maskReady, setMaskReady] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(initialDraftId ?? null);
   const [draftName, setDraftName] = useState(initialDraftName ?? "");
+  const [confirmClear, setConfirmClear] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const signedIn = !!getSkinUser();
   const paintColor = adjustBrightness(color, brightness);
@@ -351,7 +356,7 @@ export function PixelEditor({
 
   const onPointerUp = () => { drawingRef.current = false; panRef.current = null; };
 
-  const clearAll = () => { pushUndo(); bufRef.current = new Uint8ClampedArray(W * H * 4); redraw(); };
+  const clearAll = () => { pushUndo(); bufRef.current = new Uint8ClampedArray(W * H * 4); redraw(); setConfirmClear(false); };
 
   const exportSkin = () => {
     // Export ONLY the user's painted layer: fully transparent everywhere else.
@@ -464,7 +469,7 @@ export function PixelEditor({
             >
               {showTemplate ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} {t("template")}
             </button>
-            <button title={t("clearCanvas")} onClick={clearAll} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+            <button title={t("clearCanvas")} onClick={() => setConfirmClear(true)} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
           </div>
 
           <div ref={scrollRef} className="max-h-[70vh] overflow-auto rounded-sm bg-[#111] p-6">
@@ -617,6 +622,19 @@ export function PixelEditor({
 
         </aside>
       </div>
+
+      <AlertDialog open={confirmClear} onOpenChange={(o) => { if (!o) setConfirmClear(false); }}>
+        <AlertDialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("clearCanvasTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("clearCanvasBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); clearAll(); }}>{t("deleteDraftConfirm")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -171,8 +171,8 @@ export default function MySkins() {
         )}
       </div>
 
-      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o) setPendingDelete(null); }}>
-        <AlertDialogContent>
+      <AlertDialog open={!!pendingDelete}>
+        <AlertDialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("deleteDraftTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -180,7 +180,7 @@ export default function MySkins() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting} onClick={() => setPendingDelete(null)}>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmDelete(); }} disabled={deleting}>
               {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{t("deleteDraftConfirm")}
             </AlertDialogAction>
