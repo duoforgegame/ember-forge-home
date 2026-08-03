@@ -198,7 +198,7 @@ export default function SkinCreator() {
           <PixelEditor
             key={draft?.id ?? weapon.id}
             weapon={weapon}
-            initialPixels={draft?.weapon_template_id === weapon.id ? draft?.canvas_data ?? null : result?.pixels ?? null}
+            initialPixels={result?.pixels ?? (draft?.weapon_template_id === weapon.id ? draft.canvas_data ?? null : null)}
             initialDraftId={draft?.weapon_template_id === weapon.id ? draft?.id ?? null : null}
             initialDraftName={draft?.weapon_template_id === weapon.id ? draft?.name ?? null : null}
             onBack={() => { setDraft(null); setStep("weapons"); }}
