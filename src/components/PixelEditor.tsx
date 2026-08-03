@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label";
 import { PALETTE, type PixelDatum, type Weapon } from "@/lib/skincreator";
 import { getSkinUser, saveSkinDraft } from "@/lib/skinauth";
 import { useSkinT } from "@/lib/skin-i18n";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 type Tool = "brush" | "eraser" | "fill" | "picker" | "pan";
