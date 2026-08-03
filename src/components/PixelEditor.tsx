@@ -103,6 +103,7 @@ export function PixelEditor({
   const [color, setColor] = useState("#ef7d57");
   const [hexInput, setHexInput] = useState("#ef7d57");
   const [alpha, setAlpha] = useState(100);
+  const [brightness, setBrightness] = useState(0);
   const [scale, setScale] = useState(() => {
     const fit = Math.floor(720 / W);
     return Math.max(6, Math.min(24, fit || 14));
@@ -114,6 +115,7 @@ export function PixelEditor({
   const [draftName, setDraftName] = useState(initialDraftName ?? "");
   const [savingDraft, setSavingDraft] = useState(false);
   const signedIn = !!getSkinUser();
+  const paintColor = adjustBrightness(color, brightness);
 
   const redraw = useCallback(() => {
     const cv = canvasRef.current;
@@ -235,7 +237,7 @@ export function PixelEditor({
     // Each pixel is painted at most once per stroke, so opacity stays as chosen.
     if (strokeRef.current.has(key)) return;
     strokeRef.current.add(key);
-    const [r, g, b] = hexToRgb(color);
+    const [r, g, b] = hexToRgb(paintColor);
     const a = Math.round((alpha / 100) * 255);
     // alpha-composite over existing pixel so partial transparency stacks predictably
 
@@ -275,7 +277,7 @@ export function PixelEditor({
       const db = tpl[p + 2] - tplTarget[2];
       return Math.sqrt(dr * dr + dg * dg + db * db) <= TPL_TOLERANCE;
     };
-    const [r, g, b] = erase ? [0, 0, 0] : hexToRgb(color);
+    const [r, g, b] = erase ? [0, 0, 0] : hexToRgb(paintColor);
     const a = erase ? 0 : Math.round((alpha / 100) * 255);
     if (target[0] === r && target[1] === g && target[2] === b && target[3] === a) return;
     const stack: [number, number][] = [[x, y]];
@@ -302,6 +304,7 @@ export function PixelEditor({
     const hex = rgbToHex(buf[i], buf[i + 1], buf[i + 2]);
     setColor(hex);
     setHexInput(hex);
+    setBrightness(0);
   };
 
   const posFromEvent = (e: React.PointerEvent) => {
@@ -528,7 +531,7 @@ export function PixelEditor({
                 <button
                   key={c}
                   title={c}
-                  onClick={() => { setColor(c); setHexInput(c); }}
+                  onClick={() => { setColor(c); setHexInput(c); setBrightness(0); }}
                   className={`aspect-square rounded-sm border ${color.toLowerCase() === c.toLowerCase() ? "border-primary ring-1 ring-primary" : "border-black/40"}`}
                   style={{ backgroundColor: c }}
                 />
@@ -542,7 +545,7 @@ export function PixelEditor({
               <input
                 type="color"
                 value={/^#[0-9a-f]{6}$/i.test(color) ? color : "#ffffff"}
-                onChange={(e) => { setColor(e.target.value); setHexInput(e.target.value); }}
+                onChange={(e) => { setColor(e.target.value); setHexInput(e.target.value); setBrightness(0); }}
                 className="h-9 w-12 cursor-pointer rounded-sm border border-border bg-transparent"
               />
               <Input
@@ -556,6 +559,27 @@ export function PixelEditor({
                 className="h-9 font-mono text-xs"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("brightness")}: {brightness > 0 ? `+${brightness}` : brightness}</Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={-50}
+                max={50}
+                step={1}
+                value={brightness}
+                onChange={(e) => setBrightness(Number(e.target.value))}
+                className="w-full accent-primary"
+              />
+              <span
+                title={paintColor}
+                className="h-7 w-7 shrink-0 rounded-sm border border-border"
+                style={{ backgroundColor: paintColor }}
+              />
+            </div>
+            <p className="font-mono text-[11px] text-muted-foreground">{paintColor}</p>
           </div>
 
           <div className="space-y-2">
