@@ -636,3 +636,74 @@ drop policy if exists "no direct access to drafts" on public.skin_creator_drafts
 create policy "no direct access to drafts"
   on public.skin_creator_drafts for select using (false);
 revoke all on public.skin_creator_drafts from anon, authenticated;
+
+-- ============================================================
+-- Community cases: logged in players group their own approved
+-- skins into a case and submit it for review. All access goes
+-- through the skin-auth edge function (players) and admin-write
+-- (staff), so no anon/authenticated grants.
+-- ============================================================
+create table if not exists public.skin_creator_cases (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.skin_creator_users(id) on delete cascade,
+  case_name text not null,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists skin_creator_cases_user_idx
+  on public.skin_creator_cases (user_id, created_at desc);
+
+create table if not exists public.skin_creator_case_items (
+  id uuid primary key default gen_random_uuid(),
+  case_id uuid not null references public.skin_creator_cases(id) on delete cascade,
+  skin_submission_id uuid not null references public.skin_submissions(id) on delete cascade,
+  rarity text not null check (rarity in (
+    'consumer_grade', 'industrial_grade', 'mil_spec', 'restricted',
+    'classified', 'covert', 'special'
+  )),
+  sort_order integer not null default 0,
+  unique (case_id, skin_submission_id)
+);
+create index if not exists skin_creator_case_items_case_idx
+  on public.skin_creator_case_items (case_id, sort_order);
+
+-- A case must hold at least 2 and at most 17 items. Enforced server side in
+-- the skin-auth edge function and defended here with a trigger.
+create or replace function public.enforce_case_item_limits()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target uuid := coalesce(new.case_id, old.case_id);
+  total integer;
+begin
+  select count(*) into total from public.skin_creator_case_items where case_id = target;
+  if total > 17 then
+    raise exception 'A case can contain at most 17 skins';
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists skin_creator_case_items_limit on public.skin_creator_case_items;
+create constraint trigger skin_creator_case_items_limit
+  after insert or update on public.skin_creator_case_items
+  deferrable initially deferred
+  for each row execute function public.enforce_case_item_limits();
+
+grant all on public.skin_creator_cases to service_role;
+grant all on public.skin_creator_case_items to service_role;
+alter table public.skin_creator_cases enable row level security;
+alter table public.skin_creator_case_items enable row level security;
+
+drop policy if exists "no direct access to cases" on public.skin_creator_cases;
+create policy "no direct access to cases"
+  on public.skin_creator_cases for select using (false);
+drop policy if exists "no direct access to case items" on public.skin_creator_case_items;
+create policy "no direct access to case items"
+  on public.skin_creator_case_items for select using (false);
+revoke all on public.skin_creator_cases from anon, authenticated;
+revoke all on public.skin_creator_case_items from anon, authenticated;

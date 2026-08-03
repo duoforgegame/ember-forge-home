@@ -203,6 +203,26 @@ const en: Dict = {
   hiwAccountTitle: "Account or guest",
   hiwAccountBody:
     "You can submit as a guest without signing up. With a free account (username and password, email optional) you can track your submissions and their status.",
+
+  // Create Case
+  tabCreateCase: "Create Case",
+  caseNameLabel: "Case name",
+  caseNamePlaceholder: "Give your case a name",
+  yourApprovedSkins: "Your approved skins",
+  caseNoApprovedSkins: "You have no approved skins yet. Once the team approves a skin, it shows up here.",
+  caseContents: "Skins in this case",
+  dragSkinsHere: "Drag your skins here, or click a skin to add it.",
+  skinsWord: "skins",
+  caseFull: "A case can hold at most 17 skins",
+  submitCase: "Submit case",
+  caseNameRequired: "Case name is required",
+  caseSubmitted: "Case submitted, our team will review it.",
+  mySubmittedCases: "My submitted cases",
+  noCasesYet: "You have not submitted a case yet.",
+  deleteCaseTitle: "Delete this case?",
+  deleteCaseBody: "Are you sure you want to delete this case? This action cannot be undone.",
+  caseDeleted: "Case deleted",
+
 };
 
 const de: Dict = {
@@ -398,6 +418,25 @@ const de: Dict = {
   hiwAccountTitle: "Konto oder Gast",
   hiwAccountBody:
     "Du kannst als Gast ohne Anmeldung einsenden. Mit einem kostenlosen Konto (Benutzername und Passwort, E-Mail optional) kannst du deine Einsendungen und ihren Status verfolgen.",
+
+  tabCreateCase: "Case erstellen",
+  caseNameLabel: "Case-Name",
+  caseNamePlaceholder: "Gib deiner Case einen Namen",
+  yourApprovedSkins: "Deine freigegebenen Skins",
+  caseNoApprovedSkins: "Du hast noch keine freigegebenen Skins. Sobald das Team einen Skin freigibt, erscheint er hier.",
+  caseContents: "Skins in dieser Case",
+  dragSkinsHere: "Zieh deine Skins hierher, oder klicke einen Skin an.",
+  skinsWord: "Skins",
+  caseFull: "Eine Case kann höchstens 17 Skins enthalten",
+  submitCase: "Case einreichen",
+  caseNameRequired: "Case-Name ist erforderlich",
+  caseSubmitted: "Case eingereicht, unser Team prüft sie.",
+  mySubmittedCases: "Meine eingereichten Cases",
+  noCasesYet: "Du hast noch keine Case eingereicht.",
+  deleteCaseTitle: "Diese Case löschen?",
+  deleteCaseBody: "Bist du sicher, dass du diese Case löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+  caseDeleted: "Case gelöscht",
+
 };
 
 const zh: Dict = {
@@ -584,6 +623,25 @@ const zh: Dict = {
   hiwAccountTitle: "账号或访客",
   hiwAccountBody:
     "你可以以访客身份投稿，无需注册。使用免费账号（用户名和密码，邮箱可选）可以追踪你的投稿及其状态。",
+
+  tabCreateCase: "创建武器箱",
+  caseNameLabel: "武器箱名称",
+  caseNamePlaceholder: "为你的武器箱起个名字",
+  yourApprovedSkins: "已通过审核的皮肤",
+  caseNoApprovedSkins: "你还没有通过审核的皮肤。审核通过后会显示在这里。",
+  caseContents: "武器箱中的皮肤",
+  dragSkinsHere: "把皮肤拖到这里，或点击皮肤添加。",
+  skinsWord: "个皮肤",
+  caseFull: "一个武器箱最多包含 17 个皮肤",
+  submitCase: "提交武器箱",
+  caseNameRequired: "请填写武器箱名称",
+  caseSubmitted: "武器箱已提交，团队会进行审核。",
+  mySubmittedCases: "我提交的武器箱",
+  noCasesYet: "你还没有提交过武器箱。",
+  deleteCaseTitle: "删除这个武器箱？",
+  deleteCaseBody: "确定要删除这个武器箱吗？此操作无法撤销。",
+  caseDeleted: "武器箱已删除",
+
 };
 
 const ja: Dict = {
@@ -777,6 +835,25 @@ const ja: Dict = {
   hiwAccountTitle: "アカウントまたはゲスト",
   hiwAccountBody:
     "登録せずゲストとして投稿できます。無料アカウント（ユーザー名とパスワード、メールは任意）を作れば、投稿とその状況を追跡できます。",
+
+  tabCreateCase: "ケースを作成",
+  caseNameLabel: "ケース名",
+  caseNamePlaceholder: "ケースに名前を付けてください",
+  yourApprovedSkins: "承認されたスキン",
+  caseNoApprovedSkins: "承認されたスキンはまだありません。承認されるとここに表示されます。",
+  caseContents: "ケース内のスキン",
+  dragSkinsHere: "スキンをここにドラッグするか、クリックして追加します。",
+  skinsWord: "スキン",
+  caseFull: "1つのケースに入れられるスキンは最大17個です",
+  submitCase: "ケースを送信",
+  caseNameRequired: "ケース名を入力してください",
+  caseSubmitted: "ケースを送信しました。チームが確認します。",
+  mySubmittedCases: "送信したケース",
+  noCasesYet: "まだケースを送信していません。",
+  deleteCaseTitle: "このケースを削除しますか",
+  deleteCaseBody: "このケースを削除してもよろしいですか。この操作は元に戻せません。",
+  caseDeleted: "ケースを削除しました",
+
 };
 
 const DICTS: Record<SkinLang, Dict> = { en, de, zh, ja };

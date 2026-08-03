@@ -322,7 +322,98 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ ok: true }, { status: 200 }, origin);
       }
+      case "list_case_data": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        const userId = String(claims.sub);
+        const [{ data: skins, error: skinErr }, { data: cases, error: caseErr }] = await Promise.all([
+          sb
+            .from("skin_submissions")
+            .select("id, skin_name, status, created_at, preview_image_url, pixel_data, weapons(id, name, canvas_width, canvas_height, template_image_url)")
+            .eq("user_id", userId)
+            .eq("status", "approved")
+            .order("created_at", { ascending: false })
+            .limit(500),
+          sb
+            .from("skin_creator_cases")
+            .select("id, case_name, status, created_at, skin_creator_case_items(id, rarity, sort_order, skin_submissions(id, skin_name, preview_image_url, pixel_data, weapons(id, name, canvas_width, canvas_height, template_image_url)))")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(100),
+        ]);
+        if (skinErr) throw skinErr;
+        if (caseErr) throw caseErr;
+        return json({ skins: skins ?? [], cases: cases ?? [] }, { status: 200 }, origin);
+      }
+      case "submit_case": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        const userId = String(claims.sub);
+        if (!rateLimit(`skincase:${userId}`, 20, 60 * 60 * 1000)) {
+          return json({ error: "Too many case submissions, please slow down" }, { status: 429 }, origin);
+        }
+        const RARITIES = [
+          "consumer_grade", "industrial_grade", "mil_spec", "restricted",
+          "classified", "covert", "special",
+        ];
+        const caseName = String(body.case_name ?? "").trim().slice(0, 80);
+        if (!caseName) return json({ error: "Case name is required" }, { status: 400 }, origin);
+        const rawItems = Array.isArray(body.items) ? body.items : [];
+        if (rawItems.length < 2 || rawItems.length > 17) {
+          return json({ error: "A case needs between 2 and 17 skins" }, { status: 400 }, origin);
+        }
+        const items = rawItems.map((it: any, i: number) => ({
+          skin_submission_id: String(it?.skin_submission_id ?? ""),
+          rarity: String(it?.rarity ?? ""),
+          sort_order: i,
+        }));
+        if (items.some((it) => !it.skin_submission_id || !RARITIES.includes(it.rarity))) {
+          return json({ error: "Every skin needs a valid rarity" }, { status: 400 }, origin);
+        }
+        const ids = [...new Set(items.map((it) => it.skin_submission_id))];
+        if (ids.length !== items.length) return json({ error: "A skin can only be added once" }, { status: 400 }, origin);
+        const { data: owned, error: ownErr } = await sb
+          .from("skin_submissions")
+          .select("id")
+          .in("id", ids)
+          .eq("user_id", userId)
+          .eq("status", "approved");
+        if (ownErr) throw ownErr;
+        if ((owned ?? []).length !== ids.length) {
+          return json({ error: "You can only use your own approved skins" }, { status: 400 }, origin);
+        }
+
+        const { data: created, error: caseError } = await sb
+          .from("skin_creator_cases")
+          .insert({ user_id: userId, case_name: caseName, status: "pending" })
+          .select("id")
+          .single();
+        if (caseError) throw caseError;
+
+        const { error: itemError } = await sb
+          .from("skin_creator_case_items")
+          .insert(items.map((it) => ({ ...it, case_id: created.id })));
+        if (itemError) {
+          await sb.from("skin_creator_cases").delete().eq("id", created.id);
+          throw itemError;
+        }
+        return json({ id: created.id }, { status: 200 }, origin);
+      }
+      case "delete_case": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        const caseId = String(body.case_id ?? "");
+        if (!caseId) return json({ error: "Missing case" }, { status: 400 }, origin);
+        const { error } = await sb
+          .from("skin_creator_cases")
+          .delete()
+          .eq("id", caseId)
+          .eq("user_id", String(claims.sub));
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
       case "request_password_reset": {
+
 
         // Always answers { ok: true } so account/email existence can't be probed.
         if (!rateLimit(`skinreset:${ip}`, 10, 60 * 60 * 1000)) return json({ error: "Too many attempts" }, { status: 429 }, origin);

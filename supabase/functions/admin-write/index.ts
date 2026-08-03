@@ -189,7 +189,36 @@ Deno.serve(async (req) => {
         const sent = await issueResetForUser(sb, user as any);
         return json({ ok: true, sent }, { status: 200 }, origin);
       }
+      case "list_skin_cases": {
+        const { data, error } = await sb
+          .from("skin_creator_cases")
+          .select("id, case_name, status, created_at, user_id, skin_creator_users(id, username), skin_creator_case_items(id, rarity, sort_order, skin_submissions(id, skin_name, preview_image_url, pixel_data, weapons(id, name, canvas_width, canvas_height, template_image_url)))")
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (error) throw error;
+        return json({ rows: data ?? [] }, { status: 200 }, origin);
+      }
+      case "set_skin_case_status": {
+        const id = String(body.id ?? "");
+        const status = String(body.status ?? "");
+        if (!id) return json({ error: "Missing id" }, { status: 400 }, origin);
+        if (!["pending", "approved", "rejected"].includes(status)) return json({ error: "Invalid status" }, { status: 400 }, origin);
+        const { error } = await sb
+          .from("skin_creator_cases")
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq("id", id);
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
+      case "delete_skin_case": {
+        const id = String(body.id ?? "");
+        if (!id) return json({ error: "Missing id" }, { status: 400 }, origin);
+        const { error } = await sb.from("skin_creator_cases").delete().eq("id", id);
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
       case "bulk_delete_submissions_by_status": {
+
         const status = String(body.status ?? "");
         if (!["approved", "rejected"].includes(status)) return json({ error: "Invalid status" }, { status: 400 }, origin);
         const { data: rows, error } = await sb

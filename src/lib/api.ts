@@ -32,7 +32,10 @@ export type AdminOp =
   | { op: "list_skin_users" }
   | { op: "admin_delete_skin_user"; id: string }
   | { op: "admin_reset_skin_user_password"; username: string }
-  | { op: "bulk_delete_submissions_by_status"; status: "approved" | "rejected" };
+  | { op: "bulk_delete_submissions_by_status"; status: "approved" | "rejected" }
+  | { op: "list_skin_cases" }
+  | { op: "set_skin_case_status"; id: string; status: string }
+  | { op: "delete_skin_case"; id: string };
 
 export async function adminCall(body: AdminOp): Promise<any> {
   const token = getToken();

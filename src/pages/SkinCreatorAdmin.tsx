@@ -11,6 +11,7 @@ import {
   type SkinSubmission, type Weapon, type WeaponCategory,
 } from "@/lib/skincreator";
 import { SkinPreview } from "@/components/SkinPreview";
+import { rarityInfo, type CaseItem, type CaseSkin } from "@/lib/skincases";
 
 /** Rebuilds the skin (weapon template plus painted pixels) as a PNG and saves it to disk. */
 async function downloadSkin(s: SkinSubmission) {
@@ -36,7 +37,7 @@ export default function SkinCreatorAdmin() {
   const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<"weapons" | "submissions" | "users">("weapons");
+  const [tab, setTab] = useState<"weapons" | "submissions" | "cases" | "users">("weapons");
 
   const login = async () => {
     setBusy(true);
@@ -76,18 +77,18 @@ export default function SkinCreatorAdmin() {
         </div>
 
         <div className="mb-6 flex gap-2">
-          {(["weapons", "submissions", "users"] as const).map((t) => (
+          {(["weapons", "submissions", "cases", "users"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`rounded-sm border px-3 py-1.5 text-xs uppercase tracking-wider ${tab === t ? "border-primary/60 bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
             >
-              {t}
+              {t === "cases" ? "case submissions" : t}
             </button>
           ))}
         </div>
 
-        {tab === "weapons" ? <WeaponsPanel /> : tab === "submissions" ? <SubmissionsPanel /> : <UsersPanel />}
+        {tab === "weapons" ? <WeaponsPanel /> : tab === "submissions" ? <SubmissionsPanel /> : tab === "cases" ? <CasesPanel /> : <UsersPanel />}
       </div>
     </main>
   );
@@ -467,6 +468,147 @@ function UsersPanel() {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+
+type AdminCase = {
+  id: string;
+  case_name: string;
+  status: string;
+  created_at: string;
+  skin_creator_users?: { id: string; username: string } | null;
+  skin_creator_case_items: CaseItem[];
+};
+
+function CaseThumb({ skin }: { skin: CaseSkin | null }) {
+  if (!skin) return <span className="text-[10px] text-muted-foreground">no preview</span>;
+  if (skin.weapons && Array.isArray(skin.pixel_data) && skin.pixel_data.length) {
+    return (
+      <SkinPreview
+        weapon={{ ...skin.weapons, template_image_url: skin.weapons.template_image_url ?? "" }}
+        pixels={skin.pixel_data}
+        scale={2}
+      />
+    );
+  }
+  if (skin.preview_image_url) {
+    return <img src={skin.preview_image_url} alt="skin" className="max-h-full max-w-full" style={{ imageRendering: "pixelated" }} />;
+  }
+  return <span className="text-[10px] text-muted-foreground">no preview</span>;
+}
+
+const CASE_STATUSES = ["pending", "approved", "rejected"] as const;
+
+function CasesPanel() {
+  const [rows, setRows] = useState<AdminCase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | (typeof CASE_STATUSES)[number]>("pending");
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const { rows } = await adminCall({ op: "list_skin_cases" });
+      setRows(rows as AdminCase[]);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const setStatus = async (id: string, status: string) => {
+    try {
+      await adminCall({ op: "set_skin_case_status", id, status });
+      setRows((r) => r.map((c) => (c.id === id ? { ...c, status } : c)));
+      toast.success(`Case ${status}.`);
+    } catch (e) { toast.error((e as Error).message); }
+  };
+
+  const remove = async (id: string) => {
+    if (!window.confirm("Delete this case? This cannot be undone.")) return;
+    try {
+      await adminCall({ op: "delete_skin_case", id });
+      setRows((r) => r.filter((c) => c.id !== id));
+    } catch (e) { toast.error((e as Error).message); }
+  };
+
+  const visible = filter === "all" ? rows : rows.filter((r) => r.status === filter);
+
+  if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {(["all", ...CASE_STATUSES] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            className={`rounded-sm border px-2.5 py-1 text-xs uppercase tracking-wider ${filter === s ? "border-primary/60 bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
+          >
+            {s} ({s === "all" ? rows.length : rows.filter((r) => r.status === s).length})
+          </button>
+        ))}
+      </div>
+
+      {visible.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No cases.</p>
+      ) : (
+        <div className="space-y-3">
+          {visible.map((c) => {
+            const open = openId === c.id;
+            const items = [...(c.skin_creator_case_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+            return (
+              <div key={c.id} className="rounded-lg border border-border bg-card">
+                <button
+                  className="flex w-full flex-wrap items-center gap-3 p-3 text-left"
+                  onClick={() => setOpenId(open ? null : c.id)}
+                >
+                  <span className="text-sm font-semibold">{c.case_name}</span>
+                  <span className="text-xs text-muted-foreground">{c.skin_creator_users?.username ?? "unknown"}</span>
+                  <span className="text-xs text-muted-foreground">{items.length} skins</span>
+                  <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
+                  <span
+                    className={`rounded-sm border px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
+                      c.status === "approved"
+                        ? "border-green-500/60 bg-green-500/10 text-green-500"
+                        : c.status === "rejected"
+                          ? "border-red-500/60 bg-red-500/10 text-red-500"
+                          : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    {c.status}
+                  </span>
+                </button>
+
+                {open && (
+                  <div className="border-t border-border p-3">
+                    <div className="flex flex-wrap gap-3">
+                      {items.map((it) => (
+                        <div key={it.id} className="w-36 rounded-sm border border-border p-2">
+                          <div className="flex h-20 items-center justify-center bg-[#111] p-1">
+                            <CaseThumb skin={it.skin_submissions} />
+                          </div>
+                          <div className="mt-1 truncate text-xs font-medium">{it.skin_submissions?.skin_name || it.skin_submissions?.weapons?.name}</div>
+                          <div className="truncate text-[11px] text-muted-foreground">{it.skin_submissions?.weapons?.name}</div>
+                          <div className="mt-1 flex items-center gap-1 text-[11px]" style={{ color: rarityInfo(it.rarity)?.color }}>
+                            <span className="h-2 w-2 rounded-full" style={{ background: rarityInfo(it.rarity)?.color }} />
+                            {rarityInfo(it.rarity)?.label ?? it.rarity}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "approved")}><Check className="mr-1 h-3.5 w-3.5" /> Approve</Button>
+                      <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "rejected")}><X className="mr-1 h-3.5 w-3.5" /> Decline</Button>
+                      <Button size="sm" variant="ghost" className="ml-auto text-destructive" onClick={() => remove(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
