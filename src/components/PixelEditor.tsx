@@ -340,6 +340,37 @@ export function PixelEditor({
     onFinish({ dataUrl, pixels });
   };
 
+  /** Collects the masked paint layer as plain pixel data (draft storage format). */
+  const collectPixels = (): PixelDatum[] => {
+    const buf = bufRef.current;
+    const pixels: PixelDatum[] = [];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        if (buf[i + 3] === 0 || maskRef.current[y * W + x] === 0) continue;
+        pixels.push({ x, y, r: buf[i], g: buf[i + 1], b: buf[i + 2], a: buf[i + 3] });
+      }
+    }
+    return pixels;
+  };
+
+  const saveDraft = async () => {
+    setSavingDraft(true);
+    try {
+      const id = await saveSkinDraft({
+        draft_id: draftId,
+        weapon_template_id: weapon.id,
+        canvas_data: collectPixels(),
+        name: draftName.trim() || null,
+      });
+      setDraftId(id);
+      toast.success(t("draftSaved"));
+    } catch (e) {
+      toast.error((e as Error).message || t("draftSaveFailed"));
+    } finally {
+      setSavingDraft(false);
+    }
+  };
 
   const cssW = W * scale;
   const cssH = H * scale;
@@ -353,8 +384,19 @@ export function PixelEditor({
         <div className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{weapon.name}</span>: {W}×{H} px
         </div>
-        <Button size="sm" onClick={exportSkin}><Check className="mr-2 h-4 w-4" /> {t("doneSubmit")}</Button>
+        <div className="flex items-center gap-2">
+          {signedIn && (
+            <Button size="sm" variant="outline" onClick={saveDraft} disabled={savingDraft}>
+              {savingDraft
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Save className="mr-2 h-4 w-4" />}
+              {draftId ? t("updateDraft") : t("saveDraft")}
+            </Button>
+          )}
+          <Button size="sm" onClick={exportSkin}><Check className="mr-2 h-4 w-4" /> {t("doneSubmit")}</Button>
+        </div>
       </div>
+
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
         {/* Canvas area */}
