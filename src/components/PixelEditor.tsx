@@ -469,7 +469,7 @@ export function PixelEditor({
             >
               {showTemplate ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} {t("template")}
             </button>
-            <button title={t("clearCanvas")} onClick={clearAll} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+            <button title={t("clearCanvas")} onClick={() => setConfirmClear(true)} className="rounded-sm border border-border p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
           </div>
 
           <div ref={scrollRef} className="max-h-[70vh] overflow-auto rounded-sm bg-[#111] p-6">
