@@ -35,11 +35,18 @@ export function PixelEditor({
   weapon,
   onBack,
   onFinish,
+  initialPixels,
+  initialDraftId,
+  initialDraftName,
 }: {
   weapon: Weapon;
   onBack: () => void;
   onFinish: (result: { dataUrl: string; pixels: PixelDatum[] }) => void;
+  initialPixels?: PixelDatum[] | null;
+  initialDraftId?: string | null;
+  initialDraftName?: string | null;
 }) {
+
   const { t } = useSkinT();
   const W = Math.max(1, Math.min(512, weapon.canvas_width || 64));
   const H = Math.max(1, Math.min(512, weapon.canvas_height || 32));
