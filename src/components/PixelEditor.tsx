@@ -538,6 +538,22 @@ export function PixelEditor({
             />
           </div>
 
+          {signedIn && (
+            <div className="space-y-2">
+              <Label htmlFor="sc-draft-name" className="text-xs uppercase tracking-wider text-muted-foreground">{t("draftNameLabel")}</Label>
+              <Input
+                id="sc-draft-name"
+                value={draftName}
+                maxLength={80}
+                onChange={(e) => setDraftName(e.target.value)}
+                placeholder={t("draftNamePlaceholder")}
+                className="h-9 text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">{t("draftHelp")}</p>
+            </div>
+          )}
+
+
           <div className="rounded-sm border border-border bg-background/50 p-2 text-[11px] leading-relaxed text-muted-foreground">
             {maskReady ? t("helpMasked") : t("helpPlain")}{" "}
             {t("helpTail")}
