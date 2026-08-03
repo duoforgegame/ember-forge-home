@@ -132,7 +132,7 @@ export function CreateCasePanel() {
           <div>
             <h3 className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">{t("yourApprovedSkins")}</h3>
             {skins.length === 0 ? (
-              <p className="rounded-sm border border-border p-4 text-sm text-muted-foreground">{t("noApprovedSkins")}</p>
+              <p className="rounded-sm border border-border p-4 text-sm text-muted-foreground">{t("caseNoApprovedSkins")}</p>
             ) : (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {skins.map((s) => {
