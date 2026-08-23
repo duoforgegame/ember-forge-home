@@ -188,11 +188,20 @@ export function PixelEditor({
         const data = octx.getImageData(0, 0, W, H).data;
         tplDataRef.current = data;
         const mask = new Uint8Array(W * H);
-        for (let i = 0; i < W * H; i++) mask[i] = data[i * 4 + 3] > 0 ? 1 : 0;
+        // Dark outline pixels of the template stay unpaintable, just like the
+        // transparent area around the weapon.
+        const OUTLINE_MAX = 45;
+        for (let i = 0; i < W * H; i++) {
+          const o = i * 4;
+          const opaque = data[o + 3] > 0;
+          const isOutline = data[o] <= OUTLINE_MAX && data[o + 1] <= OUTLINE_MAX && data[o + 2] <= OUTLINE_MAX;
+          mask[i] = opaque && !isOutline ? 1 : 0;
+        }
         // A fully transparent (or fully opaque) template gives no useful mask.
         let paintable = 0;
         for (let i = 0; i < mask.length; i++) paintable += mask[i];
         if (paintable > 0) { maskRef.current = mask; setMaskReady(true); }
+
       } catch { /* cross-origin template: keep the whole canvas paintable */ }
       drawMaskOverlay();
     };
