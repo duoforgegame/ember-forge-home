@@ -110,7 +110,17 @@ Visit `https://duoforgegames.com/admin` — not linked anywhere on the site and 
 1. Run the new SQL at the end of `db/schema.sql` (columns `email`, `reset_token_hash`,
    `reset_token_expires_at` on `skin_creator_users`).
 2. Redeploy the edge function: `supabase functions deploy skin-auth`
-3. No new mail service needed — the reset mail is sent over the existing IONOS SMTP
+3. No new mail service needed, the reset mail is sent over the existing IONOS SMTP
    secrets (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`).
 4. Optional secret `SITE_URL` (defaults to `https://duoforgegames.com`) controls the
    domain used in the reset link.
+
+## Skin Creator saved palettes (update)
+
+Symptom `Unknown op: save_palette` means the deployed edge function is older than the code.
+
+1. Run the `skin_creator_palettes` block from `db/schema.sql` in the SQL editor
+   (table, index, grants, RLS policy).
+2. Redeploy the function: `supabase functions deploy skin-auth --no-verify-jwt`
+3. Reload `/skincreator` and try saving a palette again while signed in.
+
