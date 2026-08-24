@@ -99,6 +99,7 @@ export default function Landing() {
         <ContactSection socials={socials} />
       </main>
       <Footer />
+      </div>
     </div>
   );
 }
