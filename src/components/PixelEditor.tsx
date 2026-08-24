@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PALETTE, type PixelDatum, type Weapon } from "@/lib/skincreator";
-import { getSkinUser, saveSkinDraft } from "@/lib/skinauth";
+import {
+  getSkinUser, saveSkinDraft, listMyPalettes, saveMyPalette, deleteMyPalette, type SkinPalette,
+} from "@/lib/skinauth";
 import { useSkinT } from "@/lib/skin-i18n";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
