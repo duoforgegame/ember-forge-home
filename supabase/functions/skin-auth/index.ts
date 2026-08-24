@@ -309,6 +309,73 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ rows: data ?? [] }, { status: 200 }, origin);
       }
+      case "list_palettes": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        const { data, error } = await sb
+          .from("skin_creator_palettes")
+          .select("id, name, colors, created_at, updated_at")
+          .eq("user_id", String(claims.sub))
+          .order("updated_at", { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        return json({ rows: data ?? [] }, { status: 200 }, origin);
+      }
+      case "save_palette": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        if (!rateLimit(`skinpalette:${claims.sub}`, 120, 60 * 60 * 1000)) {
+          return json({ error: "Too many saves, please slow down" }, { status: 429 }, origin);
+        }
+        const name = String(body.name ?? "").trim().slice(0, 60);
+        if (!name) return json({ error: "Palette name is required" }, { status: 400 }, origin);
+        const colors = (Array.isArray(body.colors) ? body.colors : [])
+          .map((c: unknown) => String(c).trim().toLowerCase())
+          .filter((c: string) => /^#[0-9a-f]{6}$/.test(c))
+          .slice(0, 32);
+        if (colors.length === 0) return json({ error: "Add at least one colour" }, { status: 400 }, origin);
+        const paletteId = body.palette_id ? String(body.palette_id) : "";
+
+        if (paletteId) {
+          const { data, error } = await sb
+            .from("skin_creator_palettes")
+            .update({ name, colors, updated_at: new Date().toISOString() })
+            .eq("id", paletteId)
+            .eq("user_id", String(claims.sub))
+            .select("id")
+            .maybeSingle();
+          if (error) throw error;
+          if (data) return json({ id: data.id }, { status: 200 }, origin);
+        }
+
+        const { count } = await sb
+          .from("skin_creator_palettes")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", String(claims.sub));
+        if ((count ?? 0) >= 12) {
+          return json({ error: "Palette limit reached, please delete one first" }, { status: 400 }, origin);
+        }
+        const { data, error } = await sb
+          .from("skin_creator_palettes")
+          .insert({ user_id: String(claims.sub), name, colors })
+          .select("id")
+          .single();
+        if (error) throw error;
+        return json({ id: data.id }, { status: 200 }, origin);
+      }
+      case "delete_palette": {
+        const claims = await readSkinClaims(req, jwtSecret);
+        if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);
+        const paletteId = String(body.palette_id ?? "");
+        if (!paletteId) return json({ error: "Missing palette" }, { status: 400 }, origin);
+        const { error } = await sb
+          .from("skin_creator_palettes")
+          .delete()
+          .eq("id", paletteId)
+          .eq("user_id", String(claims.sub));
+        if (error) throw error;
+        return json({ ok: true }, { status: 200 }, origin);
+      }
       case "delete_draft": {
         const claims = await readSkinClaims(req, jwtSecret);
         if (!claims?.sub) return json({ error: "Unauthorized" }, { status: 401 }, origin);

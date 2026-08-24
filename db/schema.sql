@@ -707,3 +707,28 @@ create policy "no direct access to case items"
   on public.skin_creator_case_items for select using (false);
 revoke all on public.skin_creator_cases from anon, authenticated;
 revoke all on public.skin_creator_case_items from anon, authenticated;
+
+-- ============================================================
+-- Saved colour palettes: signed in Skin Creator users can store
+-- their own palettes (at least 4, capped at 12). All access runs
+-- through the skin-auth edge function, so no anon/authenticated
+-- grants.
+-- ============================================================
+create table if not exists public.skin_creator_palettes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.skin_creator_users(id) on delete cascade,
+  name text not null,
+  colors jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists skin_creator_palettes_user_idx
+  on public.skin_creator_palettes (user_id, updated_at desc);
+
+grant all on public.skin_creator_palettes to service_role;
+alter table public.skin_creator_palettes enable row level security;
+
+drop policy if exists "no direct access to palettes" on public.skin_creator_palettes;
+create policy "no direct access to palettes"
+  on public.skin_creator_palettes for select using (false);
+revoke all on public.skin_creator_palettes from anon, authenticated;
