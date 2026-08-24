@@ -136,3 +136,29 @@ export async function deleteSkinDraft(draftId: string): Promise<void> {
   await skinAuthCall({ op: "delete_draft", draft_id: draftId }, true);
 }
 
+
+export type SkinPalette = {
+  id: string;
+  name: string;
+  colors: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+/** Saved colour palettes of the signed in user (max 12 server side). */
+export async function listMyPalettes(): Promise<SkinPalette[]> {
+  const out = await skinAuthCall({ op: "list_palettes" }, true);
+  return (out.rows ?? []) as SkinPalette[];
+}
+
+export async function saveMyPalette(input: { palette_id?: string | null; name: string; colors: string[] }): Promise<string> {
+  const out = await skinAuthCall(
+    { op: "save_palette", palette_id: input.palette_id || undefined, name: input.name, colors: input.colors },
+    true,
+  );
+  return String(out.id);
+}
+
+export async function deleteMyPalette(paletteId: string): Promise<void> {
+  await skinAuthCall({ op: "delete_palette", palette_id: paletteId }, true);
+}
