@@ -6,6 +6,7 @@ import { ArrowDown, Send, Loader2, CheckCircle2, AlertCircle, Newspaper, Info } 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Embers } from "@/components/Embers";
+import { TileBackground } from "@/components/TileBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,6 +80,8 @@ export default function Landing() {
 
   return (
     <div className="relative min-h-screen">
+      <TileBackground />
+      <div className="relative z-10">
       <Header />
       <main>
         <HomeSection />
