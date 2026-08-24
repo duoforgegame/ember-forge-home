@@ -128,10 +128,10 @@
   border: 1px solid rgba(249, 115, 22, 0.08);
   border-radius: 3px;
   transition: background-image 260ms ease-out, box-shadow 260ms ease-out, border-color 260ms ease-out;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
-.tile-bg-cell:hover {
+.tile-bg-cell.is-hot {
   /* Lit from behind/below: soft centered orange glow radiating outward */
   background-image: radial-gradient(circle at 50% 50%, rgba(249, 115, 22, 0.28) 0%, rgba(249, 115, 22, 0.08) 45%, #1a0d05 100%);
   border-color: rgba(249, 115, 22, 0.45);
