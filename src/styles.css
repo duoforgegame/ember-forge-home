@@ -114,6 +114,36 @@
   background-size: 48px 48px;
 }
 
+/* Global tile background (landing page only) */
+.tile-bg {
+  pointer-events: none;
+  background-color: var(--color-background);
+}
+
+.tile-bg-cell {
+  width: 100%;
+  height: 100%;
+  background-color: oklch(0.16 0 0);
+  border-right: 1px solid oklch(0.24 0 0);
+  border-bottom: 1px solid oklch(0.24 0 0);
+  transition: background-color 240ms ease-out, box-shadow 240ms ease-out;
+  pointer-events: auto;
+}
+
+.tile-bg-cell:hover {
+  background-color: oklch(0.68 0.17 45 / 0.22);
+  box-shadow:
+    inset 0 0 0 1px oklch(0.78 0.18 55 / 0.5),
+    0 0 18px 2px oklch(0.68 0.17 45 / 0.55);
+}
+
+@media (max-width: 640px) {
+  .tile-bg-cell {
+    border-right: 1px solid oklch(0.22 0 0);
+    border-bottom: 1px solid oklch(0.22 0 0);
+  }
+}
+
 @keyframes ember-rise {
   0% { transform: translateY(0) scale(1); opacity: 0; }
   10% { opacity: 0.8; }
