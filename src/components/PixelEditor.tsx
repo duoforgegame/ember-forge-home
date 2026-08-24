@@ -121,6 +121,44 @@ export function PixelEditor({
   const [savingDraft, setSavingDraft] = useState(false);
   const signedIn = !!getSkinUser();
   const paintColor = adjustBrightness(color, brightness);
+  const [customColors, setCustomColors] = useState<string[]>([]);
+  const [palettes, setPalettes] = useState<SkinPalette[]>([]);
+  const [paletteName, setPaletteName] = useState("");
+  const [savingPalette, setSavingPalette] = useState(false);
+  const [confirmDeletePalette, setConfirmDeletePalette] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!signedIn) return;
+    listMyPalettes().then(setPalettes).catch(() => { /* palettes stay empty */ });
+  }, [signedIn]);
+
+  const handleSavePalette = async () => {
+    if (!paletteName.trim()) { toast.error(t("paletteNameRequired")); return; }
+    if (customColors.length === 0) { toast.error(t("addColoursFirst")); return; }
+    setSavingPalette(true);
+    try {
+      const existing = palettes.find((p) => p.name.toLowerCase() === paletteName.trim().toLowerCase());
+      await saveMyPalette({ palette_id: existing?.id ?? null, name: paletteName.trim(), colors: customColors });
+      setPalettes(await listMyPalettes());
+      toast.success(t("paletteSaved"));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingPalette(false);
+    }
+  };
+
+  const handleDeletePalette = async (id: string) => {
+    try {
+      await deleteMyPalette(id);
+      setPalettes((prev) => prev.filter((p) => p.id !== id));
+      toast.success(t("paletteDeleted"));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setConfirmDeletePalette(null);
+    }
+  };
 
   const redraw = useCallback(() => {
     const cv = canvasRef.current;
