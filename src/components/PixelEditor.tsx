@@ -553,6 +553,92 @@ export function PixelEditor({
             </div>
           </div>
 
+          {/* Saved palettes, signed in users only */}
+          <div className="space-y-2 border-t border-border pt-3">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("myPalettes")}</Label>
+            {!signedIn ? (
+              <p className="text-[11px] text-muted-foreground">{t("signInToSavePalettes")}</p>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-1">
+                  {customColors.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">{t("currentColours")}: 0</p>
+                  ) : (
+                    customColors.map((c, i) => (
+                      <button
+                        key={`${c}-${i}`}
+                        title={c}
+                        onClick={() => { setColor(c); setHexInput(c); setBrightness(0); }}
+                        onContextMenu={(e) => { e.preventDefault(); setCustomColors(customColors.filter((_, j) => j !== i)); }}
+                        className="h-6 w-6 rounded-sm border border-black/40"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    if (customColors.includes(paintColor)) return;
+                    setCustomColors([...customColors, paintColor].slice(0, 32));
+                  }}
+                >
+                  {t("addCurrentColour")}
+                </Button>
+                <div className="flex gap-2">
+                  <Input
+                    value={paletteName}
+                    onChange={(e) => setPaletteName(e.target.value)}
+                    placeholder={t("paletteNamePlaceholder")}
+                    maxLength={60}
+                    className="h-9 text-xs"
+                  />
+                  <Button size="sm" disabled={savingPalette} onClick={handleSavePalette}>
+                    {savingPalette ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {palettes.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground">{t("noSavedPalettes")}</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {palettes.map((p) => (
+                      <li key={p.id} className="rounded-sm border border-border p-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            className="truncate text-left text-xs font-medium hover:text-primary"
+                            onClick={() => { setCustomColors(p.colors); setPaletteName(p.name); }}
+                          >
+                            {p.name}
+                          </button>
+                          <button
+                            title={t("deletePalette")}
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => setConfirmDeletePalette(p.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {p.colors.map((c, i) => (
+                            <button
+                              key={`${p.id}-${c}-${i}`}
+                              title={c}
+                              onClick={() => { setColor(c); setHexInput(c); setBrightness(0); }}
+                              className="h-4 w-4 rounded-[2px] border border-black/40"
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("colour")}</Label>
             <div className="flex items-center gap-2">
