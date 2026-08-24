@@ -770,6 +770,23 @@ export function PixelEditor({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!confirmDeletePalette} onOpenChange={(o) => { if (!o) setConfirmDeletePalette(null); }}>
+        <AlertDialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deletePaletteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("deletePaletteBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); if (confirmDeletePalette) handleDeletePalette(confirmDeletePalette); }}
+            >
+              {t("deleteDraftConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
