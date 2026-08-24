@@ -311,35 +311,38 @@ function AboutSection({ team, aboutText }: { team: typeof fallbackTeam; aboutTex
   return (
     <section id="about" className="relative pt-8 pb-24 sm:pt-10 sm:pb-32">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <SectionTitle>About Us</SectionTitle>
-        {aboutText ? (
-          <div
-            className="mx-auto max-w-3xl text-center text-lg leading-relaxed text-muted-foreground"
-            dangerouslySetInnerHTML={{ __html: aboutText }}
-          />
-        ) : (
-          <p className="mx-auto max-w-3xl text-center text-lg leading-relaxed text-muted-foreground">
-            <span className="text-foreground font-semibold">Duo Forge Games</span> is a
-            two-person indie studio from Lübeck, Germany, founded by two brothers. We've
-            been building games in Unity for over four years. Our philosophy:{" "}
-            <span className="text-primary">games by gamers, for gamers.</span>
-          </p>
-        )}
-        <div className="mt-14 grid gap-6 sm:grid-cols-2">
-          {team.map((m) => (
-            <div key={m.name} className="rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/50">
-              <div className="flex items-center gap-4">
-                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-primary/15 font-display text-xl font-bold text-primary">
-                  {m.name.split(" ").map((n) => n[0]).join("")}
+        <div className="relative rounded-2xl border border-primary/30 bg-card/60 p-6 shadow-glow backdrop-blur-sm sm:p-10">
+          <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-primary/20" aria-hidden />
+          <SectionTitle>About Us</SectionTitle>
+          {aboutText ? (
+            <div
+              className="mx-auto max-w-3xl text-center text-lg leading-relaxed text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: aboutText }}
+            />
+          ) : (
+            <p className="mx-auto max-w-3xl text-center text-lg leading-relaxed text-muted-foreground">
+              <span className="text-foreground font-semibold">Duo Forge Games</span> is a
+              two-person indie studio from Lübeck, Germany, founded by two brothers. We've
+              been building games in Unity for over four years. Our philosophy:{" "}
+              <span className="text-primary">games by gamers, for gamers.</span>
+            </p>
+          )}
+          <div className="mt-14 grid gap-6 sm:grid-cols-2">
+            {team.map((m) => (
+              <div key={m.name} className="rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/50">
+                <div className="flex items-center gap-4">
+                  <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-primary/15 font-display text-xl font-bold text-primary">
+                    {m.name.split(" ").map((n) => n[0]).join("")}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="truncate font-display text-lg font-bold">{m.name}</h3>
+                    <p className="text-sm text-primary">{m.role}</p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="truncate font-display text-lg font-bold">{m.name}</h3>
-                  <p className="text-sm text-primary">{m.role}</p>
-                </div>
+                <p className="mt-4 text-sm text-muted-foreground">{m.bio}</p>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">{m.bio}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>
