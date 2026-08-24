@@ -41,6 +41,7 @@ export function TileBackground() {
       className="tile-bg fixed inset-0 z-0 overflow-hidden"
       style={{
         display: "grid",
+        gap: "4px",
         gridTemplateColumns: `repeat(${cols}, ${TILE}px)`,
         gridTemplateRows: `repeat(${rows}, ${TILE}px)`,
       }}
