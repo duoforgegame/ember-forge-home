@@ -2,8 +2,10 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import logo from "@/assets/dfg-logo-large.png";
+import { SocialIconLinks, type SocialDestinations } from "@/components/SocialIconLinks";
 
 type FooterLink = { id?: string; label: string; url: string; sort_order?: number };
+type ProjectLink = { button_url?: string };
 
 const FALLBACK: FooterLink[] = [
   { label: "Imprint", url: "/imprint" },
@@ -26,16 +28,21 @@ export function Footer() {
   const { data } = useQuery({
     queryKey: ["footer-links"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("site_footer_links")
-        .select("*")
-        .order("sort_order");
-      return (data ?? []) as FooterLink[];
+      const [footerResult, socialsResult, projectsResult] = await Promise.all([
+        supabase.from("site_footer_links").select("*").order("sort_order"),
+        supabase.from("site_socials").select("twitter,tiktok,discord,youtube").eq("id", 1).maybeSingle(),
+        supabase.from("site_projects").select("button_url").order("sort_order"),
+      ]);
+      const steam = ((projectsResult.data ?? []) as ProjectLink[]).find((project) => /store\.steampowered\.com/i.test(project.button_url ?? ""))?.button_url;
+      return {
+        links: (footerResult.data ?? []) as FooterLink[],
+        socials: { ...(socialsResult.data ?? {}), steam } as SocialDestinations,
+      };
     },
     retry: 0,
   });
 
-  const links = data && data.length > 0 ? data : FALLBACK;
+  const links = data?.links && data.links.length > 0 ? data.links : FALLBACK;
 
   return (
     <footer className="site-footer">
@@ -43,7 +50,8 @@ export function Footer() {
         <Link to="/" className="footer-logo" aria-label="Duo Forge Games home">
           <img src={logo} alt="Duo Forge Games" />
         </Link>
-        <nav>
+        <div className="footer-navigation">
+          <nav className="footer-legal" aria-label="Legal">
           {links.map((l, i) => {
             const cls = "footer-link";
             if (isInternal(l.url)) {
@@ -66,7 +74,9 @@ export function Footer() {
               </Link>
             );
           })}
-        </nav>
+          </nav>
+          <SocialIconLinks socials={data?.socials ?? {}} className="footer-socials" />
+        </div>
         <div className="footer-copyright">
           © 2026 Duo Forge Games. All rights reserved.
         </div>

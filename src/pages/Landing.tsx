@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Newspaper, Send } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { SocialIconLinks } from "@/components/SocialIconLinks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,7 +62,10 @@ export default function Landing() {
           <GamesHero projects={projects} />
           <MissionSection aboutText={data?.about?.intro_html ?? null} />
           <TeamSection team={team} />
-          <ContactSection socials={data?.socials ?? fallbackSocials} />
+          <ContactSection
+            socials={data?.socials ?? fallbackSocials}
+            steamUrl={projects.find((project) => /store\.steampowered\.com/i.test(project.buttonUrl))?.buttonUrl}
+          />
         </main>
         <Footer />
       </div>
@@ -141,10 +145,6 @@ function GamesHero({ projects }: { projects: ProjectView[] }) {
               </div>
             )}
           </div>
-          <div className="platform-mark" aria-label="Available on Steam">
-            <span className="platform-placeholder">STEAM</span>
-            <span>PC</span>
-          </div>
           {activeProject.buttonUrl && (
             <Button asChild variant="outline" className="game-cta">
               <a href={activeProject.buttonUrl} target="_blank" rel="noopener noreferrer">
@@ -216,7 +216,7 @@ const contactSchema = z.object({
   }),
 });
 
-function ContactSection({ socials }: { socials: typeof fallbackSocials }) {
+function ContactSection({ socials, steamUrl }: { socials: typeof fallbackSocials; steamUrl?: string }) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [inquiryType, setInquiryType] = useState("");
@@ -295,26 +295,8 @@ function ContactSection({ socials }: { socials: typeof fallbackSocials }) {
 
       <div className="contact-direct">
         <p>Or reach us directly at <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
-        <SocialLinks socials={socials} />
+        <SocialIconLinks socials={{ ...socials, steam: steamUrl }} />
       </div>
     </section>
-  );
-}
-
-function SocialLinks({ socials }: { socials: typeof fallbackSocials }) {
-  const items = [
-    { href: socials.twitter, label: "X" },
-    { href: socials.tiktok, label: "TikTok" },
-    { href: socials.instagram, label: "Instagram" },
-    { href: socials.discord, label: "Discord" },
-    { href: socials.youtube, label: "YouTube" },
-  ].filter((item) => !!item.href);
-
-  return (
-    <nav className="social-links" aria-label="Social media">
-      {items.map((item) => (
-        <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer">{item.label}</a>
-      ))}
-    </nav>
   );
 }
