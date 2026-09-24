@@ -98,6 +98,7 @@ export default function Landing() {
 export function GamesHero({ projects, autoplay = false, intervalSeconds = 6, preview = false }: { projects: ProjectView[]; autoplay?: boolean; intervalSeconds?: number; preview?: boolean }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [trailerOpen, setTrailerOpen] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
   const activeProject = projects[activeIndex];
 
   useEffect(() => {
@@ -106,14 +107,24 @@ export function GamesHero({ projects, autoplay = false, intervalSeconds = 6, pre
 
   useEffect(() => {
     if (!autoplay || preview || projects.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setActiveIndex((current) => (current + 1) % projects.length), Math.max(2, intervalSeconds) * 1000);
+    const timer = window.setInterval(() => {
+      setSlideDirection("right");
+      setActiveIndex((current) => (current + 1) % projects.length);
+    }, Math.max(2, intervalSeconds) * 1000);
     return () => window.clearInterval(timer);
   }, [autoplay, intervalSeconds, preview, projects.length]);
 
   if (!activeProject) return null;
 
   const move = (direction: number) => {
+    setSlideDirection(direction > 0 ? "right" : "left");
     setActiveIndex((current) => (current + direction + projects.length) % projects.length);
+  };
+
+  const selectProject = (index: number) => {
+    if (index === activeIndex) return;
+    setSlideDirection(index > activeIndex ? "right" : "left");
+    setActiveIndex(index);
   };
 
   return (
@@ -125,7 +136,7 @@ export function GamesHero({ projects, autoplay = false, intervalSeconds = 6, pre
               key={activeProject.cover}
               src={activeProject.cover}
               alt={`${activeProject.title} key art`}
-              className="game-art"
+              className={`game-art slide-from-${slideDirection}`}
               width={1600}
               height={900}
             />
@@ -150,7 +161,7 @@ export function GamesHero({ projects, autoplay = false, intervalSeconds = 6, pre
                     type="button"
                     variant="ghost"
                     className={`slider-dot ${index === activeIndex ? "is-active" : ""}`}
-                    onClick={() => setActiveIndex(index)}
+                    onClick={() => selectProject(index)}
                     aria-label={`Show ${project.title}`}
                     aria-current={index === activeIndex ? "true" : undefined}
                   />
@@ -160,7 +171,7 @@ export function GamesHero({ projects, autoplay = false, intervalSeconds = 6, pre
           )}
         </div>
 
-        <div className={`game-info-bar ${activeProject.infoBarColor ? "" : activeIndex % 2 === 0 ? "game-info-accent" : "game-info-dark"}`} style={activeProject.infoBarColor ? { backgroundColor: activeProject.infoBarColor } : undefined}>
+        <div key={`info-${activeIndex}`} className={`game-info-bar slide-from-${slideDirection} ${activeProject.infoBarColor ? "" : activeIndex % 2 === 0 ? "game-info-accent" : "game-info-dark"}`} style={activeProject.infoBarColor ? { backgroundColor: activeProject.infoBarColor } : undefined}>
           <div className="game-summary">
             <p className="eyebrow">{activeProject.status}</p>
             <AutoFitGameTitle title={activeProject.title} />

@@ -99,8 +99,8 @@ export function Header({ forceCompact = false }: { forceCompact?: boolean }) {
 
   return (
     <header className={`site-header ${scrolled || forceCompact ? "is-compact" : ""}`} style={{ top: "var(--banner-h, 0px)" }}>
-      {isLanding && !scrolled && !forceCompact && (
-        <div className="studio-banner">
+      {isLanding && !forceCompact && (
+        <div className={`studio-banner ${scrolled ? "is-hidden" : ""}`} aria-hidden={scrolled}>
           {(settings?.header_banner_logo_url || bannerLogo) && <img src={settings?.header_banner_logo_url || bannerLogo} alt="Duo Forge Games" />}
           {settings?.header_studio_line !== "" && <p>{settings?.header_studio_line || "A two-person indie studio from Lübeck, Germany"}</p>}
           {settings?.header_established_line !== "" && <span>{settings?.header_established_line || "Est. 2021"}</span>}
