@@ -39,36 +39,38 @@
 
 /* Public landing page redesign. Scoped to avoid changing Skin Creator and admin pages. */
 .public-landing {
-  --landing-outer: #000000;
+  --landing-outer: #1c1c1c;
   --landing-shell: #151515;
   --landing-section: #1c1c1c;
   --landing-raised: #242424;
   --landing-copy: #bdbdbd;
   --landing-accent: #e8702a;
-  background: var(--landing-outer);
+  background: transparent;
   color: var(--foreground);
   position: relative;
 }
 
-body:has(.public-landing)::before { display: none; }
-
-.public-landing .outer-anvil-pattern {
-  position: absolute;
+body:has(.public-landing) { background: var(--landing-outer, #1c1c1c); }
+body:has(.public-landing)::before {
+  display: block;
+  content: "";
+  position: fixed;
   inset: 0;
-  background: #1a1a1a;
+  z-index: 0;
   pointer-events: none;
-  -webkit-mask-image: var(--anvil-pattern-mask);
-  mask-image: var(--anvil-pattern-mask);
-  -webkit-mask-position: top center;
-  mask-position: top center;
-  -webkit-mask-repeat: repeat;
-  mask-repeat: repeat;
-  -webkit-mask-size: 240px 240px;
-  mask-size: 240px 240px;
+  background-image:
+    url("/__l5e/assets-v1/47cb1ab9-2794-4b41-a60e-48076e205599/anvil-96.png"),
+    url("/__l5e/assets-v1/47cb1ab9-2794-4b41-a60e-48076e205599/anvil-96.png");
+  background-position: 0 0, 48px 48px;
+  background-repeat: repeat;
+  background-size: 96px 96px;
+  filter: grayscale(1);
+  opacity: .08;
 }
 
 .public-landing .landing-shell {
   position: relative;
+  z-index: 1;
   width: min(100%, 1380px);
   margin-inline: auto;
   overflow: clip;
@@ -287,17 +289,16 @@ body:has(.public-landing)::before { display: none; }
   content: "";
   position: absolute;
   inset: 0;
-  z-index: -1;
-  background: #202020;
+  z-index: 0;
   pointer-events: none;
-  -webkit-mask-image: var(--anvil-pattern-mask);
-  mask-image: var(--anvil-pattern-mask);
-  -webkit-mask-position: top center;
-  mask-position: top center;
-  -webkit-mask-repeat: repeat;
-  mask-repeat: repeat;
-  -webkit-mask-size: 240px 240px;
-  mask-size: 240px 240px;
+  background-image:
+    url("/__l5e/assets-v1/47cb1ab9-2794-4b41-a60e-48076e205599/anvil-96.png"),
+    url("/__l5e/assets-v1/47cb1ab9-2794-4b41-a60e-48076e205599/anvil-96.png");
+  background-position: 0 0, 48px 48px;
+  background-repeat: repeat;
+  background-size: 96px 96px;
+  filter: grayscale(1);
+  opacity: .06;
 }
 .public-landing .mission-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr); align-items: center; gap: 11%; }
 .public-landing .mission-lockup { display: flex; flex-direction: column; align-items: flex-start; }
