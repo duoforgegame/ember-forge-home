@@ -59,8 +59,8 @@ body:has(.public-landing)::before {
   z-index: 0;
   pointer-events: none;
   background-image:
-    url("/__l5e/assets-v1/47cb1ab9-2794-4b41-a60e-48076e205599/anvil-96.png"),
-    url("/__l5e/assets-v1/47cb1ab9-2794-4b41-a60e-48076e205599/anvil-96.png");
+    url("/__l5e/assets-v1/4b85c15c-5900-4411-85d9-4b55b3f8b05b/anvil-96-visible.png"),
+    url("/__l5e/assets-v1/4b85c15c-5900-4411-85d9-4b55b3f8b05b/anvil-96-visible.png");
   background-position: 0 0, 48px 48px;
   background-repeat: repeat;
   background-size: 96px 96px;
@@ -292,8 +292,8 @@ body:has(.public-landing)::before {
   z-index: 0;
   pointer-events: none;
   background-image:
-    url("/__l5e/assets-v1/47cb1ab9-2794-4b41-a60e-48076e205599/anvil-96.png"),
-    url("/__l5e/assets-v1/47cb1ab9-2794-4b41-a60e-48076e205599/anvil-96.png");
+    url("/__l5e/assets-v1/4b85c15c-5900-4411-85d9-4b55b3f8b05b/anvil-96-visible.png"),
+    url("/__l5e/assets-v1/4b85c15c-5900-4411-85d9-4b55b3f8b05b/anvil-96-visible.png");
   background-position: 0 0, 48px 48px;
   background-repeat: repeat;
   background-size: 96px 96px;
