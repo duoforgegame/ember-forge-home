@@ -76,7 +76,7 @@ export default function Landing() {
       : fallbackTeam;
 
   return (
-    <div className="public-landing min-h-screen" style={{ "--anvil-pattern-image": `url(${anvilPatternAsset.url})` } as React.CSSProperties}>
+    <div className="public-landing min-h-screen" style={{ "--anvil-pattern-image": `url(${anvilPatternAsset})` } as React.CSSProperties}>
       <div className="landing-shell">
         <Header />
         <main>
