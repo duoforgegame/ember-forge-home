@@ -1610,6 +1610,7 @@ function blockSummary(b: BlockRow): string {
     case "gallery":    return `${(Array.isArray(c.images) ? c.images.length : 0)} image(s)`;
     case "free_image": return c.caption || "Image";
     case "steam":      return c.app_id ? `App ${c.app_id}` : "No App ID";
+    case "store_bar":  return c.use_game_data !== false ? "Using game data" : c.status || "Custom store bar";
     case "features":   return `${(Array.isArray(c.items) ? c.items.length : 0)} feature(s)`;
     case "video":      return c.url || "No URL";
     case "quote":      return c.quote ? String(c.quote).slice(0, 60) : "Empty quote";
