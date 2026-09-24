@@ -5,7 +5,10 @@ import path from "node:path";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "./src") },
+    dedupe: ["react", "react-dom", "react-router", "react-router-dom"],
+  },
   server: { host: "::", port: 8080, strictPort: true },
   preview: { host: "::", port: 8080, strictPort: true },
   build: { outDir: "dist", sourcemap: false },
