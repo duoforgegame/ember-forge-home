@@ -215,13 +215,26 @@ function useLoader<T>(load: () => Promise<T>, deps: unknown[] = []) {
 async function loadTable<T>(table: string): Promise<T[]> {
   const { supabase } = await import("@/lib/supabase");
   const { data, error } = await supabase.from(table).select("*").order("sort_order", { ascending: true });
-  if (error) throw error;
+  if (error) throw tableError(table, error);
   return (data ?? []) as T[];
+}
+
+function tableError(table: string, error: { message?: string; code?: string; status?: number } | any) {
+  const msg = error?.message || "request failed";
+  const missing = error?.code === "PGRST205" || error?.code === "42P01" || /not find the table|does not exist|404/i.test(msg);
+  return new Error(missing
+    ? `Table "${table}" was not found in the database. Run db/migrations/2026_landing_redesign.sql in the Supabase SQL editor, then reload.`
+    : `Could not load "${table}": ${msg}`);
+}
+
+function firstError(...loaders: { error: string | null }[]) {
+  return loaders.find((l) => l.error)?.error ?? null;
 }
 
 async function loadSettings(): Promise<LandingSettingsRow> {
   const { supabase } = await import("@/lib/supabase");
-  const { data } = await supabase.from("site_landing_settings").select("*").eq("id", 1).maybeSingle();
+  const { data, error } = await supabase.from("site_landing_settings").select("*").eq("id", 1).maybeSingle();
+  if (error) throw tableError("site_landing_settings", error);
   return { ...LANDING_SETTINGS_DEFAULTS, ...(data ?? {}) };
 }
 
@@ -238,8 +251,9 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const [msg, setMsg] = useState("");
   const [pressKitFor, setPressKitFor] = useState<ProjectRow | null>(null);
   const [gamePageFor, setGamePageFor] = useState<ProjectRow | null>(null);
+  const loadError = error || firstError(settingsLoader, platformsLoader);
+  if (loadError) return <ErrorMsg text={loadError} />;
   if (loading || !settingsLoader.data || !platformsLoader.data) return <Spinner />;
-  if (error) return <ErrorMsg text={error} />;
   const rows = data ?? [];
   const settings = settingsLoader.data ?? LANDING_SETTINGS_DEFAULTS;
   const platforms = platformsLoader.data ?? [];
@@ -592,6 +606,7 @@ function AboutPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const [msg, setMsg] = useState("");
   const settingsLoader = useLoader<LandingSettingsRow>(loadSettings);
   const teamLoader = useLoader<TeamRow[]>(() => loadTable("site_team"));
+  { const e = error || firstError(settingsLoader, teamLoader); if (e) return <ErrorMsg text={e} />; }
   if (loading || !data || !settingsLoader.data || !teamLoader.data) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const save = async () => {
@@ -882,6 +897,7 @@ function HeaderPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
   const settingsLoader = useLoader<LandingSettingsRow>(loadSettings);
   const linksLoader = useLoader<LinkRow[]>(() => loadTable("site_header_links"));
   const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
+  { const e = firstError(settingsLoader, linksLoader); if (e) return <ErrorMsg text={e} />; }
   if (!settingsLoader.data || !linksLoader.data) return <Spinner />;
   const settings = settingsLoader.data; const links = linksLoader.data;
   const updateSettings = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
@@ -893,6 +909,7 @@ function HeaderPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
 function MissionPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
   const settingsLoader = useLoader<LandingSettingsRow>(loadSettings); const linesLoader = useLoader<MissionLineRow[]>(() => loadTable("site_mission_lines"));
   const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
+  { const e = firstError(settingsLoader, linesLoader); if (e) return <ErrorMsg text={e} />; }
   if (!settingsLoader.data || !linesLoader.data) return <Spinner />;
   const settings = settingsLoader.data; const lines = linesLoader.data;
   const setSettings = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
@@ -902,6 +919,7 @@ function MissionPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
 
 function ContactPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
   const loader = useLoader<LandingSettingsRow>(loadSettings); const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
+  if (loader.error) return <ErrorMsg text={loader.error} />;
   if (!loader.data) return <Spinner />; const data = loader.data;
   const update = (patch: Partial<LandingSettingsRow>) => { onDirty(true); loader.setData({ ...data, ...patch }); };
   const save = async () => { setSaving(true); try { await adminCall({ op: "upsert", table: "site_landing_settings", rows: [data] }); setMsg("Saved"); onDirty(false); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
@@ -910,6 +928,7 @@ function ContactPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
 
 function FooterPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
   const settingsLoader = useLoader<LandingSettingsRow>(loadSettings); const linksLoader = useLoader<LinkRow[]>(() => loadTable("site_footer_links")); const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
+  { const e = firstError(settingsLoader, linksLoader); if (e) return <ErrorMsg text={e} />; }
   if (!settingsLoader.data || !linksLoader.data) return <Spinner />; const settings = settingsLoader.data; const links = linksLoader.data;
   const update = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
   const save = async () => { setSaving(true); try { await Promise.all([adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), adminCall({ op: "upsert", table: "site_footer_links", rows: links.map((row, i) => ({ ...row, sort_order: i })) })]); setMsg("Saved"); onDirty(false); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
