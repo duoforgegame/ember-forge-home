@@ -50,7 +50,8 @@
   position: relative;
 }
 
-body:has(.public-landing) { background: var(--landing-outer, #1c1c1c); }
+html:has(.public-landing) { background: #1c1c1c; }
+body:has(.public-landing) { background: transparent; }
 body:has(.public-landing)::before {
   display: block;
   content: "";
