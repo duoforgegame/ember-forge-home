@@ -41,11 +41,6 @@ export function Header({ forceCompact = false }: { forceCompact?: boolean }) {
       ]);
       const discordSocial = ((socials.data ?? []) as { url: string; visible: boolean }[]).find((row) => row.visible !== false && row.url);
       return { links: (links.data ?? []) as (HeaderLink & { visible?: boolean })[], settings: settings.data as HeaderSettings | null, discordSocial: discordSocial?.url ?? "" };
-      // eslint-disable-next-line no-unreachable
-      await Promise.all([
-        supabase.from("site_landing_settings").select("*").eq("id", 1).maybeSingle(),
-      ]);
-      return { links: (links.data ?? []) as (HeaderLink & { visible?: boolean })[], settings: settings.data as HeaderSettings | null };
     },
     retry: 0,
   });
