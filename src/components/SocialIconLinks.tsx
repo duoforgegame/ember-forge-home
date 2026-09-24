@@ -1,8 +1,8 @@
-import discordIcon from "@/assets/social/icons8-discord-64.png.asset.json";
-import youtubeIcon from "@/assets/social/icons8-youtube-50.png.asset.json";
-import tiktokIcon from "@/assets/social/icons8-tiktok-50.png.asset.json";
-import steamIcon from "@/assets/social/icons8-steam-64.png.asset.json";
-import xIcon from "@/assets/social/icons8-x-50.png.asset.json";
+import discordIcon from "@/assets/social/icons8-discord-64.png";
+import youtubeIcon from "@/assets/social/icons8-youtube-50.png";
+import tiktokIcon from "@/assets/social/icons8-tiktok-50.png";
+import steamIcon from "@/assets/social/icons8-steam-64.png";
+import xIcon from "@/assets/social/icons8-x-50.png";
 
 export type SocialDestinations = {
   discord?: string | null;
@@ -13,11 +13,11 @@ export type SocialDestinations = {
 };
 
 const iconUrls = {
-  discord: discordIcon.url,
-  youtube: youtubeIcon.url,
-  tiktok: tiktokIcon.url,
-  steam: steamIcon.url,
-  twitter: xIcon.url,
+  discord: discordIcon,
+  youtube: youtubeIcon,
+  tiktok: tiktokIcon,
+  steam: steamIcon,
+  twitter: xIcon,
 };
 
 export function SocialIconLinks({ socials, className = "" }: { socials: SocialDestinations; className?: string }) {
