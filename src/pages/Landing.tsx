@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Newspaper, Play, Send, X } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { SocialIconLinks } from "@/components/SocialIconLinks";
+import { SocialIconLinks, type SocialLink } from "@/components/SocialIconLinks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,8 +84,7 @@ export default function Landing() {
           {(data?.settings?.mission_visible ?? true) && <MissionSection lines={data?.missionLines} missionText={data?.settings?.mission_text || DEFAULT_MISSION_TEXT} signoff={data?.settings?.mission_signoff || DEFAULT_MISSION_SIGNOFF} />}
           <TeamSection team={team} heading={data?.settings?.about_heading} introHtml={data?.about?.intro_html} />
           <ContactSection
-            socials={data?.socials ?? fallbackSocials}
-            steamUrl={projects.find((project) => /store\.steampowered\.com/i.test(project.buttonUrl))?.buttonUrl}
+            socialLinks={data?.socialLinks ?? []}
             heading={data?.settings?.contact_heading}
             directText={data?.settings?.contact_direct_text}
             email={data?.settings?.contact_email}
@@ -335,7 +334,7 @@ const contactSchema = z.object({
   }),
 });
 
-export function ContactSection({ socials, steamUrl, heading = "Contact", directText = "Or reach us directly at", email = CONTACT_EMAIL, preview = false }: { socials: typeof fallbackSocials & Record<string, any>; steamUrl?: string; heading?: string; directText?: string; email?: string; preview?: boolean }) {
+export function ContactSection({ socialLinks, heading = "Contact", directText = "Or reach us directly at", email = CONTACT_EMAIL, preview = false }: { socialLinks: SocialLink[]; heading?: string; directText?: string; email?: string; preview?: boolean }) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [inquiryType, setInquiryType] = useState("");
@@ -415,7 +414,7 @@ export function ContactSection({ socials, steamUrl, heading = "Contact", directT
 
       <div className="contact-direct">
          {(directText || email) && <p>{directText} {email && <a href={`mailto:${email}`}>{email}</a>}</p>}
-         <SocialIconLinks socials={{ ...socials, steam: steamUrl }} />
+         <SocialIconLinks links={socialLinks} />
       </div>
     </section>
   );
