@@ -57,7 +57,7 @@ body:has(.public-landing)::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   background-image:
     url("/__l5e/assets-v1/4b85c15c-5900-4411-85d9-4b55b3f8b05b/anvil-96-visible.png"),
