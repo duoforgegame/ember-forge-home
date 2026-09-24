@@ -150,7 +150,7 @@ async function loadTable<T>(table: string): Promise<T[]> {
   return (data ?? []) as T[];
 }
 
-function ProjectsPanel() {
+function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const { data, loading, error, reload, setData } = useLoader<ProjectRow[]>(() => loadTable("site_projects"));
   const colorsLoader = useLoader<StatusColor[]>(async () => {
     const { supabase } = await import("@/lib/supabase");
@@ -169,36 +169,38 @@ function ProjectsPanel() {
   };
   for (const c of colorsLoader.data ?? []) colorMap[c.status] = c.color;
 
-  const update = (i: number, patch: Partial<ProjectRow>) => setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-  const addRow = () => setData([...rows, { title: "", description: "", cover_url: "", status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false, more_info_enabled: false }]);
+  const update = (i: number, patch: Partial<ProjectRow>) => { onDirty?.(true); setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r)); };
+  const addRow = () => { onDirty?.(true); setData([...rows, { title: "", description: "", cover_url: "", key_art_url: "", trailer_url: "", info_bar_color: "", visible: true, status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false, more_info_enabled: false }]); };
   const removeRow = async (i: number) => {
     const row = rows[i];
     if (row.id && !confirm("Delete this project?")) return;
     if (row.id) await adminCall({ op: "delete", table: "site_projects", id: row.id });
-    setData(rows.filter((_, idx) => idx !== i));
+    setData(rows.filter((_, idx) => idx !== i)); onDirty?.(true);
   };
   const saveAll = async () => {
     setSaving(true); setMsg("");
-    try { await adminCall({ op: "upsert", table: "site_projects", rows }); setMsg("Saved"); await reload(); }
+    try { await adminCall({ op: "upsert", table: "site_projects", rows: rows.map((row, index) => ({ ...row, cover_url: row.key_art_url || row.cover_url, sort_order: index })) }); setMsg("Saved"); onDirty?.(false); await reload(); }
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
   return (
     <div className="space-y-4">
-      <PanelHeader title="Projects" onAdd={addRow} onSave={saveAll} saving={saving} msg={msg} />
+      <PanelHeader title="Games" onAdd={addRow} onSave={saveAll} saving={saving} msg={msg} />
       {rows.map((r, i) => (
         <div key={r.id ?? `new-${i}`} className="rounded-lg border border-border bg-card p-4">
           <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Title" value={r.title} onChange={(v) => update(i, { title: v })} />
               <StatusSelect value={r.status} options={Object.keys(colorMap)} onChange={(v) => update(i, { status: v })} />
+              <ToggleField label="Visible" value={r.visible !== false} onChange={(v) => update(i, { visible: v })} />
               <div className="sm:col-span-2">
-                <CoverUploader value={r.cover_url} onChange={(v) => update(i, { cover_url: v })} />
+                <CoverUploader value={r.key_art_url || r.cover_url} onChange={(v) => update(i, { key_art_url: v, cover_url: v })} />
               </div>
+              <Field label="YouTube trailer URL" value={r.trailer_url || ""} onChange={(v) => update(i, { trailer_url: v })} />
+              <ColorField label="Info bar color" value={r.info_bar_color || "#e8702a"} onChange={(v) => update(i, { info_bar_color: v })} />
               <Field label="Button label" value={r.button_label} onChange={(v) => update(i, { button_label: v })} />
               <Field label="Button URL" value={r.button_url} onChange={(v) => update(i, { button_url: v })} />
-              <TextField label="Description" value={r.description} onChange={(v) => update(i, { description: v })} className="sm:col-span-2" />
-              <NumField label="Sort order" value={r.sort_order} onChange={(v) => update(i, { sort_order: v })} />
+              <div className="sm:col-span-2"><TextField label={`Short description (${r.description.length}/350)`} value={r.description} onChange={(v) => update(i, { description: v.slice(0, 350) })} /></div>
               <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3">
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
@@ -480,7 +482,7 @@ function TeamPanel() {
   );
 }
 
-function AboutPanel() {
+function AboutPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const { data, loading, error, setData } = useLoader<About>(async () => {
     const { supabase } = await import("@/lib/supabase");
     const { data: row } = await supabase.from("site_about").select("*").eq("id", 1).maybeSingle();
@@ -501,7 +503,7 @@ function AboutPanel() {
       <PanelHeader title="About" onSave={save} saving={saving} msg={msg} />
       <div className="rounded-lg border border-border bg-card p-4">
         <Label>About intro (HTML allowed)</Label>
-        <Textarea rows={10} value={data.intro_html} onChange={(e) => setData({ ...data, intro_html: e.target.value })} className="mt-2" />
+        <Textarea rows={10} value={data.intro_html} onChange={(e) => { onDirty?.(true); setData({ ...data, intro_html: e.target.value }); }} className="mt-2" />
       </div>
     </div>
   );
@@ -766,7 +768,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-function SocialsPanel() {
+function SocialsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const { data, loading, error, setData } = useLoader<Socials>(async () => {
     const { supabase } = await import("@/lib/supabase");
     const { data: row } = await supabase.from("site_socials").select("*").eq("id", 1).maybeSingle();
@@ -782,17 +784,14 @@ function SocialsPanel() {
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
-  const upd = (k: keyof Socials, v: string) => setData({ ...data, [k]: v });
+  const upd = (k: keyof Socials, v: string | boolean) => { onDirty?.(true); setData({ ...data, [k]: v }); };
   return (
     <div className="space-y-4">
       <PanelHeader title="Socials" onSave={save} saving={saving} msg={msg} />
       <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2">
-        <Field label="Twitter / X" value={data.twitter} onChange={(v) => upd("twitter", v)} />
-        <Field label="TikTok" value={data.tiktok} onChange={(v) => upd("tiktok", v)} />
-        <Field label="Instagram" value={data.instagram} onChange={(v) => upd("instagram", v)} />
-        <Field label="Discord" value={data.discord} onChange={(v) => upd("discord", v)} />
-        <Field label="YouTube" value={data.youtube} onChange={(v) => upd("youtube", v)} />
+        {([['twitter','Twitter / X'],['tiktok','TikTok'],['instagram','Instagram'],['discord','Discord'],['youtube','YouTube']] as const).map(([key,label]) => <div key={key} className="space-y-2"><Field label={label} value={data[key]} onChange={(v) => upd(key, v)} /><ToggleField label="Visible" value={data[`${key}_visible` as keyof Socials] !== false} onChange={(v) => upd(`${key}_visible` as keyof Socials, v)} /></div>)}
       </div>
+      <PreviewPane><SocialIconLinks socials={data} /></PreviewPane>
     </div>
   );
 }
