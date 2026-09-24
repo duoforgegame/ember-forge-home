@@ -800,6 +800,10 @@ select 1, 'We make the kind of games we''d play ourselves. Easy to pick up, hard
 on conflict (id) do nothing;
 
 alter table public.site_landing_settings
+  add column if not exists mission_text text not null default 'We make the kind of games we''d play ourselves. Easy to pick up, hard to put down, and always a little bit of "just one more". Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.',
+  add column if not exists mission_signoff text not null default 'Forged together with our community.';
+
+alter table public.site_landing_settings
   alter column mission_text set default 'We make the kind of games we''d play ourselves. Easy to pick up, hard to put down, and always a little bit of "just one more". Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.',
   alter column mission_signoff set default 'Forged together with our community.';
 
