@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/dfg-logo.png";
 import bannerLogo from "@/assets/dfg-logo-large.png";
+import discordIcon from "@/assets/social/icons8-discord-64.png";
 
 type HeaderLink = { id?: string; label: string; url: string; sort_order?: number };
 
@@ -113,7 +114,9 @@ export function Header() {
           {navLinks.map(renderLink)}
           {discordLink && (
             <Button asChild className="discord-button">
-              <a href={discordLink.url} target={isExternal(discordLink.url) ? "_blank" : undefined} rel={isExternal(discordLink.url) ? "noopener noreferrer" : undefined}>{discordLink.label}</a>
+              <a href={discordLink.url} target={isExternal(discordLink.url) ? "_blank" : undefined} rel={isExternal(discordLink.url) ? "noopener noreferrer" : undefined} aria-label={discordLink.label} title={discordLink.label}>
+                <img src={discordIcon} alt="" aria-hidden="true" />
+              </a>
             </Button>
           )}
         </nav>
