@@ -1370,6 +1370,19 @@ const defaultContent = (type: string): any => {
   }
 };
 
+type BlockBackground = "black" | "dark" | "orange";
+const backgroundHex = (value: BlockBackground) => value === "orange" ? "#e8702a" : value === "dark" ? "#1c1c1c" : "#000000";
+const backgroundPreset = (value: unknown): BlockBackground => {
+  const color = String(value || "").toLowerCase();
+  if (color === "#e8702a") return "orange";
+  if (color === "#1c1c1c" || color === "#242424") return "dark";
+  return "black";
+};
+
+function BackgroundSelect({ value, onChange }: { value: BlockBackground; onChange: (value: BlockBackground) => void }) {
+  return <div className="pt-2"><Label>Block background</Label><div className="background-options">{(["black", "dark", "orange"] as BlockBackground[]).map((option) => <Button key={option} type="button" variant={value === option ? "default" : "outline"} size="sm" onClick={() => onChange(option)}>{option === "dark" ? "Dark grey" : option}</Button>)}</div></div>;
+}
+
 function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: () => void }) {
   const projectId = project.id;
   const [blocks, setBlocks] = useState<BlockRow[]>([]);
