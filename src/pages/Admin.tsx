@@ -19,6 +19,22 @@ type TeamRow = { id?: string; name: string; gamer_tag?: string; real_name?: stri
 type LinkRow = { id?: string; label: string; url: string; sort_order: number; visible?: boolean };
 type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string; twitter_visible?: boolean; tiktok_visible?: boolean; instagram_visible?: boolean; discord_visible?: boolean; youtube_visible?: boolean };
 type About = { id: number; intro_html: string };
+type LandingSettingsRow = {
+  id: number; slider_autoplay: boolean; slider_interval_seconds: number;
+  header_banner_logo_url: string; header_sticky_logo_url: string; header_studio_line: string; header_established_line: string;
+  discord_button_label: string; discord_button_url: string; mission_visible: boolean; mission_text: string; mission_signoff: string;
+  about_heading: string; contact_heading: string; contact_direct_text: string; contact_email: string;
+  footer_logo_url: string; footer_copyright: string;
+};
+type MissionLineRow = { id?: string; text: string; style: "white_black" | "black_orange"; sort_order: number };
+type PlatformRow = { id?: string; project_id: string; name: string; logo_url: string; store_url: string; sort_order: number };
+const LANDING_SETTINGS_DEFAULTS: LandingSettingsRow = {
+  id: 1, slider_autoplay: true, slider_interval_seconds: 6,
+  header_banner_logo_url: "", header_sticky_logo_url: "", header_studio_line: "A TWO-PERSON INDIE STUDIO FROM LÜBECK, GERMANY", header_established_line: "EST. 2021",
+  discord_button_label: "DISCORD", discord_button_url: "", mission_visible: true, mission_text: "", mission_signoff: "Forged together with our community.",
+  about_heading: "ABOUT US", contact_heading: "CONTACT", contact_direct_text: "Or reach us directly at", contact_email: "info@duoforgegames.com",
+  footer_logo_url: "", footer_copyright: "© 2026 Duo Forge Games. All rights reserved.",
+};
 type Submission = { id: string; name: string; email: string; subject: string; message: string; inquiry_type: string; created_at: string };
 
 const INQUIRY_META: Record<string, { label: string; className: string }> = {
@@ -148,6 +164,12 @@ async function loadTable<T>(table: string): Promise<T[]> {
   const { data, error } = await supabase.from(table).select("*").order("sort_order", { ascending: true });
   if (error) throw error;
   return (data ?? []) as T[];
+}
+
+async function loadSettings(): Promise<LandingSettingsRow> {
+  const { supabase } = await import("@/lib/supabase");
+  const { data } = await supabase.from("site_landing_settings").select("*").eq("id", 1).maybeSingle();
+  return { ...LANDING_SETTINGS_DEFAULTS, ...(data ?? {}) };
 }
 
 function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {

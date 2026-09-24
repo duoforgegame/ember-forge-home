@@ -13,6 +13,7 @@ export type SocialDestinations = {
   discord_visible?: boolean | null;
   youtube_visible?: boolean | null;
   tiktok_visible?: boolean | null;
+  instagram_visible?: boolean | null;
   twitter_visible?: boolean | null;
 };
 
