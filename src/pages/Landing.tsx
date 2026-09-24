@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -161,41 +161,74 @@ export function GamesHero({ projects, autoplay = false, intervalSeconds = 6, pre
         <div className={`game-info-bar ${activeProject.infoBarColor ? "" : activeIndex % 2 === 0 ? "game-info-accent" : "game-info-dark"}`} style={activeProject.infoBarColor ? { backgroundColor: activeProject.infoBarColor } : undefined}>
           <div className="game-summary">
             <p className="eyebrow">{activeProject.status}</p>
-            <h1>{activeProject.title}</h1>
-            <p>{activeProject.description}</p>
-            {(activeProject.moreInfoEnabled || activeProject.pressKitEnabled) && (
-              <div className="game-secondary-links">
-                {activeProject.moreInfoEnabled && (
-                  <Link to={`/games/${slugify(activeProject.title)}`}><Info /> More info</Link>
-                )}
-                {activeProject.pressKitEnabled && (
-                  <Link to={`/press/${slugify(activeProject.title)}`}><Newspaper /> Press kit</Link>
-                )}
+            <AutoFitGameTitle title={activeProject.title} />
+            <p className="game-description">{activeProject.description}</p>
+          </div>
+          <div className="game-info-actions">
+            {!!activeProject.platforms?.length && (
+              <div className="platform-tiles">
+                {activeProject.platforms.filter((platform) => platform.name || platform.logo_url).map((platform, index) => (
+                  <a key={platform.id ?? `${platform.name}-${index}`} href={platform.store_url || undefined} target={platform.store_url ? "_blank" : undefined} rel="noopener noreferrer" className="platform-tile">
+                    {platform.logo_url && <img src={platform.logo_url} alt="" />}
+                    {platform.name && <span>{platform.name}</span>}
+                  </a>
+                ))}
               </div>
             )}
-          </div>
-          {!!activeProject.platforms?.length && (
-            <div className="platform-tiles">
-              {activeProject.platforms.filter((platform) => platform.name || platform.logo_url).map((platform, index) => (
-                <a key={platform.id ?? `${platform.name}-${index}`} href={platform.store_url || undefined} target={platform.store_url ? "_blank" : undefined} rel="noopener noreferrer" className="platform-tile">
-                  {platform.logo_url && <img src={platform.logo_url} alt="" />}
-                  {platform.name && <span>{platform.name}</span>}
-                </a>
-              ))}
+            <div className="game-button-row">
+              {activeProject.pressKitEnabled && (
+                <Button asChild variant="outline" className="game-secondary-cta game-press-cta">
+                  <Link to={`/press/${slugify(activeProject.title)}`}><Newspaper /> Press kit</Link>
+                </Button>
+              )}
+              {activeProject.moreInfoEnabled && (
+                <Button asChild variant="outline" className="game-secondary-cta game-more-cta">
+                  <Link to={`/games/${slugify(activeProject.title)}`}><Info /> More info</Link>
+                </Button>
+              )}
+              {activeProject.buttonUrl && (
+                <Button asChild variant="outline" className="game-cta">
+                  <a href={activeProject.buttonUrl} target="_blank" rel="noopener noreferrer">
+                    {activeProject.buttonLabel}
+                  </a>
+                </Button>
+              )}
             </div>
-          )}
-          {activeProject.buttonUrl && (
-            <Button asChild variant="outline" className="game-cta">
-              <a href={activeProject.buttonUrl} target="_blank" rel="noopener noreferrer">
-                {activeProject.buttonLabel}
-              </a>
-            </Button>
-          )}
+          </div>
         </div>
       </div>
       {trailerOpen && activeProject.trailerUrl && <TrailerLightbox url={activeProject.trailerUrl} onClose={() => setTrailerOpen(false)} />}
     </section>
   );
+}
+
+function AutoFitGameTitle({ title }: { title: string }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  useLayoutEffect(() => {
+    const titleElement = titleRef.current;
+    if (!titleElement) return;
+
+    const fitTitle = () => {
+      titleElement.style.fontSize = "";
+      const startingSize = Number.parseFloat(window.getComputedStyle(titleElement).fontSize);
+      if (!Number.isFinite(startingSize)) return;
+      const minimumSize = startingSize * 0.6;
+      let fittedSize = startingSize;
+      while (titleElement.scrollWidth > titleElement.clientWidth && fittedSize > minimumSize) {
+        fittedSize = Math.max(minimumSize, fittedSize - 1);
+        titleElement.style.fontSize = `${fittedSize}px`;
+      }
+    };
+
+    fitTitle();
+    const observer = new ResizeObserver(fitTitle);
+    observer.observe(titleElement);
+    if (titleElement.parentElement) observer.observe(titleElement.parentElement);
+    return () => observer.disconnect();
+  }, [title]);
+
+  return <h1 ref={titleRef} title={title}>{title}</h1>;
 }
 
 function TrailerLightbox({ url, onClose }: { url: string; onClose: () => void }) {
