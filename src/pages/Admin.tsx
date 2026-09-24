@@ -1371,7 +1371,7 @@ const defaultContent = (type: string): any => {
 };
 
 function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: () => void }) {
-  const projectId = project.id!;
+  const projectId = project.id;
   const [blocks, setBlocks] = useState<BlockRow[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1380,6 +1380,9 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
   const [msg, setMsg] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  if (!projectId) return null;
 
   useEffect(() => {
     (async () => {
@@ -1400,7 +1403,13 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
     })();
   }, [projectId]);
 
-  const patch = (i: number, p: Partial<BlockRow>) => setBlocks(blocks.map((b, idx) => idx === i ? { ...b, ...p, _dirty: true } : b));
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [dirty]);
+
+  const patch = (i: number, p: Partial<BlockRow>) => { setDirty(true); setBlocks(blocks.map((b, idx) => idx === i ? { ...b, ...p, _dirty: true } : b)); };
   const patchContent = (i: number, c: any) => patch(i, { content: { ...blocks[i].content, ...c } });
 
   const move = (i: number, dir: -1 | 1) => {
@@ -1409,6 +1418,7 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
     const next = [...blocks];
     [next[i], next[j]] = [next[j], next[i]];
     setBlocks(next.map((b, idx) => ({ ...b, sort_order: idx, _dirty: true })));
+    setDirty(true);
     if (openIdx === i) setOpenIdx(j);
     else if (openIdx === j) setOpenIdx(i);
   };
@@ -1418,11 +1428,13 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
     const b = blocks[i];
     if (b.id) setDeletedIds([...deletedIds, b.id]);
     setBlocks(blocks.filter((_, idx) => idx !== i).map((b, idx) => ({ ...b, sort_order: idx, _dirty: true })));
+    setDirty(true);
     if (openIdx === i) setOpenIdx(null);
   };
 
   const add = (type: string) => {
     setBlocks([...blocks, { project_id: projectId, block_type: type, sort_order: blocks.length, visible: true, content: defaultContent(type), _dirty: true }]);
+    setDirty(true);
     setAddOpen(false);
     setOpenIdx(blocks.length);
   };
@@ -1444,6 +1456,7 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
       }
       setDeletedIds([]);
       setMsg("Saved");
+      setDirty(false);
     } catch (e: any) {
       setMsg(e?.message ?? "Save failed");
     } finally {
@@ -1452,13 +1465,26 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
   };
 
   const gameUrl = `/games/${slugify(project.title)}`;
+  const close = () => { if (!dirty || confirm("You have unsaved changes. Close the editor?")) onClose(); };
+  const duplicate = (i: number) => {
+    const source = blocks[i];
+    const copy: BlockRow = { ...source, id: undefined, content: structuredClone(source.content || {}), sort_order: i + 1, _dirty: true };
+    const next = [...blocks]; next.splice(i + 1, 0, copy);
+    setBlocks(next.map((block, index) => ({ ...block, sort_order: index, _dirty: true })));
+    setOpenIdx(i + 1); setDirty(true);
+  };
+  const previewProject: GameProject = {
+    id: projectId, title: project.title, description: project.description, cover_url: project.cover_url,
+    key_art_url: project.key_art_url, trailer_url: project.trailer_url, status: project.status,
+    button_label: project.button_label, button_url: project.button_url, info_bar_color: project.info_bar_color,
+    more_info_enabled: !!project.more_info_enabled, visible: project.visible,
+  };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
-      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+    <div className="game-editor-page fixed inset-0 z-50 flex flex-col bg-background" role="dialog" aria-modal="true">
+        <div className="game-editor-header flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 className="font-display text-xl font-bold">Game Info Page — {project.title}</h2>
+            <h2 className="font-display text-xl font-bold">Game Info Page: {project.title}</h2>
             <a href={gameUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
               <ExternalLink className="h-3 w-3" /> Preview page: {gameUrl}
             </a>
@@ -1468,23 +1494,27 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
             <Button size="sm" onClick={save} disabled={saving || loading}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
             </Button>
-            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={close} aria-label="Close"><X className="h-4 w-4" /></Button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="game-editor-body flex-1 overflow-y-auto px-6 py-5">
           {loading && <Spinner />}
           {error && <ErrorMsg text={error} />}
           {!loading && !error && (
-            <div className="space-y-3">
+            <div className="game-editor-columns">
+              <div className="space-y-3">
               {blocks.length === 0 && (
                 <p className="text-sm text-muted-foreground">No blocks yet. Click "Add block" to start.</p>
               )}
+              <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (!over || active.id === over.id) return; const ids = blocks.map((block, index) => block.id ?? `new-${index}`); const oldIndex = ids.indexOf(String(active.id)); const newIndex = ids.indexOf(String(over.id)); if (oldIndex < 0 || newIndex < 0) return; setBlocks(arrayMove(blocks, oldIndex, newIndex).map((block, index) => ({ ...block, sort_order: index, _dirty: true }))); setDirty(true); }}>
+              <SortableContext items={blocks.map((block, index) => block.id ?? `new-${index}`)} strategy={verticalListSortingStrategy}>
               {blocks.map((b, i) => {
                 const meta = BLOCK_TYPES.find((t) => t.type === b.block_type);
                 const open = openIdx === i;
                 return (
-                  <div key={b.id ?? `new-${i}`} className={`rounded-lg border ${b.visible ? "border-border" : "border-border/50 opacity-70"} bg-card`}>
+                  <SortableAdminCard key={b.id ?? `new-${i}`} id={b.id ?? `new-${i}`}>
+                  <div className={`${b.visible ? "" : "opacity-70"}`}>
                     <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-4 py-3">
                       <button
                         type="button"
@@ -1499,6 +1529,7 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
                       <Button variant="ghost" size="icon" onClick={() => patch(i, { visible: !b.visible })} aria-label="Toggle visibility" title={b.visible ? "Hide" : "Show"}>
                         {b.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                       </Button>
+                      <Button variant="ghost" size="icon" onClick={() => duplicate(i)} aria-label="Duplicate block" title="Duplicate"><Copy className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => move(i, -1)} aria-label="Move up"><ArrowUp className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => move(i, 1)} aria-label="Move down"><ArrowDown className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => remove(i)} aria-label="Delete" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
@@ -1506,38 +1537,20 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
                     {open && (
                       <div className="space-y-3 px-4 py-4">
                         <BlockEditor block={b} onContent={(c) => patchContent(i, c)} />
-                        <div className="pt-2">
-                          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Background color (hex)</Label>
-                          <div className="mt-1 flex items-center gap-2">
-                            <input
-                              type="color"
-                              value={/^#[0-9a-fA-F]{6}$/.test(b.content?.background_color || "") ? b.content.background_color : "#000000"}
-                              onChange={(e) => patchContent(i, { background_color: e.target.value })}
-                              className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
-                            />
-                            <Input
-                              value={b.content?.background_color ?? ""}
-                              onChange={(e) => patchContent(i, { background_color: e.target.value })}
-                              placeholder="e.g. #0b0b0f or empty for transparent"
-                              className="max-w-xs"
-                            />
-                          </div>
-                        </div>
+                        <BackgroundSelect value={b.content?.background || backgroundPreset(b.content?.background_color)} onChange={(background) => patchContent(i, { background, background_color: backgroundHex(background) })} />
                       </div>
                     )}
                   </div>
+                  </SortableAdminCard>
                 );
               })}
+              </SortableContext></DndContext>
+              <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add block</Button>
+              </div>
+              <aside className="game-editor-preview"><Label>Live page preview</Label><div className="game-editor-preview-frame"><GamePageCanvas project={previewProject} blocks={blocks as GameBlock[]} preview /></div></aside>
             </div>
           )}
         </div>
-
-        <div className="border-t border-border px-6 py-4">
-          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add block
-          </Button>
-        </div>
-      </div>
 
       {addOpen && (
         <div
