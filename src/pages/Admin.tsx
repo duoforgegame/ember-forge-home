@@ -1630,17 +1630,7 @@ function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any
           </div>
           <Field label="CTA label (optional)" value={c.cta_label ?? ""} onChange={(v) => onContent({ cta_label: v })} />
           <Field label="CTA URL (optional)" value={c.cta_url ?? ""} onChange={(v) => onContent({ cta_url: v })} />
-          <div>
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Overlay color</Label>
-            <div className="mt-1 flex items-center gap-2">
-              <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(c.overlay_color || "") ? c.overlay_color : "#000000"} onChange={(e) => onContent({ overlay_color: e.target.value })} className="h-9 w-12 cursor-pointer rounded border border-border" />
-              <Input value={c.overlay_color ?? ""} onChange={(e) => onContent({ overlay_color: e.target.value })} placeholder="#000000" />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Overlay opacity ({Math.round((c.overlay_opacity ?? 0.5) * 100)}%)</Label>
-            <input type="range" min={0} max={1} step={0.05} value={c.overlay_opacity ?? 0.5} onChange={(e) => onContent({ overlay_opacity: Number(e.target.value) })} className="mt-2 w-full accent-primary" />
-          </div>
+          <Field label="YouTube trailer URL (optional)" value={c.trailer_url ?? ""} onChange={(v) => onContent({ trailer_url: v })} className="sm:col-span-2" />
         </div>
       );
 
@@ -1648,6 +1638,7 @@ function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any
       return (
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Heading (optional)" value={c.heading ?? ""} onChange={(v) => onContent({ heading: v })} className="sm:col-span-2" />
+          <div><Label>Headline style</Label><select value={c.heading_style ?? "normal"} onChange={(e) => onContent({ heading_style: e.target.value })} className="mt-1 flex h-10 w-full border border-input bg-background px-3 text-sm"><option value="normal">Normal</option><option value="stacked">Stacked Blocks</option></select></div>
           <TextField label="Body" value={c.body ?? ""} onChange={(v) => onContent({ body: v })} className="sm:col-span-2" />
           <div>
             <Label>Image position</Label>
@@ -1668,8 +1659,8 @@ function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any
       );
 
     case "gallery": {
-      const images: string[] = Array.isArray(c.images) ? c.images : [];
-      const setImages = (next: string[]) => onContent({ images: next });
+      const images: { url: string; caption: string }[] = Array.isArray(c.images) ? c.images.map((image: any) => typeof image === "string" ? { url: image, caption: "" } : { url: image?.url || "", caption: image?.caption || "" }) : [];
+      const setImages = (next: { url: string; caption: string }[]) => onContent({ images: next });
       const moveImg = (i: number, dir: -1 | 1) => {
         const j = i + dir;
         if (j < 0 || j >= images.length) return;
@@ -1686,22 +1677,20 @@ function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any
               for (const f of Array.from(files ?? [])) {
                 try { urls.push(await uploadPressAsset(f, "press_image")); } catch {}
               }
-              if (urls.length) setImages([...images, ...urls]);
+              if (urls.length) setImages([...images, ...urls.map((url) => ({ url, caption: "" }))]);
             }}
           />
           {images.length === 0 ? (
             <p className="text-sm text-muted-foreground">No images yet.</p>
           ) : (
             <ul className="grid gap-2">
-              {images.map((url, i) => (
-                <li key={`${url}-${i}`} className="flex items-center gap-3 rounded-md border border-border bg-background/40 p-2">
+              {images.map((image, i) => (
+                <li key={`${image.url}-${i}`} className="grid items-center gap-3 border border-border bg-background/40 p-2 sm:grid-cols-[96px_1fr_auto]">
                   <div className="h-14 w-24 shrink-0 overflow-hidden rounded bg-surface-2">
-                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <img src={image.url} alt="" className="h-full w-full object-cover" />
                   </div>
-                  <Input value={url} onChange={(e) => setImages(images.map((u, idx) => idx === i ? e.target.value : u))} className="flex-1 text-xs" />
-                  <Button variant="ghost" size="icon" onClick={() => moveImg(i, -1)} aria-label="Move up"><ArrowUp className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => moveImg(i, 1)} aria-label="Move down"><ArrowDown className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => setImages(images.filter((_, idx) => idx !== i))} aria-label="Delete" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  <div className="grid gap-2"><Input value={image.url} onChange={(e) => setImages(images.map((item, idx) => idx === i ? { ...item, url: e.target.value } : item))} className="text-xs" /><Input value={image.caption} onChange={(e) => setImages(images.map((item, idx) => idx === i ? { ...item, caption: e.target.value } : item))} placeholder="Optional caption" /></div>
+                  <div><Button variant="ghost" size="icon" onClick={() => moveImg(i, -1)} aria-label="Move up"><ArrowUp className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => moveImg(i, 1)} aria-label="Move down"><ArrowDown className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setImages(images.filter((_, idx) => idx !== i))} aria-label="Delete" className="text-destructive"><Trash2 className="h-4 w-4" /></Button></div>
                 </li>
               ))}
             </ul>
@@ -1719,13 +1708,11 @@ function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any
           <div>
             <Label>Display size</Label>
             <select
-              value={c.size ?? "large"}
+              value={c.size === "full" || c.size === "full_width" ? "full" : "contained"}
               onChange={(e) => onContent({ size: e.target.value })}
               className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
-              <option value="small">Small</option>
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
+              <option value="contained">Contained</option>
               <option value="full">Full width</option>
             </select>
           </div>
@@ -1741,9 +1728,16 @@ function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any
       return (
         <div className="grid gap-3">
           <Field label="Steam App ID" value={c.app_id ?? ""} onChange={(v) => onContent({ app_id: v })} placeholder="e.g. 730" />
+          <Field label="Section label" value={c.label ?? "GET IT ON STEAM"} onChange={(v) => onContent({ label: v })} />
           <p className="text-xs text-muted-foreground">Renders <code>https://store.steampowered.com/widget/&lt;APP_ID&gt;/</code>.</p>
         </div>
       );
+
+    case "store_bar": {
+      const platforms: any[] = Array.isArray(c.platforms) ? c.platforms : [];
+      const setPlatforms = (next: any[]) => onContent({ platforms: next });
+      return <div className="space-y-3"><ToggleField label="Use game data" value={c.use_game_data !== false} onChange={(value) => onContent({ use_game_data: value })} />{c.use_game_data === false && <><TextField label="Description" value={c.description ?? ""} onChange={(value) => onContent({ description: value })} /><Field label="Status" value={c.status ?? ""} onChange={(value) => onContent({ status: value })} /><div className="grid gap-3 sm:grid-cols-2"><Field label="Button label" value={c.button_label ?? ""} onChange={(value) => onContent({ button_label: value })} /><Field label="Button URL" value={c.button_url ?? ""} onChange={(value) => onContent({ button_url: value })} /></div><div className="space-y-2"><Label>Platform tiles</Label>{platforms.map((platform, index) => <div key={index} className="grid gap-2 border border-border p-3 sm:grid-cols-2"><Field label="Name" value={platform.name ?? ""} onChange={(value) => setPlatforms(platforms.map((item, i) => i === index ? { ...item, name: value } : item))} /><Field label="Store URL" value={platform.store_url ?? ""} onChange={(value) => setPlatforms(platforms.map((item, i) => i === index ? { ...item, store_url: value } : item))} /><div className="flex items-end gap-2">{platform.logo_url && <img src={platform.logo_url} alt="" className="h-10 w-10 object-contain" />}<IconUploadButton onUploaded={(logo_url) => setPlatforms(platforms.map((item, i) => i === index ? { ...item, logo_url } : item))} /><Button variant="ghost" size="sm" onClick={() => setPlatforms(platforms.map((item, i) => i === index ? { ...item, logo_url: "" } : item))}>Remove logo</Button></div><Button variant="ghost" size="icon" onClick={() => setPlatforms(platforms.filter((_, i) => i !== index))}><Trash2 /></Button></div>)}<Button variant="outline" size="sm" onClick={() => setPlatforms([...platforms, { name: "", logo_url: "", store_url: "" }])}><Plus className="mr-2 h-4 w-4" />Add platform</Button></div></>}<ColorField label="Bar color" value={c.bar_color || "#e8702a"} onChange={(value) => onContent({ bar_color: value })} /></div>;
+    }
 
     case "features": {
       const items: any[] = Array.isArray(c.items) ? c.items : [];
@@ -1793,7 +1787,7 @@ function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any
 
     case "video":
       return (
-        <Field label="YouTube or Vimeo URL" value={c.url ?? ""} onChange={(v) => onContent({ url: v })} placeholder="https://youtube.com/watch?v=…" />
+        <div className="grid gap-3"><Field label="YouTube or Vimeo URL" value={c.url ?? ""} onChange={(v) => onContent({ url: v })} placeholder="https://youtube.com/watch?v=..." /><ImageInput label="Poster image (optional)" value={c.poster_url ?? ""} onChange={(poster_url) => onContent({ poster_url })} /></div>
       );
 
     case "quote":
@@ -1801,6 +1795,8 @@ function BlockEditor({ block, onContent }: { block: BlockRow; onContent: (c: any
         <div className="grid gap-3">
           <TextField label="Quote" value={c.quote ?? ""} onChange={(v) => onContent({ quote: v })} />
           <Field label="Attribution" value={c.attribution ?? ""} onChange={(v) => onContent({ attribution: v })} placeholder="Name / Publication" />
+          <Field label="Source" value={c.source ?? ""} onChange={(v) => onContent({ source: v })} />
+          <Field label="Source URL" value={c.source_url ?? ""} onChange={(v) => onContent({ source_url: v })} />
         </div>
       );
 
