@@ -292,7 +292,7 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
         />
       )}
       {gamePageFor?.id && (
-        <GamePageDialog project={gamePageFor} onClose={() => setGamePageFor(null)} />
+        <GamePageDialog project={gamePageFor} platforms={platforms.filter((platform) => platform.project_id === gamePageFor.id)} onClose={() => setGamePageFor(null)} />
       )}
     </div>
   );
@@ -1383,8 +1383,8 @@ function BackgroundSelect({ value, onChange }: { value: BlockBackground; onChang
   return <div className="pt-2"><Label>Block background</Label><div className="background-options">{(["black", "dark", "orange"] as BlockBackground[]).map((option) => <Button key={option} type="button" variant={value === option ? "default" : "outline"} size="sm" onClick={() => onChange(option)}>{option === "dark" ? "Dark grey" : option}</Button>)}</div></div>;
 }
 
-function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: () => void }) {
-  const projectId = project.id;
+function GamePageDialog({ project, platforms, onClose }: { project: ProjectRow; platforms: PlatformRow[]; onClose: () => void }) {
+  const projectId = project.id ?? "";
   const [blocks, setBlocks] = useState<BlockRow[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1394,8 +1394,6 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
   const [addOpen, setAddOpen] = useState(false);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
-
-  if (!projectId) return null;
 
   useEffect(() => {
     (async () => {
@@ -1490,7 +1488,7 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
     id: projectId, title: project.title, description: project.description, cover_url: project.cover_url,
     key_art_url: project.key_art_url, trailer_url: project.trailer_url, status: project.status,
     button_label: project.button_label, button_url: project.button_url, info_bar_color: project.info_bar_color,
-    more_info_enabled: !!project.more_info_enabled, visible: project.visible,
+    more_info_enabled: !!project.more_info_enabled, visible: project.visible, platforms,
   };
 
   return (
