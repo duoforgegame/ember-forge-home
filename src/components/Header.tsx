@@ -22,7 +22,7 @@ const FALLBACK: HeaderLink[] = [
 const isInternal = (url: string) => url.startsWith("#");
 const isExternal = (url: string) => /^https?:\/\//i.test(url);
 
-export function Header() {
+export function Header({ forceCompact = false }: { forceCompact?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -98,8 +98,8 @@ export function Header() {
   };
 
   return (
-    <header className={`site-header ${scrolled ? "is-compact" : ""}`} style={{ top: "var(--banner-h, 0px)" }}>
-      {isLanding && !scrolled && (
+    <header className={`site-header ${scrolled || forceCompact ? "is-compact" : ""}`} style={{ top: "var(--banner-h, 0px)" }}>
+      {isLanding && !scrolled && !forceCompact && (
         <div className="studio-banner">
           {(settings?.header_banner_logo_url || bannerLogo) && <img src={settings?.header_banner_logo_url || bannerLogo} alt="Duo Forge Games" />}
           {settings?.header_studio_line !== "" && <p>{settings?.header_studio_line || "A two-person indie studio from Lübeck, Germany"}</p>}
