@@ -224,22 +224,26 @@ body:has(.public-landing)::before { display: none; }
 
 .public-landing .game-info-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, auto);
   align-items: center;
   gap: 46px;
-  min-height: 240px;
+  height: 290px;
   padding: 42px 56px;
+  overflow: hidden;
 }
 .public-landing .game-info-accent { background: var(--landing-accent); color: var(--primary-foreground); }
 .public-landing .game-info-dark { background: var(--landing-raised); }
-.public-landing .game-summary h1 { max-width: 760px; font-family: var(--font-display); font-size: clamp(38px, 5vw, 72px); font-weight: 700; line-height: 0.98; letter-spacing: 0; text-transform: uppercase; }
-.public-landing .game-summary > p:last-of-type { max-width: 680px; margin-top: 14px; font-size: 16px; line-height: 1.65; }
+.public-landing .game-summary { min-width: 0; }
+.public-landing .game-summary h1 { width: 100%; max-width: 760px; overflow: hidden; font-family: var(--font-display); font-size: clamp(38px, 5vw, 72px); font-weight: 700; line-height: 0.98; letter-spacing: 0; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.public-landing .game-description { display: -webkit-box; max-width: 680px; margin-top: 14px; overflow: hidden; font-size: clamp(14px, 1.15vw, 16px); line-height: 1.55; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .public-landing .eyebrow { margin-bottom: 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-.public-landing .game-secondary-links { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 18px; }
-.public-landing .game-secondary-links a { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-.public-landing .game-secondary-links svg { width: 16px; height: 16px; }
+.public-landing .game-info-actions { display: grid; justify-items: end; gap: 18px; }
+.public-landing .game-button-row { display: flex; align-items: stretch; justify-content: flex-end; gap: 10px; }
 .public-landing .game-cta { min-height: 58px; border: 3px solid currentColor; border-radius: 0; background: transparent; color: inherit; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; box-shadow: none; }
 .public-landing .game-cta:hover { background: var(--foreground); color: var(--background); }
+.public-landing .game-secondary-cta { min-height: 58px; border: 1px solid currentColor; border-radius: 0; background: transparent; color: inherit; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; box-shadow: none; }
+.public-landing .game-secondary-cta:hover { background: var(--foreground); color: var(--background); }
+.public-landing .game-secondary-cta svg { width: 15px; height: 15px; }
 .public-landing .game-trailer-button { position: absolute; inset: 50% auto auto 50%; z-index: 3; width: 72px; height: 72px; border: 3px solid #fff; border-radius: 50%; background: #e8702a; color: #000; transform: translate(-50%, -50%); }
 .public-landing .platform-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
 .public-landing .platform-tile { display: grid; min-width: 76px; place-items: center; gap: 6px; padding: 10px; background: #151515; color: #fff; }
@@ -328,9 +332,13 @@ body:has(.public-landing)::before { display: none; }
   .main-nav > a::after { bottom: 9px; right: auto; width: 44px; }
   .main-nav .discord-button { margin-top: 12px; }
   .public-landing .games-hero { padding-top: 66px; }
-  .public-landing .game-info-bar { grid-template-columns: 1fr; gap: 26px; padding: 34px 28px 42px; }
+  .public-landing .game-info-bar { grid-template-columns: 1fr; align-content: center; gap: 24px; height: 580px; padding: 34px 28px 42px; }
   .public-landing .platform-mark { align-items: flex-start; }
-  .public-landing .game-cta { width: 100%; }
+  .public-landing .game-info-actions { justify-items: stretch; gap: 18px; }
+  .public-landing .game-button-row { flex-direction: column; }
+  .public-landing .game-button-row .game-cta { order: 1; width: 100%; }
+  .public-landing .game-button-row .game-more-cta { order: 2; width: 100%; }
+  .public-landing .game-button-row .game-press-cta { order: 3; width: 100%; }
   .public-landing .mission-section,
   .public-landing .team-section,
   .public-landing .contact-section { padding: 88px 24px; }
