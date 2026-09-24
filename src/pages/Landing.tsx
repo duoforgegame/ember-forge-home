@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Newspaper, Send } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Newspaper, Play, Send, X } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SocialIconLinks } from "@/components/SocialIconLinks";
@@ -19,9 +19,21 @@ import {
 } from "@/lib/site-data";
 import { fetchSiteContent, sendContact, slugify } from "@/lib/api";
 
-type ProjectView = (typeof fallbackProjects)[number] & {
+export type PlatformView = { id?: string; name: string; logo_url: string; store_url: string; sort_order?: number };
+export type ProjectView = (typeof fallbackProjects)[number] & {
+  id?: string;
   pressKitEnabled?: boolean;
   moreInfoEnabled?: boolean;
+  visible?: boolean;
+  trailerUrl?: string;
+  infoBarColor?: string;
+  platforms?: PlatformView[];
+};
+
+export type LandingSettings = {
+  slider_autoplay: boolean; slider_interval_seconds: number; mission_visible: boolean;
+  mission_text: string; mission_signoff: string; about_heading: string;
+  contact_heading: string; contact_direct_text: string; contact_email: string;
 };
 
 export function statusBadgeStyle(color: string): React.CSSProperties {
@@ -37,21 +49,26 @@ export default function Landing() {
 
   const projects: ProjectView[] =
     data?.projects && data.projects.length > 0
-      ? data.projects.map((project: any) => ({
+      ? data.projects.filter((project: any) => project.visible !== false).map((project: any) => ({
+          id: project.id,
           title: project.title,
           description: project.description,
-          cover: project.cover_url,
+          cover: project.key_art_url || project.cover_url,
           status: project.status as ProjectStatus,
           buttonLabel: project.button_label,
           buttonUrl: project.button_url,
           pressKitEnabled: !!project.press_kit_enabled,
           moreInfoEnabled: !!project.more_info_enabled,
+          visible: project.visible !== false,
+          trailerUrl: project.trailer_url || "",
+          infoBarColor: project.info_bar_color || "",
+          platforms: (data.platforms ?? []).filter((platform: any) => platform.project_id === project.id),
         }))
       : fallbackProjects.map((project) => ({ ...project, pressKitEnabled: false, moreInfoEnabled: false }));
 
   const team =
     data?.team && data.team.length > 0
-      ? data.team.map((member: any) => ({ name: member.name, role: member.role, bio: member.bio }))
+      ? data.team.map((member: any) => ({ name: member.name, gamer_tag: member.gamer_tag, real_name: member.real_name, role: member.role, bio: member.bio }))
       : fallbackTeam;
 
   return (
@@ -59,12 +76,15 @@ export default function Landing() {
       <div className="landing-shell">
         <Header />
         <main>
-          <GamesHero projects={projects} />
-          <MissionSection aboutText={data?.about?.intro_html ?? null} />
-          <TeamSection team={team} />
+          <GamesHero projects={projects} autoplay={data?.settings?.slider_autoplay ?? true} intervalSeconds={data?.settings?.slider_interval_seconds ?? 6} />
+          {(data?.settings?.mission_visible ?? true) && <MissionSection lines={data?.missionLines} missionText={data?.settings?.mission_text || data?.about?.intro_html || ""} signoff={data?.settings?.mission_signoff} />}
+          <TeamSection team={team} heading={data?.settings?.about_heading} introHtml={data?.about?.intro_html} />
           <ContactSection
             socials={data?.socials ?? fallbackSocials}
             steamUrl={projects.find((project) => /store\.steampowered\.com/i.test(project.buttonUrl))?.buttonUrl}
+            heading={data?.settings?.contact_heading}
+            directText={data?.settings?.contact_direct_text}
+            email={data?.settings?.contact_email}
           />
         </main>
         <Footer />
@@ -73,13 +93,20 @@ export default function Landing() {
   );
 }
 
-function GamesHero({ projects }: { projects: ProjectView[] }) {
+export function GamesHero({ projects, autoplay = false, intervalSeconds = 6, preview = false }: { projects: ProjectView[]; autoplay?: boolean; intervalSeconds?: number; preview?: boolean }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [trailerOpen, setTrailerOpen] = useState(false);
   const activeProject = projects[activeIndex];
 
   useEffect(() => {
     if (activeIndex >= projects.length) setActiveIndex(0);
   }, [activeIndex, projects.length]);
+
+  useEffect(() => {
+    if (!autoplay || preview || projects.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setActiveIndex((current) => (current + 1) % projects.length), Math.max(2, intervalSeconds) * 1000);
+    return () => window.clearInterval(timer);
+  }, [autoplay, intervalSeconds, preview, projects.length]);
 
   if (!activeProject) return null;
 
@@ -100,8 +127,10 @@ function GamesHero({ projects }: { projects: ProjectView[] }) {
               width={1600}
               height={900}
             />
-          ) : (
-            <div className="game-art-placeholder">KEY ART PLACEHOLDER</div>
+          ) : null}
+
+          {activeProject.trailerUrl && (
+            <Button className="game-trailer-button" size="icon" onClick={() => setTrailerOpen(true)} aria-label={`Play ${activeProject.title} trailer`}><Play /></Button>
           )}
 
           {projects.length > 1 && (
@@ -129,7 +158,7 @@ function GamesHero({ projects }: { projects: ProjectView[] }) {
           )}
         </div>
 
-        <div className={`game-info-bar ${activeIndex % 2 === 0 ? "game-info-accent" : "game-info-dark"}`}>
+        <div className={`game-info-bar ${activeProject.infoBarColor ? "" : activeIndex % 2 === 0 ? "game-info-accent" : "game-info-dark"}`} style={activeProject.infoBarColor ? { backgroundColor: activeProject.infoBarColor } : undefined}>
           <div className="game-summary">
             <p className="eyebrow">{activeProject.status}</p>
             <h1>{activeProject.title}</h1>
@@ -145,6 +174,16 @@ function GamesHero({ projects }: { projects: ProjectView[] }) {
               </div>
             )}
           </div>
+          {!!activeProject.platforms?.length && (
+            <div className="platform-tiles">
+              {activeProject.platforms.filter((platform) => platform.name || platform.logo_url).map((platform, index) => (
+                <a key={platform.id ?? `${platform.name}-${index}`} href={platform.store_url || undefined} target={platform.store_url ? "_blank" : undefined} rel="noopener noreferrer" className="platform-tile">
+                  {platform.logo_url && <img src={platform.logo_url} alt="" />}
+                  {platform.name && <span>{platform.name}</span>}
+                </a>
+              ))}
+            </div>
+          )}
           {activeProject.buttonUrl && (
             <Button asChild variant="outline" className="game-cta">
               <a href={activeProject.buttonUrl} target="_blank" rel="noopener noreferrer">
@@ -154,42 +193,48 @@ function GamesHero({ projects }: { projects: ProjectView[] }) {
           )}
         </div>
       </div>
+      {trailerOpen && activeProject.trailerUrl && <TrailerLightbox url={activeProject.trailerUrl} onClose={() => setTrailerOpen(false)} />}
     </section>
   );
 }
 
-function MissionSection({ aboutText }: { aboutText: string | null }) {
+function TrailerLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/i);
+  if (!match?.[1]) return null;
+  return <div className="trailer-lightbox" role="dialog" aria-modal="true" aria-label="Game trailer" onClick={onClose}><div className="trailer-frame" onClick={(event) => event.stopPropagation()}><Button size="icon" variant="ghost" onClick={onClose} aria-label="Close trailer"><X /></Button><iframe src={`https://www.youtube-nocookie.com/embed/${match[1]}?autoplay=1`} title="Game trailer" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen /></div></div>;
+}
+
+export function MissionSection({ lines, missionText, signoff }: { lines?: { id?: string; text: string; style: string }[]; missionText?: string | null; signoff?: string | null }) {
+  const displayLines = lines?.length ? lines : [{ text: "Games by", style: "white_black" }, { text: "Gamers", style: "white_black" }, { text: "For", style: "black_orange" }, { text: "Gamers", style: "black_orange" }];
   return (
     <section id="projects" className="mission-section">
       <div className="mission-grid">
         <div className="mission-lockup" aria-label="Games by gamers, for gamers">
-          <span>Games by</span>
-          <span>Gamers</span>
-          <span>For</span>
-          <span>Gamers</span>
+          {displayLines.filter((line) => line.text).map((line, index) => <span key={line.id ?? index} className={line.style === "black_orange" ? "is-orange" : ""}>{line.text}</span>)}
         </div>
         <div className="mission-copy">
-          {aboutText ? (
-            <div dangerouslySetInnerHTML={{ __html: aboutText }} />
+          {missionText ? (
+            <div dangerouslySetInnerHTML={{ __html: missionText }} />
           ) : (
             <p>Duo Forge Games is a two-person indie studio from Lübeck. We are brothers, and every game we make is shaped together with the players who test it.</p>
           )}
           <span className="mission-rule" />
-          <p className="mission-signoff">Forged together with our community.</p>
+           {signoff && <p className="mission-signoff">{signoff}</p>}
         </div>
       </div>
     </section>
   );
 }
 
-function TeamSection({ team }: { team: typeof fallbackTeam }) {
+export function TeamSection({ team, heading = "About us", introHtml }: { team: any[]; heading?: string; introHtml?: string }) {
   return (
     <section id="about" className="team-section">
-      <h2 className="section-heading">About us</h2>
+      {heading && <h2 className="section-heading">{heading}</h2>}
+      {introHtml && <div className="about-intro" dangerouslySetInnerHTML={{ __html: introHtml }} />}
       <div className="team-grid">
         {team.map((member) => (
           <article key={member.name} className="team-profile">
-            <h3>{member.name}</h3>
+            <h3>{member.gamer_tag || member.name}{member.real_name && <small>{member.real_name}</small>}</h3>
             <p className="eyebrow">{member.role}</p>
             <p className="team-bio">{member.bio}</p>
           </article>
@@ -216,13 +261,14 @@ const contactSchema = z.object({
   }),
 });
 
-function ContactSection({ socials, steamUrl }: { socials: typeof fallbackSocials; steamUrl?: string }) {
+export function ContactSection({ socials, steamUrl, heading = "Contact", directText = "Or reach us directly at", email = CONTACT_EMAIL, preview = false }: { socials: typeof fallbackSocials & Record<string, any>; steamUrl?: string; heading?: string; directText?: string; email?: string; preview?: boolean }) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [inquiryType, setInquiryType] = useState("");
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (preview) return;
     const form = event.currentTarget;
     const formData = new FormData(form);
     const parsed = contactSchema.safeParse({
@@ -253,7 +299,7 @@ function ContactSection({ socials, steamUrl }: { socials: typeof fallbackSocials
 
   return (
     <section id="contact" className="contact-section">
-      <h2 className="section-heading">Contact</h2>
+      {heading && <h2 className="section-heading">{heading}</h2>}
       <form onSubmit={onSubmit} className="contact-form">
         <div className="contact-grid">
           <div className="field-group">
@@ -294,8 +340,8 @@ function ContactSection({ socials, steamUrl }: { socials: typeof fallbackSocials
       </form>
 
       <div className="contact-direct">
-        <p>Or reach us directly at <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
-        <SocialIconLinks socials={{ ...socials, steam: steamUrl }} />
+         {(directText || email) && <p>{directText} {email && <a href={`mailto:${email}`}>{email}</a>}</p>}
+         <SocialIconLinks socials={{ ...socials, steam: steamUrl }} />
       </div>
     </section>
   );

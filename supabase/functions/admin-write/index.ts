@@ -7,6 +7,7 @@ const ALLOWED_TABLES = new Set([
   "site_projects", "site_team", "site_about", "site_socials",
   "site_header_links", "site_footer_links", "site_status_colors", "site_legal", "site_announcement",
   "site_press_kits", "site_press_screenshots", "site_game_page_blocks", "site_featured_game",
+  "site_game_platforms", "site_landing_settings", "site_mission_lines",
   "weapon_categories", "weapons", "skin_submissions",
 ]);
 const COVERS_BUCKET = "project-covers";

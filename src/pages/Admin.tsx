@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff } from "lucide-react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical } from "lucide-react";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,12 +11,30 @@ import { adminLogin, adminCall, clearToken, uploadProjectCover, uploadPressAsset
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 import { FeaturedGameCard } from "@/components/FeaturedGameCard";
+import { GamesHero, MissionSection, TeamSection, ContactSection, type ProjectView } from "@/pages/Landing";
+import { SocialIconLinks } from "@/components/SocialIconLinks";
 
-type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
-type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
-type LinkRow = { id?: string; label: string; url: string; sort_order: number };
-type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string };
+type ProjectRow = { id?: string; title: string; description: string; cover_url: string; key_art_url?: string; trailer_url?: string; info_bar_color?: string; visible?: boolean; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
+type TeamRow = { id?: string; name: string; gamer_tag?: string; real_name?: string; role: string; bio: string; sort_order: number };
+type LinkRow = { id?: string; label: string; url: string; sort_order: number; visible?: boolean };
+type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string; twitter_visible?: boolean; tiktok_visible?: boolean; instagram_visible?: boolean; discord_visible?: boolean; youtube_visible?: boolean };
 type About = { id: number; intro_html: string };
+type LandingSettingsRow = {
+  id: number; slider_autoplay: boolean; slider_interval_seconds: number;
+  header_banner_logo_url: string; header_sticky_logo_url: string; header_studio_line: string; header_established_line: string;
+  discord_button_label: string; discord_button_url: string; mission_visible: boolean; mission_text: string; mission_signoff: string;
+  about_heading: string; contact_heading: string; contact_direct_text: string; contact_email: string;
+  footer_logo_url: string; footer_copyright: string;
+};
+type MissionLineRow = { id?: string; text: string; style: "white_black" | "black_orange"; sort_order: number };
+type PlatformRow = { id?: string; project_id: string; name: string; logo_url: string; store_url: string; sort_order: number };
+const LANDING_SETTINGS_DEFAULTS: LandingSettingsRow = {
+  id: 1, slider_autoplay: true, slider_interval_seconds: 6,
+  header_banner_logo_url: "", header_sticky_logo_url: "", header_studio_line: "A TWO-PERSON INDIE STUDIO FROM LÜBECK, GERMANY", header_established_line: "EST. 2021",
+  discord_button_label: "DISCORD", discord_button_url: "", mission_visible: true, mission_text: "", mission_signoff: "Forged together with our community.",
+  about_heading: "ABOUT US", contact_heading: "CONTACT", contact_direct_text: "Or reach us directly at", contact_email: "info@duoforgegames.com",
+  footer_logo_url: "", footer_copyright: "© 2026 Duo Forge Games. All rights reserved.",
+};
 type Submission = { id: string; name: string; email: string; subject: string; message: string; inquiry_type: string; created_at: string };
 
 const INQUIRY_META: Record<string, { label: string; className: string }> = {
@@ -26,7 +47,7 @@ type StatusColor = { status: string; color: string };
 
 const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
 
-const TABS = ["Projects", "Featured", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
+const TABS = ["Games", "Header", "Mission", "About", "Contact", "Socials", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
@@ -73,20 +94,31 @@ function Login({ onOk }: { onOk: () => void }) {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<Tab>("Projects");
+  const [tab, setTab] = useState<Tab>("Games");
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [dirty]);
+  const changeTab = (next: Tab) => {
+    if (next === tab) return;
+    if (dirty && !confirm("You have unsaved changes. Leave this tab?")) return;
+    setDirty(false); setTab(next);
+  };
   const logout = () => { clearToken(); onLogout(); };
   return (
-    <div className="min-h-screen bg-background">
+    <div className="admin-center min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <h1 className="font-display text-lg font-bold">Duo Forge — Admin</h1>
+          <h1 className="font-display text-lg font-bold">Duo Forge: Admin</h1>
           <Button variant="ghost" size="sm" onClick={logout}><LogOut className="mr-2 h-4 w-4" /> Log out</Button>
         </div>
         <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
           {TABS.map((t) => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => changeTab(t)}
               className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
@@ -97,13 +129,13 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         </nav>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        {tab === "Projects" && <ProjectsPanel />}
-        {tab === "Featured" && <FeaturedGamePanel />}
-        {tab === "Team" && <TeamPanel />}
-        {tab === "About" && <AboutPanel />}
-        {tab === "Socials" && <SocialsPanel />}
-        {tab === "Header" && <LinksPanel table="site_header_links" title="Header links" />}
-        {tab === "Footer" && <LinksPanel table="site_footer_links" title="Footer links" />}
+        {tab === "Games" && <ProjectsPanel onDirty={setDirty} />}
+        {tab === "Header" && <HeaderPanel onDirty={setDirty} />}
+        {tab === "Mission" && <MissionPanel onDirty={setDirty} />}
+        {tab === "About" && <AboutPanel onDirty={setDirty} />}
+        {tab === "Contact" && <ContactPanel onDirty={setDirty} />}
+        {tab === "Socials" && <SocialsPanel onDirty={setDirty} />}
+        {tab === "Footer" && <FooterPanel onDirty={setDirty} />}
         {tab === "Status colors" && <StatusColorsPanel />}
         {tab === "Legal" && <LegalPanel />}
         {tab === "Banner" && <AnnouncementPanel />}
@@ -134,8 +166,16 @@ async function loadTable<T>(table: string): Promise<T[]> {
   return (data ?? []) as T[];
 }
 
-function ProjectsPanel() {
+async function loadSettings(): Promise<LandingSettingsRow> {
+  const { supabase } = await import("@/lib/supabase");
+  const { data } = await supabase.from("site_landing_settings").select("*").eq("id", 1).maybeSingle();
+  return { ...LANDING_SETTINGS_DEFAULTS, ...(data ?? {}) };
+}
+
+function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const { data, loading, error, reload, setData } = useLoader<ProjectRow[]>(() => loadTable("site_projects"));
+  const settingsLoader = useLoader<LandingSettingsRow>(loadSettings);
+  const platformsLoader = useLoader<PlatformRow[]>(() => loadTable("site_game_platforms"));
   const colorsLoader = useLoader<StatusColor[]>(async () => {
     const { supabase } = await import("@/lib/supabase");
     const { data } = await supabase.from("site_status_colors").select("*");
@@ -145,44 +185,50 @@ function ProjectsPanel() {
   const [msg, setMsg] = useState("");
   const [pressKitFor, setPressKitFor] = useState<ProjectRow | null>(null);
   const [gamePageFor, setGamePageFor] = useState<ProjectRow | null>(null);
-  if (loading) return <Spinner />;
+  if (loading || !settingsLoader.data || !platformsLoader.data) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const rows = data ?? [];
+  const settings = settingsLoader.data ?? LANDING_SETTINGS_DEFAULTS;
+  const platforms = platformsLoader.data ?? [];
   const colorMap: Record<string, string> = {
     "Play Now": "#10b981", "In Development": "#f59e0b", "Coming Soon": "#0ea5e9", Prototype: "#a1a1aa",
   };
   for (const c of colorsLoader.data ?? []) colorMap[c.status] = c.color;
 
-  const update = (i: number, patch: Partial<ProjectRow>) => setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-  const addRow = () => setData([...rows, { title: "", description: "", cover_url: "", status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false, more_info_enabled: false }]);
+  const update = (i: number, patch: Partial<ProjectRow>) => { onDirty?.(true); setData(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r)); };
+  const addRow = () => { onDirty?.(true); setData([...rows, { title: "", description: "", cover_url: "", key_art_url: "", trailer_url: "", info_bar_color: "", visible: true, status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false, more_info_enabled: false }]); };
   const removeRow = async (i: number) => {
     const row = rows[i];
-    if (row.id && !confirm("Delete this project?")) return;
+    if (!confirm("Delete this game?")) return;
     if (row.id) await adminCall({ op: "delete", table: "site_projects", id: row.id });
-    setData(rows.filter((_, idx) => idx !== i));
+    setData(rows.filter((_, idx) => idx !== i)); onDirty?.(true);
   };
   const saveAll = async () => {
     setSaving(true); setMsg("");
-    try { await adminCall({ op: "upsert", table: "site_projects", rows }); setMsg("Saved"); await reload(); }
+    try { await Promise.all([adminCall({ op: "upsert", table: "site_projects", rows: rows.map((row, index) => ({ ...row, cover_url: row.key_art_url || row.cover_url, sort_order: index })) }), adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), platforms.length ? adminCall({ op: "upsert", table: "site_game_platforms", rows: platforms.map((row, index) => ({ ...row, sort_order: index })) }) : Promise.resolve()]); setMsg("Saved"); onDirty?.(false); await reload(); }
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
   return (
     <div className="space-y-4">
-      <PanelHeader title="Projects" onAdd={addRow} onSave={saveAll} saving={saving} msg={msg} />
-      {rows.map((r, i) => (
-        <div key={r.id ?? `new-${i}`} className="rounded-lg border border-border bg-card p-4">
+      <PanelHeader title="Games" onAdd={addRow} onSave={saveAll} saving={saving} msg={msg} />
+      <div className="admin-card grid gap-4 sm:grid-cols-2"><ToggleField label="Slider autoplay" value={settings.slider_autoplay} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, slider_autoplay: v }); }} /><NumField label="Autoplay interval in seconds" value={settings.slider_interval_seconds} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, slider_interval_seconds: Math.max(2, Math.min(60, v)) }); }} /></div>
+      <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (!over || active.id === over.id) return; const oldIndex = rows.findIndex((row, i) => (row.id ?? `new-${i}`) === active.id); const newIndex = rows.findIndex((row, i) => (row.id ?? `new-${i}`) === over.id); setData(arrayMove(rows, oldIndex, newIndex)); onDirty?.(true); }}><SortableContext items={rows.map((row, i) => row.id ?? `new-${i}`)} strategy={verticalListSortingStrategy}>{rows.map((r, i) => (
+        <SortableAdminCard key={r.id ?? `new-${i}`} id={r.id ?? `new-${i}`}>
           <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Title" value={r.title} onChange={(v) => update(i, { title: v })} />
               <StatusSelect value={r.status} options={Object.keys(colorMap)} onChange={(v) => update(i, { status: v })} />
+              <ToggleField label="Visible" value={r.visible !== false} onChange={(v) => update(i, { visible: v })} />
               <div className="sm:col-span-2">
-                <CoverUploader value={r.cover_url} onChange={(v) => update(i, { cover_url: v })} />
+                <CoverUploader value={r.key_art_url || r.cover_url} onChange={(v) => update(i, { key_art_url: v, cover_url: v })} />
               </div>
+              <Field label="YouTube trailer URL" value={r.trailer_url || ""} onChange={(v) => update(i, { trailer_url: v })} />
+              <ColorField label="Info bar color" value={r.info_bar_color || "#e8702a"} onChange={(v) => update(i, { info_bar_color: v })} />
               <Field label="Button label" value={r.button_label} onChange={(v) => update(i, { button_label: v })} />
               <Field label="Button URL" value={r.button_url} onChange={(v) => update(i, { button_url: v })} />
-              <TextField label="Description" value={r.description} onChange={(v) => update(i, { description: v })} className="sm:col-span-2" />
-              <NumField label="Sort order" value={r.sort_order} onChange={(v) => update(i, { sort_order: v })} />
+              <div className="sm:col-span-2"><TextField label={`Short description (${r.description.length}/350)`} value={r.description} onChange={(v) => update(i, { description: v.slice(0, 350) })} /></div>
+              <PlatformEditor project={r} rows={platforms.filter((platform) => platform.project_id === r.id)} onChange={(next) => { onDirty?.(true); platformsLoader.setData([...platforms.filter((platform) => platform.project_id !== r.id), ...next]); }} />
               <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3">
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
@@ -233,11 +279,11 @@ function ProjectsPanel() {
             </div>
             <div>
               <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground">Live preview</Label>
-              <ProjectCardPreview project={r} statusColor={colorMap[r.status] ?? "#a1a1aa"} />
+              <div className="public-landing"><div className="landing-shell"><GamesHero preview projects={[{ title: r.title || "Untitled game", description: r.description, cover: r.key_art_url || r.cover_url, status: r.status as any, buttonLabel: r.button_label, buttonUrl: r.button_url, trailerUrl: r.trailer_url, infoBarColor: r.info_bar_color, platforms: platforms.filter((platform) => platform.project_id === r.id) } as ProjectView]} /></div></div>
             </div>
           </div>
-        </div>
-      ))}
+        </SortableAdminCard>
+      ))}</SortableContext></DndContext>
       {pressKitFor?.id && (
         <PressKitDialog
           project={pressKitFor}
@@ -249,6 +295,17 @@ function ProjectsPanel() {
       )}
     </div>
   );
+}
+
+function SortableAdminCard({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  return <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="relative rounded-lg border border-border bg-card p-4"><button type="button" className="admin-drag-handle" {...attributes} {...listeners} aria-label="Drag to reorder"><GripVertical /></button>{children}</div>;
+}
+
+function PlatformEditor({ project, rows, onChange }: { project: ProjectRow; rows: PlatformRow[]; onChange: (rows: PlatformRow[]) => void }) {
+  if (!project.id) return <p className="sm:col-span-2 text-xs text-muted-foreground">Save this game before adding platform tiles.</p>;
+  const update = (i: number, patch: Partial<PlatformRow>) => onChange(rows.map((row, index) => index === i ? { ...row, ...patch } : row));
+  return <div className="sm:col-span-2 space-y-3 border-t border-border pt-4"><Label>Platform tiles</Label>{rows.map((row, i) => <div key={row.id ?? i} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"><Field label="Platform name" value={row.name} onChange={(v) => update(i, { name: v })} /><Field label="Store URL" value={row.store_url} onChange={(v) => update(i, { store_url: v })} /><div className="flex items-end gap-1">{row.logo_url && <img src={row.logo_url} alt="" className="h-10 w-10 object-contain" />}<IconUploadButton onUploaded={(logo_url) => update(i, { logo_url })} /></div><div className="flex items-end"><Button variant="ghost" size="icon" disabled={i === 0} onClick={() => onChange(arrayMove(rows, i, i - 1))}><ArrowUp /></Button><Button variant="ghost" size="icon" disabled={i === rows.length - 1} onClick={() => onChange(arrayMove(rows, i, i + 1))}><ArrowDown /></Button></div><Button variant="ghost" size="icon" onClick={async () => { if (!confirm("Remove this platform?")) return; if (row.id) await adminCall({ op: "delete", table: "site_game_platforms", id: row.id }); onChange(rows.filter((_, index) => index !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" size="sm" onClick={() => onChange([...rows, { project_id: project.id!, name: "", logo_url: "", store_url: "", sort_order: rows.length }])}><Plus className="mr-2 h-4 w-4" />Add platform</Button></div>;
 }
 
 function StatusSelect({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
@@ -290,12 +347,19 @@ function CoverUploader({ value, onChange }: { value: string; onChange: (url: str
       setUploading(false);
     }
   };
+  const onDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    const transfer = new DataTransfer(); transfer.items.add(file);
+    await onPick({ target: { files: transfer.files, value: "" } } as React.ChangeEvent<HTMLInputElement>);
+  };
 
   return (
     <div>
       <Label>Cover image</Label>
       <p className="mt-1 text-xs text-muted-foreground">Recommended: 1280×720 (16:9), JPG/PNG/WebP, max 5 MB.</p>
-      <div className="mt-2 flex flex-wrap items-center gap-3">
+      <div className="mt-2 flex flex-wrap items-center gap-3 admin-image-drop" onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
         <div className="grid h-20 w-36 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-surface-2">
           {value ? (
             <img src={value} alt="Cover preview" className="h-full w-full object-cover" />
@@ -308,6 +372,7 @@ function CoverUploader({ value, onChange }: { value: string; onChange: (url: str
           <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="mr-2 h-4 w-4" /> {value ? "Replace image" : "Upload image"}</>}
           </Button>
+          {value && <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Remove image</Button>}
           <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="…or paste an image URL" className="w-full sm:w-96" />
           {err && <p className="text-xs text-destructive">{err}</p>}
         </div>
@@ -464,7 +529,7 @@ function TeamPanel() {
   );
 }
 
-function AboutPanel() {
+function AboutPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const { data, loading, error, setData } = useLoader<About>(async () => {
     const { supabase } = await import("@/lib/supabase");
     const { data: row } = await supabase.from("site_about").select("*").eq("id", 1).maybeSingle();
@@ -472,22 +537,28 @@ function AboutPanel() {
   });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-  if (loading || !data) return <Spinner />;
+  const settingsLoader = useLoader<LandingSettingsRow>(loadSettings);
+  const teamLoader = useLoader<TeamRow[]>(() => loadTable("site_team"));
+  if (loading || !data || !settingsLoader.data || !teamLoader.data) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const save = async () => {
     setSaving(true); setMsg("");
-    try { await adminCall({ op: "upsert", table: "site_about", rows: [data] }); setMsg("Saved"); }
+    try { await Promise.all([adminCall({ op: "upsert", table: "site_about", rows: [data] }), adminCall({ op: "upsert", table: "site_landing_settings", rows: [settingsLoader.data] }), adminCall({ op: "upsert", table: "site_team", rows: (teamLoader.data ?? []).map((row, i) => ({ ...row, name: [row.gamer_tag, row.real_name].filter(Boolean).join(" - "), sort_order: i })) })]); setMsg("Saved"); onDirty?.(false); }
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
+  const settings = settingsLoader.data ?? LANDING_SETTINGS_DEFAULTS; const team = teamLoader.data ?? [];
+  const updateTeam = (i: number, patch: Partial<TeamRow>) => { onDirty?.(true); teamLoader.setData(team.map((row, index) => index === i ? { ...row, ...patch } : row)); };
   return (
-    <div className="space-y-4">
+    <div className="admin-editor-layout"><div className="space-y-4">
       <PanelHeader title="About" onSave={save} saving={saving} msg={msg} />
       <div className="rounded-lg border border-border bg-card p-4">
+        <Field label="Section headline" value={settings.about_heading} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, about_heading: v }); }} />
         <Label>About intro (HTML allowed)</Label>
-        <Textarea rows={10} value={data.intro_html} onChange={(e) => setData({ ...data, intro_html: e.target.value })} className="mt-2" />
+        <Textarea rows={10} value={data.intro_html} onChange={(e) => { onDirty?.(true); setData({ ...data, intro_html: e.target.value }); }} className="mt-2" />
       </div>
-    </div>
+      {team.map((member, i) => <div className="admin-card grid gap-3 sm:grid-cols-2" key={member.id ?? i}><Field label="Gamer tag" value={member.gamer_tag || ""} onChange={(v) => updateTeam(i, { gamer_tag: v })} /><Field label="Real name" value={member.real_name || ""} onChange={(v) => updateTeam(i, { real_name: v })} /><Field label="Role" value={member.role} onChange={(v) => updateTeam(i, { role: v })} /><div className="sm:col-span-2"><TextField label="Bio" value={member.bio} onChange={(v) => updateTeam(i, { bio: v })} /></div><Button variant="ghost" className="text-destructive" onClick={async () => { if (!confirm("Delete this team member?")) return; if (member.id) await adminCall({ op: "delete", table: "site_team", id: member.id }); teamLoader.setData(team.filter((_, index) => index !== i)); }}><Trash2 className="mr-2 h-4 w-4" />Delete</Button></div>)}
+      <Button variant="outline" onClick={() => { onDirty?.(true); teamLoader.setData([...team, { name: "", gamer_tag: "", real_name: "", role: "", bio: "", sort_order: team.length }]); }}><Plus className="mr-2 h-4 w-4" />Add team member</Button></div><PreviewPane><TeamSection team={team} heading={settings.about_heading} introHtml={data.intro_html} /></PreviewPane></div>
   );
 }
 
@@ -750,7 +821,49 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-function SocialsPanel() {
+function PreviewPane({ children }: { children: React.ReactNode }) {
+  return <aside className="admin-preview"><Label className="mb-3 block">Live preview</Label><div className="public-landing"><div className="landing-shell">{children}</div></div></aside>;
+}
+
+function HeaderPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
+  const settingsLoader = useLoader<LandingSettingsRow>(loadSettings);
+  const linksLoader = useLoader<LinkRow[]>(() => loadTable("site_header_links"));
+  const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
+  if (!settingsLoader.data || !linksLoader.data) return <Spinner />;
+  const settings = settingsLoader.data; const links = linksLoader.data;
+  const updateSettings = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
+  const updateLink = (i: number, patch: Partial<LinkRow>) => { onDirty(true); linksLoader.setData(links.map((row, index) => index === i ? { ...row, ...patch } : row)); };
+  const save = async () => { setSaving(true); setMsg(""); try { await Promise.all([adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), adminCall({ op: "upsert", table: "site_header_links", rows: links.map((row, i) => ({ ...row, sort_order: i })) })]); onDirty(false); setMsg("Saved"); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
+  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Header" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><CoverUploader value={settings.header_banner_logo_url} onChange={(v) => updateSettings({ header_banner_logo_url: v })} /><CoverUploader value={settings.header_sticky_logo_url} onChange={(v) => updateSettings({ header_sticky_logo_url: v })} /><Field label="Banner studio line" value={settings.header_studio_line} onChange={(v) => updateSettings({ header_studio_line: v })} /><Field label="Established line" value={settings.header_established_line} onChange={(v) => updateSettings({ header_established_line: v })} /><Field label="Discord button label" value={settings.discord_button_label} onChange={(v) => updateSettings({ discord_button_label: v })} /><Field label="Discord URL" value={settings.discord_button_url} onChange={(v) => updateSettings({ discord_button_url: v })} /></div><div className="space-y-2">{links.map((link, i) => <div className="admin-card grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto_auto]" key={link.id ?? i}><Field label="Label" value={link.label} onChange={(v) => updateLink(i, { label: v })} /><Field label="Target" value={link.url} onChange={(v) => updateLink(i, { url: v })} /><ToggleField label="Visible" value={link.visible !== false} onChange={(v) => updateLink(i, { visible: v })} /><div><Button variant="ghost" size="icon" disabled={i === 0} onClick={() => { onDirty(true); linksLoader.setData(arrayMove(links, i, i - 1)); }}><ArrowUp /></Button><Button variant="ghost" size="icon" disabled={i === links.length - 1} onClick={() => { onDirty(true); linksLoader.setData(arrayMove(links, i, i + 1)); }}><ArrowDown /></Button></div><Button variant="ghost" size="icon" onClick={() => { onDirty(true); linksLoader.setData(links.filter((_, index) => index !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" onClick={() => { onDirty(true); linksLoader.setData([...links, { label: "", url: "", sort_order: links.length, visible: true }]); }}><Plus className="mr-2 h-4 w-4" />Add link</Button></div></div><PreviewPane><div className="admin-header-preview"><strong>{settings.header_studio_line}</strong><nav>{links.filter((link) => link.visible !== false).map((link, i) => <span key={i}>{link.label}</span>)}</nav><button>{settings.discord_button_label}</button></div></PreviewPane></div>;
+}
+
+function MissionPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
+  const settingsLoader = useLoader<LandingSettingsRow>(loadSettings); const linesLoader = useLoader<MissionLineRow[]>(() => loadTable("site_mission_lines"));
+  const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
+  if (!settingsLoader.data || !linesLoader.data) return <Spinner />;
+  const settings = settingsLoader.data; const lines = linesLoader.data;
+  const setSettings = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
+  const save = async () => { setSaving(true); try { await Promise.all([adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), adminCall({ op: "upsert", table: "site_mission_lines", rows: lines.map((line, i) => ({ ...line, sort_order: i })) })]); setMsg("Saved"); onDirty(false); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
+  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Mission" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><ToggleField label="Section visible" value={settings.mission_visible} onChange={(v) => setSettings({ mission_visible: v })} /><TextField label="Mission text (HTML allowed)" value={settings.mission_text} onChange={(v) => setSettings({ mission_text: v })} /><Field label="Sign-off" value={settings.mission_signoff} onChange={(v) => setSettings({ mission_signoff: v })} /></div>{lines.map((line, i) => <div className="admin-card grid gap-3 sm:grid-cols-[1fr_220px_auto]" key={line.id ?? i}><Field label="Headline line" value={line.text} onChange={(v) => { onDirty(true); linesLoader.setData(lines.map((x, n) => n === i ? { ...x, text: v } : x)); }} /><div><Label>Style</Label><select className="mt-1 h-10 w-full border border-input bg-background px-3" value={line.style} onChange={(e) => { onDirty(true); linesLoader.setData(lines.map((x, n) => n === i ? { ...x, style: e.target.value as MissionLineRow['style'] } : x)); }}><option value="white_black">White on black</option><option value="black_orange">Black on orange</option></select></div><Button variant="ghost" size="icon" onClick={() => { onDirty(true); linesLoader.setData(lines.filter((_, n) => n !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" onClick={() => { onDirty(true); linesLoader.setData([...lines, { text: "", style: "white_black", sort_order: lines.length }]); }}><Plus className="mr-2 h-4 w-4" />Add line</Button></div><PreviewPane><MissionSection lines={lines} missionText={settings.mission_text} signoff={settings.mission_signoff} /></PreviewPane></div>;
+}
+
+function ContactPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
+  const loader = useLoader<LandingSettingsRow>(loadSettings); const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
+  if (!loader.data) return <Spinner />; const data = loader.data;
+  const update = (patch: Partial<LandingSettingsRow>) => { onDirty(true); loader.setData({ ...data, ...patch }); };
+  const save = async () => { setSaving(true); try { await adminCall({ op: "upsert", table: "site_landing_settings", rows: [data] }); setMsg("Saved"); onDirty(false); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
+  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Contact" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><Field label="Section headline" value={data.contact_heading} onChange={(v) => update({ contact_heading: v })} /><Field label="Direct contact line" value={data.contact_direct_text} onChange={(v) => update({ contact_direct_text: v })} /><Field label="Email" value={data.contact_email} onChange={(v) => update({ contact_email: v })} /><p className="text-sm text-muted-foreground">The public form fields, validation, inquiry types, and sending logic remain unchanged.</p></div></div><PreviewPane><ContactSection socials={{ twitter: "", tiktok: "", instagram: "", discord: "", youtube: "" }} heading={data.contact_heading} directText={data.contact_direct_text} email={data.contact_email} preview /></PreviewPane></div>;
+}
+
+function FooterPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
+  const settingsLoader = useLoader<LandingSettingsRow>(loadSettings); const linksLoader = useLoader<LinkRow[]>(() => loadTable("site_footer_links")); const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
+  if (!settingsLoader.data || !linksLoader.data) return <Spinner />; const settings = settingsLoader.data; const links = linksLoader.data;
+  const update = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
+  const save = async () => { setSaving(true); try { await Promise.all([adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), adminCall({ op: "upsert", table: "site_footer_links", rows: links.map((row, i) => ({ ...row, sort_order: i })) })]); setMsg("Saved"); onDirty(false); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
+  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Footer" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><CoverUploader value={settings.footer_logo_url} onChange={(v) => update({ footer_logo_url: v })} /><Field label="Copyright" value={settings.footer_copyright} onChange={(v) => update({ footer_copyright: v })} />{links.map((link, i) => <div className="grid gap-3 sm:grid-cols-2" key={link.id ?? i}><Field label="Legal link label" value={link.label} onChange={(v) => { onDirty(true); linksLoader.setData(links.map((x, n) => n === i ? { ...x, label: v } : x)); }} /><Field label="URL" value={link.url} onChange={(v) => { onDirty(true); linksLoader.setData(links.map((x, n) => n === i ? { ...x, url: v } : x)); }} /></div>)}</div></div><PreviewPane><footer className="admin-footer-preview">{settings.footer_logo_url && <img src={settings.footer_logo_url} alt="" />}<span>{links.map((x) => x.label).join("  ·  ")}</span><small>{settings.footer_copyright}</small></footer></PreviewPane></div>;
+}
+
+function SocialsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const { data, loading, error, setData } = useLoader<Socials>(async () => {
     const { supabase } = await import("@/lib/supabase");
     const { data: row } = await supabase.from("site_socials").select("*").eq("id", 1).maybeSingle();
@@ -762,21 +875,18 @@ function SocialsPanel() {
   if (error) return <ErrorMsg text={error} />;
   const save = async () => {
     setSaving(true); setMsg("");
-    try { await adminCall({ op: "upsert", table: "site_socials", rows: [data] }); setMsg("Saved"); }
+    try { await adminCall({ op: "upsert", table: "site_socials", rows: [data] }); setMsg("Saved"); onDirty?.(false); }
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
-  const upd = (k: keyof Socials, v: string) => setData({ ...data, [k]: v });
+  const upd = (k: keyof Socials, v: string | boolean) => { onDirty?.(true); setData({ ...data, [k]: v }); };
   return (
     <div className="space-y-4">
       <PanelHeader title="Socials" onSave={save} saving={saving} msg={msg} />
       <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2">
-        <Field label="Twitter / X" value={data.twitter} onChange={(v) => upd("twitter", v)} />
-        <Field label="TikTok" value={data.tiktok} onChange={(v) => upd("tiktok", v)} />
-        <Field label="Instagram" value={data.instagram} onChange={(v) => upd("instagram", v)} />
-        <Field label="Discord" value={data.discord} onChange={(v) => upd("discord", v)} />
-        <Field label="YouTube" value={data.youtube} onChange={(v) => upd("youtube", v)} />
+        {([['twitter','Twitter / X'],['tiktok','TikTok'],['instagram','Instagram'],['discord','Discord'],['youtube','YouTube']] as const).map(([key,label]) => <div key={key} className="space-y-2"><Field label={label} value={data[key]} onChange={(v) => upd(key, v)} /><ToggleField label="Visible" value={data[`${key}_visible` as keyof Socials] !== false} onChange={(v) => upd(`${key}_visible` as keyof Socials, v)} /></div>)}
       </div>
+      <PreviewPane><SocialIconLinks socials={data} /></PreviewPane>
     </div>
   );
 }
@@ -1147,6 +1257,13 @@ function PressUpload({ label, value, kind, onChange }: { label: string; value: s
     try { onChange(await uploadPressAsset(f, kind)); }
     catch (ex: any) { setErr(ex?.message ?? "Upload failed"); }
     finally { setUploading(false); }
+  };
+  const onDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    const transfer = new DataTransfer(); transfer.items.add(file);
+    await onPick({ target: { files: transfer.files, value: "" } } as React.ChangeEvent<HTMLInputElement>);
   };
   return (
     <div>
