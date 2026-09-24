@@ -112,10 +112,21 @@ body:has(.public-landing)::before { display: none; }
   flex-direction: column;
   align-items: center;
   padding: 28px 30px 52px;
-  background: var(--background);
+  background: var(--landing-accent, var(--primary));
   text-align: center;
   clip-path: polygon(0 0, 100% 0, 100% 91%, 93% 89%, 85% 94%, 75% 91%, 65% 96%, 54% 92%, 43% 97%, 31% 92%, 20% 96%, 9% 91%, 0 94%);
 }
+
+.studio-banner::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  z-index: 0;
+  background: var(--background);
+  clip-path: polygon(0 0, 100% 0, 100% 91%, 93% 89%, 85% 94%, 75% 91%, 65% 96%, 54% 92%, 43% 97%, 31% 92%, 20% 96%, 9% 91%, 0 94%);
+}
+
+.studio-banner > * { position: relative; z-index: 1; }
 
 .studio-banner img { width: 176px; height: 220px; object-fit: contain; }
 .studio-banner p,
