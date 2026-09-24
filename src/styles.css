@@ -47,9 +47,25 @@
   --landing-accent: #e8702a;
   background: var(--landing-outer);
   color: var(--foreground);
+  position: relative;
 }
 
 body:has(.public-landing)::before { display: none; }
+
+.public-landing .outer-anvil-pattern {
+  position: absolute;
+  inset: 0;
+  background: #1a1a1a;
+  pointer-events: none;
+  -webkit-mask-image: var(--anvil-pattern-mask);
+  mask-image: var(--anvil-pattern-mask);
+  -webkit-mask-position: top center;
+  mask-position: top center;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  -webkit-mask-size: 240px 240px;
+  mask-size: 240px 240px;
+}
 
 .public-landing .landing-shell {
   position: relative;
@@ -257,8 +273,24 @@ body:has(.public-landing)::before { display: none; }
 .public-landing .mission-section,
 .public-landing .team-section,
 .public-landing .contact-section { padding: 130px 7%; }
-.public-landing .mission-section { background: var(--landing-section); }
-.public-landing .mission-grid { display: grid; grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr); align-items: center; gap: 11%; }
+.public-landing .mission-section { position: relative; isolation: isolate; background: var(--landing-section); }
+.public-landing .mission-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #202020;
+  pointer-events: none;
+  -webkit-mask-image: var(--anvil-pattern-mask);
+  mask-image: var(--anvil-pattern-mask);
+  -webkit-mask-position: top center;
+  mask-position: top center;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  -webkit-mask-size: 240px 240px;
+  mask-size: 240px 240px;
+}
+.public-landing .mission-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr); align-items: center; gap: 11%; }
 .public-landing .mission-lockup { display: flex; flex-direction: column; align-items: flex-start; }
 .public-landing .mission-lockup span { display: inline-block; padding: 7px 15px; background: var(--background); font-family: var(--font-display); font-size: clamp(48px, 6vw, 84px); font-weight: 700; line-height: 0.9; letter-spacing: 0; text-transform: uppercase; }
 .public-landing .mission-lockup span:nth-child(2) { margin-left: 52px; }
@@ -274,7 +306,7 @@ body:has(.public-landing)::before { display: none; }
 .public-landing .team-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .public-landing .team-profile { min-height: 310px; padding-right: 64px; }
 .public-landing .team-profile + .team-profile { padding-right: 0; padding-left: 64px; border-left: 2px solid var(--landing-accent); }
-.public-landing .team-profile h3 { color: var(--landing-accent); font-family: var(--font-display); font-size: clamp(46px, 6vw, 78px); font-weight: 700; line-height: 1; letter-spacing: 0; text-transform: uppercase; }
+.public-landing .team-profile h3 { width: 100%; overflow: hidden; color: var(--landing-accent); font-family: var(--font-display); font-size: clamp(46px, 6vw, 78px); font-weight: 700; line-height: 1; letter-spacing: 0; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .public-landing .team-profile h3 small { margin-left: 12px; color: var(--landing-copy); font-family: var(--font-sans); font-size: .28em; letter-spacing: .12em; }
 .public-landing .about-intro { max-width: 900px; margin: -38px 0 64px; color: var(--landing-copy); font-size: 17px; line-height: 1.75; }
 .public-landing .team-profile .eyebrow { margin-top: 18px; color: var(--foreground); }
