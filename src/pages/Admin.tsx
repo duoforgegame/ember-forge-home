@@ -347,6 +347,13 @@ function CoverUploader({ value, onChange }: { value: string; onChange: (url: str
       setUploading(false);
     }
   };
+  const onDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    const transfer = new DataTransfer(); transfer.items.add(file);
+    await onPick({ target: { files: transfer.files, value: "" } } as React.ChangeEvent<HTMLInputElement>);
+  };
 
   return (
     <div>
@@ -365,6 +372,7 @@ function CoverUploader({ value, onChange }: { value: string; onChange: (url: str
           <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="mr-2 h-4 w-4" /> {value ? "Replace image" : "Upload image"}</>}
           </Button>
+          {value && <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Remove image</Button>}
           <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="…or paste an image URL" className="w-full sm:w-96" />
           {err && <p className="text-xs text-destructive">{err}</p>}
         </div>
@@ -1525,7 +1533,6 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add block
           </Button>
-          {value && <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Remove image</Button>}
         </div>
       </div>
 
