@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical, Copy } from "lucide-react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical, Copy, Gamepad2, PanelTop, Goal, Users, Mail, Share2, PanelBottom, Palette, Scale, Bell, MessagesSquare, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -14,6 +14,7 @@ import { FeaturedGameCard } from "@/components/FeaturedGameCard";
 import { GamesHero, MissionSection, TeamSection, ContactSection, type ProjectView } from "@/pages/Landing";
 import { SocialIconLinks } from "@/components/SocialIconLinks";
 import { GamePageCanvas, type GameBlock, type GameProject } from "@/pages/GamePage";
+import adminLogo from "@/assets/dfg-logo.png";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; key_art_url?: string; trailer_url?: string; info_bar_color?: string; visible?: boolean; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
 type TeamRow = { id?: string; name: string; gamer_tag?: string; real_name?: string; role: string; bio: string; sort_order: number };
@@ -50,6 +51,23 @@ const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototyp
 
 const TABS = ["Games", "Header", "Mission", "About", "Contact", "Socials", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
 type Tab = (typeof TABS)[number];
+const TAB_GROUPS = [
+  { label: "Landing page", tabs: [
+    { name: "Games" as Tab, icon: Gamepad2 },
+    { name: "Header" as Tab, icon: PanelTop },
+    { name: "Mission" as Tab, icon: Goal },
+    { name: "About" as Tab, icon: Users },
+    { name: "Contact" as Tab, icon: Mail },
+    { name: "Socials" as Tab, icon: Share2 },
+    { name: "Footer" as Tab, icon: PanelBottom },
+  ] },
+  { label: "Site controls", tabs: [
+    { name: "Status colors" as Tab, icon: Palette },
+    { name: "Legal" as Tab, icon: Scale },
+    { name: "Banner" as Tab, icon: Bell },
+    { name: "Messages" as Tab, icon: MessagesSquare },
+  ] },
+] as const;
 
 export default function Admin() {
   // Always require the password again when the panel is opened.
@@ -97,6 +115,7 @@ function Login({ onOk }: { onOk: () => void }) {
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("Games");
   const [dirty, setDirty] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(true);
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
     window.addEventListener("beforeunload", beforeUnload);
@@ -109,27 +128,59 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   };
   const logout = () => { clearToken(); onLogout(); };
   return (
-    <div className="admin-center min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <h1 className="font-display text-lg font-bold">Duo Forge: Admin</h1>
-          <Button variant="ghost" size="sm" onClick={logout}><LogOut className="mr-2 h-4 w-4" /> Log out</Button>
+    <div className={`admin-center min-h-screen ${menuOpen ? "admin-menu-open" : "admin-menu-collapsed"}`}>
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-accent" />
+        <div className="admin-brand">
+          <img src={adminLogo} alt="Duo Forge Games" />
+          <div className="admin-brand-copy">
+            <strong>DUO FORGE</strong>
+            <span>Games Admin</span>
+          </div>
+          <Button variant="ghost" size="icon" className="admin-sidebar-toggle" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? "Collapse admin menu" : "Expand admin menu"} title={menuOpen ? "Collapse menu" : "Expand menu"}>
+            {menuOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+          </Button>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => changeTab(t)}
-              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t}
-            </button>
+
+        <nav className="admin-nav" aria-label="Admin sections">
+          {TAB_GROUPS.map((group) => (
+            <div className="admin-nav-group" key={group.label}>
+              <p>{group.label}</p>
+              {group.tabs.map(({ name, icon: Icon }) => (
+                <Button
+                  key={name}
+                  variant="ghost"
+                  onClick={() => changeTab(name)}
+                  className={tab === name ? "is-active" : ""}
+                  aria-current={tab === name ? "page" : undefined}
+                  title={!menuOpen ? name : undefined}
+                >
+                  <Icon />
+                  <span>{name}</span>
+                  {name === "Messages" && <i aria-hidden="true" />}
+                </Button>
+              ))}
+            </div>
           ))}
         </nav>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+
+        <div className="admin-sidebar-footer">
+          <div className="admin-access-mark" aria-hidden="true"><span /></div>
+          <div className="admin-access-copy"><strong>Admin access</strong><span>Content control</span></div>
+          <Button variant="ghost" size="icon" onClick={logout} aria-label="Log out" title="Log out"><LogOut /></Button>
+        </div>
+      </aside>
+
+      <div className="admin-workspace">
+        <header className="admin-command-bar">
+          <Button variant="ghost" size="icon" className="admin-mobile-toggle" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle admin menu"><PanelLeftOpen /></Button>
+          <div>
+            <span>Content editor</span>
+            <h1>{tab}</h1>
+          </div>
+          <a href="/" target="_blank" rel="noopener noreferrer">View site <ExternalLink /></a>
+        </header>
+        <main>
         {tab === "Games" && <ProjectsPanel onDirty={setDirty} />}
         {tab === "Header" && <HeaderPanel onDirty={setDirty} />}
         {tab === "Mission" && <MissionPanel onDirty={setDirty} />}
@@ -141,7 +192,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         {tab === "Legal" && <LegalPanel />}
         {tab === "Banner" && <AnnouncementPanel />}
         {tab === "Messages" && <MessagesPanel />}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
