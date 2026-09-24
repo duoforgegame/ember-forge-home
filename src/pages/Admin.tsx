@@ -951,8 +951,8 @@ function SocialsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const save = async () => {
     setSaving(true); setMsg("");
     try {
-      const res = await adminCall<{ rows?: SocialLink[] }>({ op: "upsert", table: "site_social_links", rows: rows.map((r, i) => ({ ...r, sort_order: i })) });
-      if (res?.rows) setData([...res.rows].sort((x, y) => x.sort_order - y.sort_order));
+      const res = await adminCall({ op: "upsert", table: "site_social_links", rows: rows.map((r, i) => ({ ...r, sort_order: i })) });
+      if (res?.rows) setData([...(res.rows as SocialLink[])].sort((x, y) => x.sort_order - y.sort_order));
       setMsg("Saved"); onDirty?.(false);
     } catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }

@@ -17,7 +17,6 @@ const DEFAULT_MISSION_SIGNOFF = "Forged together with our community.";
 import {
   projects as fallbackProjects,
   team as fallbackTeam,
-  socials as fallbackSocials,
   CONTACT_EMAIL,
   type ProjectStatus,
 } from "@/lib/site-data";
