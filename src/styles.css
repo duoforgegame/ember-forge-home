@@ -48,7 +48,6 @@
   background: transparent;
   color: var(--foreground);
   position: relative;
-  z-index: 1;
 }
 
 html:has(.public-landing) { background: #1c1c1c; }
