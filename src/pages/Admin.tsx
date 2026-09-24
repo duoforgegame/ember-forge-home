@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { adminLogin, adminCall, clearToken, uploadProjectCover, uploadPressAsset, slugify } from "@/lib/api";
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
+import { FeaturedGameCard } from "@/components/FeaturedGameCard";
 import { GamesHero, MissionSection, TeamSection, ContactSection, type ProjectView } from "@/pages/Landing";
 import { SocialIconLinks } from "@/components/SocialIconLinks";
 
