@@ -23,6 +23,14 @@ type ProjectView = (typeof fallbackProjects)[number] & {
   moreInfoEnabled?: boolean;
 };
 
+export function statusBadgeStyle(color: string): React.CSSProperties {
+  return {
+    backgroundColor: `${color}26`,
+    borderColor: `${color}66`,
+    color,
+  };
+}
+
 export default function Landing() {
   const { data } = useQuery({ queryKey: ["site-content"], queryFn: fetchSiteContent, retry: 0 });
 
