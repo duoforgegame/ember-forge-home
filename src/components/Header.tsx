@@ -24,6 +24,7 @@ const isExternal = (url: string) => /^https?:\/\//i.test(url);
 
 export function Header({ forceCompact = false }: { forceCompact?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
+  const [bannerReady, setBannerReady] = useState(false);
   const [active, setActive] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
@@ -55,6 +56,11 @@ export function Header({ forceCompact = false }: { forceCompact?: boolean }) {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setBannerReady(true));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -100,7 +106,7 @@ export function Header({ forceCompact = false }: { forceCompact?: boolean }) {
   return (
     <header className={`site-header ${scrolled || forceCompact ? "is-compact" : ""}`} style={{ top: "var(--banner-h, 0px)" }}>
       {isLanding && !forceCompact && (
-        <div className={`studio-banner ${scrolled ? "is-hidden" : ""}`} aria-hidden={scrolled}>
+        <div className={`studio-banner ${bannerReady && !scrolled ? "is-visible" : ""}`} aria-hidden={scrolled}>
           {(settings?.header_banner_logo_url || bannerLogo) && <img src={settings?.header_banner_logo_url || bannerLogo} alt="Duo Forge Games" />}
           {settings?.header_studio_line !== "" && <p>{settings?.header_studio_line || "A two-person indie studio from Lübeck, Germany"}</p>}
           {settings?.header_established_line !== "" && <span>{settings?.header_established_line || "Est. 2021"}</span>}
