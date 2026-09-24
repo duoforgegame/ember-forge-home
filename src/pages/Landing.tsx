@@ -273,14 +273,44 @@ export function MissionSection({ lines, missionText, signoff }: { lines?: { id?:
 }
 
 export function TeamSection({ team, heading = "About us", introHtml }: { team: any[]; heading?: string; introHtml?: string }) {
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const fitNames = () => {
+      const names = Array.from(grid.querySelectorAll<HTMLHeadingElement>(".team-name"));
+      names.forEach((name) => { name.style.fontSize = ""; });
+      const fittedSizes = names.map((name) => {
+        const startingSize = Number.parseFloat(window.getComputedStyle(name).fontSize);
+        if (!Number.isFinite(startingSize)) return 0;
+        const minimumSize = startingSize * 0.6;
+        let size = startingSize;
+        while (name.scrollWidth > name.clientWidth && size > minimumSize) {
+          size = Math.max(minimumSize, size - 1);
+          name.style.fontSize = `${size}px`;
+        }
+        return size;
+      }).filter((size) => size > 0);
+      if (fittedSizes.length === 0) return;
+      const sharedSize = Math.min(...fittedSizes);
+      names.forEach((name) => { name.style.fontSize = `${sharedSize}px`; });
+    };
+
+    fitNames();
+    const observer = new ResizeObserver(fitNames);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [team]);
+
   return (
     <section id="about" className="team-section">
       {heading && <h2 className="section-heading">{heading}</h2>}
       {introHtml && <div className="about-intro" dangerouslySetInnerHTML={{ __html: introHtml }} />}
-      <div className="team-grid">
+      <div ref={gridRef} className="team-grid">
         {team.map((member) => (
           <article key={member.name} className="team-profile">
-            <AutoFitTeamName primaryName={member.gamer_tag || member.name} realName={member.real_name} />
+            <h3 className="team-name" title={[member.gamer_tag || member.name, member.real_name].filter(Boolean).join(" ")}>{member.gamer_tag || member.name}{member.real_name && <small>{member.real_name}</small>}</h3>
             <p className="eyebrow">{member.role}</p>
             <p className="team-bio">{member.bio}</p>
           </article>
@@ -288,33 +318,6 @@ export function TeamSection({ team, heading = "About us", introHtml }: { team: a
       </div>
     </section>
   );
-}
-
-function AutoFitTeamName({ primaryName, realName }: { primaryName: string; realName?: string }) {
-  const nameRef = useRef<HTMLHeadingElement>(null);
-
-  useLayoutEffect(() => {
-    const nameElement = nameRef.current;
-    if (!nameElement) return;
-    const fitName = () => {
-      nameElement.style.fontSize = "";
-      const startingSize = Number.parseFloat(window.getComputedStyle(nameElement).fontSize);
-      if (!Number.isFinite(startingSize)) return;
-      const minimumSize = startingSize * 0.6;
-      let fittedSize = startingSize;
-      while (nameElement.scrollWidth > nameElement.clientWidth && fittedSize > minimumSize) {
-        fittedSize = Math.max(minimumSize, fittedSize - 1);
-        nameElement.style.fontSize = `${fittedSize}px`;
-      }
-    };
-
-    fitName();
-    const observer = new ResizeObserver(fitName);
-    observer.observe(nameElement);
-    return () => observer.disconnect();
-  }, [primaryName, realName]);
-
-  return <h3 ref={nameRef} title={[primaryName, realName].filter(Boolean).join(" ")}>{primaryName}{realName && <small>{realName}</small>}</h3>;
 }
 
 export const INQUIRY_TYPES = [
