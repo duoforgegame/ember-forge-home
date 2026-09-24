@@ -45,7 +45,9 @@ export function Header() {
   const links = data?.links?.length ? data.links.filter((link) => link.visible !== false) : FALLBACK;
   const settings = data?.settings;
   const navLinks = links.filter((link) => link.label.toLowerCase() !== "discord");
-  const discordLink = links.find((link) => link.label.toLowerCase() === "discord") ?? (settings?.discord_button_url ? { label: settings.discord_button_label || "Discord", url: settings.discord_button_url } : undefined);
+  const discordLink = settings?.discord_button_url
+    ? { label: settings.discord_button_label || "Discord", url: settings.discord_button_url }
+    : links.find((link) => link.label.toLowerCase() === "discord");
   const internalIds = useMemo(() => navLinks.filter((link) => isInternal(link.url)).map((link) => link.url.slice(1)), [navLinks]);
 
   useEffect(() => {
