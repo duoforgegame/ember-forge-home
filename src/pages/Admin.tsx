@@ -174,6 +174,8 @@ async function loadSettings(): Promise<LandingSettingsRow> {
 
 function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const { data, loading, error, reload, setData } = useLoader<ProjectRow[]>(() => loadTable("site_projects"));
+  const settingsLoader = useLoader<LandingSettingsRow>(loadSettings);
+  const platformsLoader = useLoader<PlatformRow[]>(() => loadTable("site_game_platforms"));
   const colorsLoader = useLoader<StatusColor[]>(async () => {
     const { supabase } = await import("@/lib/supabase");
     const { data } = await supabase.from("site_status_colors").select("*");
@@ -186,6 +188,8 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   if (loading) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const rows = data ?? [];
+  const settings = settingsLoader.data ?? LANDING_SETTINGS_DEFAULTS;
+  const platforms = platformsLoader.data ?? [];
   const colorMap: Record<string, string> = {
     "Play Now": "#10b981", "In Development": "#f59e0b", "Coming Soon": "#0ea5e9", Prototype: "#a1a1aa",
   };
@@ -201,15 +205,16 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   };
   const saveAll = async () => {
     setSaving(true); setMsg("");
-    try { await adminCall({ op: "upsert", table: "site_projects", rows: rows.map((row, index) => ({ ...row, cover_url: row.key_art_url || row.cover_url, sort_order: index })) }); setMsg("Saved"); onDirty?.(false); await reload(); }
+    try { await Promise.all([adminCall({ op: "upsert", table: "site_projects", rows: rows.map((row, index) => ({ ...row, cover_url: row.key_art_url || row.cover_url, sort_order: index })) }), adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), platforms.length ? adminCall({ op: "upsert", table: "site_game_platforms", rows: platforms }) : Promise.resolve()]); setMsg("Saved"); onDirty?.(false); await reload(); }
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
   return (
     <div className="space-y-4">
       <PanelHeader title="Games" onAdd={addRow} onSave={saveAll} saving={saving} msg={msg} />
-      {rows.map((r, i) => (
-        <div key={r.id ?? `new-${i}`} className="rounded-lg border border-border bg-card p-4">
+      <div className="admin-card grid gap-4 sm:grid-cols-2"><ToggleField label="Slider autoplay" value={settings.slider_autoplay} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, slider_autoplay: v }); }} /><NumField label="Autoplay interval in seconds" value={settings.slider_interval_seconds} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, slider_interval_seconds: Math.max(2, Math.min(60, v)) }); }} /></div>
+      <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (!over || active.id === over.id) return; const oldIndex = rows.findIndex((row, i) => (row.id ?? `new-${i}`) === active.id); const newIndex = rows.findIndex((row, i) => (row.id ?? `new-${i}`) === over.id); setData(arrayMove(rows, oldIndex, newIndex)); onDirty?.(true); }}><SortableContext items={rows.map((row, i) => row.id ?? `new-${i}`)} strategy={verticalListSortingStrategy}>{rows.map((r, i) => (
+        <SortableAdminCard key={r.id ?? `new-${i}`} id={r.id ?? `new-${i}`}>
           <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Title" value={r.title} onChange={(v) => update(i, { title: v })} />
@@ -223,6 +228,7 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
               <Field label="Button label" value={r.button_label} onChange={(v) => update(i, { button_label: v })} />
               <Field label="Button URL" value={r.button_url} onChange={(v) => update(i, { button_url: v })} />
               <div className="sm:col-span-2"><TextField label={`Short description (${r.description.length}/350)`} value={r.description} onChange={(v) => update(i, { description: v.slice(0, 350) })} /></div>
+              <PlatformEditor project={r} rows={platforms.filter((platform) => platform.project_id === r.id)} onChange={(next) => { onDirty?.(true); platformsLoader.setData([...platforms.filter((platform) => platform.project_id !== r.id), ...next]); }} />
               <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3">
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
@@ -276,8 +282,8 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
               <ProjectCardPreview project={r} statusColor={colorMap[r.status] ?? "#a1a1aa"} />
             </div>
           </div>
-        </div>
-      ))}
+        </SortableAdminCard>
+      ))}</SortableContext></DndContext>
       {pressKitFor?.id && (
         <PressKitDialog
           project={pressKitFor}
@@ -289,6 +295,17 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
       )}
     </div>
   );
+}
+
+function SortableAdminCard({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  return <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="relative rounded-lg border border-border bg-card p-4"><button type="button" className="admin-drag-handle" {...attributes} {...listeners} aria-label="Drag to reorder"><GripVertical /></button>{children}</div>;
+}
+
+function PlatformEditor({ project, rows, onChange }: { project: ProjectRow; rows: PlatformRow[]; onChange: (rows: PlatformRow[]) => void }) {
+  if (!project.id) return <p className="sm:col-span-2 text-xs text-muted-foreground">Save this game before adding platform tiles.</p>;
+  const update = (i: number, patch: Partial<PlatformRow>) => onChange(rows.map((row, index) => index === i ? { ...row, ...patch } : row));
+  return <div className="sm:col-span-2 space-y-3 border-t border-border pt-4"><Label>Platform tiles</Label>{rows.map((row, i) => <div key={row.id ?? i} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]"><Field label="Platform name" value={row.name} onChange={(v) => update(i, { name: v })} /><Field label="Logo URL" value={row.logo_url} onChange={(v) => update(i, { logo_url: v })} /><Field label="Store URL" value={row.store_url} onChange={(v) => update(i, { store_url: v })} /><Button variant="ghost" size="icon" onClick={() => onChange(rows.filter((_, index) => index !== i))}><Trash2 /></Button></div>)}<Button variant="outline" size="sm" onClick={() => onChange([...rows, { project_id: project.id!, name: "", logo_url: "", store_url: "", sort_order: rows.length }])}><Plus className="mr-2 h-4 w-4" />Add platform</Button></div>;
 }
 
 function StatusSelect({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
