@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import anvilPatternAsset from "@/assets/anvil-96-visible.png.asset.json";
+import anvilPatternAsset from "@/assets/anvil-pattern-tile.png";
 
 const DEFAULT_MISSION_TEXT = "We make the kind of games we'd play ourselves. Easy to pick up, hard to put down, and always a little bit of &quot;just one more&quot;. Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.";
 const DEFAULT_MISSION_SIGNOFF = "Forged together with our community.";
