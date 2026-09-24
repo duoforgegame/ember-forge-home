@@ -87,7 +87,7 @@ Visit `https://duoforgegames.com/admin` — not linked anywhere on the site and 
 
 - **Imprint page** (`src/pages/Imprint.tsx`) — replace the `[…]` placeholders with your actual legal address & responsible person before publishing.
 - **Privacy policy** (`src/pages/Privacy.tsx`) — generic template, have a lawyer review before publishing.
-- **Header/footer links** — the header nav is currently hardcoded scroll anchors (Home / Our Forge / About / Contact) plus the Discord button. Footer has Imprint + Privacy. The `site_header_links` / `site_footer_links` tables exist and are editable from the admin panel, but nothing renders them yet — tell me if/how you want to wire them in (e.g. replace the anchors, or add an extra row).
+- **Header/footer links**: these are managed in the Header and Footer admin tabs and render on the public site.
 
 ## 6. Skin Creator (/skincreator)
 
