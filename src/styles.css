@@ -49,6 +49,8 @@
   color: var(--foreground);
 }
 
+body:has(.public-landing)::before { display: none; }
+
 .public-landing .landing-shell {
   position: relative;
   width: min(100%, 1380px);
