@@ -52,6 +52,7 @@
 
 html:has(.public-landing) { background: #000000; }
 body:has(.public-landing) { min-height: 100%; background: #000000; }
+body:has(.public-landing)::before { display: none; }
 .public-landing::before {
   display: none;
 }
