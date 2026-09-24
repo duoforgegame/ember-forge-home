@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical } from "lucide-react";
-import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { adminLogin, adminCall, clearToken, uploadProjectCover, uploadPressAsset, slugify } from "@/lib/api";
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
-import { FeaturedGameCard } from "@/components/FeaturedGameCard";
 import { GamesHero, MissionSection, TeamSection, ContactSection, type ProjectView } from "@/pages/Landing";
 import { SocialIconLinks } from "@/components/SocialIconLinks";
 
@@ -199,7 +198,7 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const addRow = () => { onDirty?.(true); setData([...rows, { title: "", description: "", cover_url: "", key_art_url: "", trailer_url: "", info_bar_color: "", visible: true, status: "In Development", button_label: "", button_url: "", sort_order: rows.length, press_kit_enabled: false, more_info_enabled: false }]); };
   const removeRow = async (i: number) => {
     const row = rows[i];
-    if (row.id && !confirm("Delete this project?")) return;
+    if (!confirm("Delete this game?")) return;
     if (row.id) await adminCall({ op: "delete", table: "site_projects", id: row.id });
     setData(rows.filter((_, idx) => idx !== i)); onDirty?.(true);
   };
@@ -279,7 +278,7 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
             </div>
             <div>
               <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground">Live preview</Label>
-              <ProjectCardPreview project={r} statusColor={colorMap[r.status] ?? "#a1a1aa"} />
+              <div className="public-landing"><div className="landing-shell"><GamesHero preview projects={[{ title: r.title || "Untitled game", description: r.description, cover: r.key_art_url || r.cover_url, status: r.status as any, buttonLabel: r.button_label, buttonUrl: r.button_url, trailerUrl: r.trailer_url, infoBarColor: r.info_bar_color, platforms: platforms.filter((platform) => platform.project_id === r.id) } as ProjectView]} /></div></div>
             </div>
           </div>
         </SortableAdminCard>
@@ -305,7 +304,7 @@ function SortableAdminCard({ id, children }: { id: string; children: React.React
 function PlatformEditor({ project, rows, onChange }: { project: ProjectRow; rows: PlatformRow[]; onChange: (rows: PlatformRow[]) => void }) {
   if (!project.id) return <p className="sm:col-span-2 text-xs text-muted-foreground">Save this game before adding platform tiles.</p>;
   const update = (i: number, patch: Partial<PlatformRow>) => onChange(rows.map((row, index) => index === i ? { ...row, ...patch } : row));
-  return <div className="sm:col-span-2 space-y-3 border-t border-border pt-4"><Label>Platform tiles</Label>{rows.map((row, i) => <div key={row.id ?? i} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]"><Field label="Platform name" value={row.name} onChange={(v) => update(i, { name: v })} /><Field label="Logo URL" value={row.logo_url} onChange={(v) => update(i, { logo_url: v })} /><Field label="Store URL" value={row.store_url} onChange={(v) => update(i, { store_url: v })} /><Button variant="ghost" size="icon" onClick={() => onChange(rows.filter((_, index) => index !== i))}><Trash2 /></Button></div>)}<Button variant="outline" size="sm" onClick={() => onChange([...rows, { project_id: project.id!, name: "", logo_url: "", store_url: "", sort_order: rows.length }])}><Plus className="mr-2 h-4 w-4" />Add platform</Button></div>;
+  return <div className="sm:col-span-2 space-y-3 border-t border-border pt-4"><Label>Platform tiles</Label>{rows.map((row, i) => <div key={row.id ?? i} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"><Field label="Platform name" value={row.name} onChange={(v) => update(i, { name: v })} /><Field label="Store URL" value={row.store_url} onChange={(v) => update(i, { store_url: v })} /><div className="flex items-end gap-1">{row.logo_url && <img src={row.logo_url} alt="" className="h-10 w-10 object-contain" />}<IconUploadButton onUploaded={(logo_url) => update(i, { logo_url })} /></div><div className="flex items-end"><Button variant="ghost" size="icon" disabled={i === 0} onClick={() => onChange(arrayMove(rows, i, i - 1))}><ArrowUp /></Button><Button variant="ghost" size="icon" disabled={i === rows.length - 1} onClick={() => onChange(arrayMove(rows, i, i + 1))}><ArrowDown /></Button></div><Button variant="ghost" size="icon" onClick={async () => { if (!confirm("Remove this platform?")) return; if (row.id) await adminCall({ op: "delete", table: "site_game_platforms", id: row.id }); onChange(rows.filter((_, index) => index !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" size="sm" onClick={() => onChange([...rows, { project_id: project.id!, name: "", logo_url: "", store_url: "", sort_order: rows.length }])}><Plus className="mr-2 h-4 w-4" />Add platform</Button></div>;
 }
 
 function StatusSelect({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {

@@ -124,3 +124,10 @@ Symptom `Unknown op: save_palette` means the deployed edge function is older tha
 2. Redeploy the function: `supabase functions deploy skin-auth --no-verify-jwt`
 3. Reload `/skincreator` and try saving a palette again while signed in.
 
+## Landing page admin editor (update)
+
+1. Run the `LANDING PAGE ADMIN EXTENSIONS` block at the end of `db/schema.sql` in the Supabase SQL editor.
+2. Redeploy the admin function: `supabase functions deploy admin-write --no-verify-jwt`
+3. Open `/admin`. The landing editor now uses the Games, Header, Mission, About, Contact, Socials, Footer, Status colors, Legal, Banner, and Messages tabs.
+4. Existing project covers, featured ordering, team names, About content, social URLs, links, legal content, banner content, and messages are preserved by the additive migration.
+
