@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import logo from "@/assets/dfg-logo-banner.png.asset.json";
+import logo from "@/assets/dfg-logo-large.png";
 
 type FooterLink = { id?: string; label: string; url: string; sort_order?: number };
 
@@ -41,7 +41,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="footer-inner">
         <Link to="/" className="footer-logo" aria-label="Duo Forge Games home">
-          <img src={logo.url} alt="Duo Forge Games" />
+          <img src={logo} alt="Duo Forge Games" />
         </Link>
         <nav>
           {links.map((l, i) => {

@@ -5,7 +5,7 @@ import { Menu, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/dfg-logo.png";
-import bannerLogo from "@/assets/dfg-logo-banner.png.asset.json";
+import bannerLogo from "@/assets/dfg-logo-large.png";
 
 type HeaderLink = { id?: string; label: string; url: string; sort_order?: number };
 
@@ -93,7 +93,7 @@ export function Header() {
     <header className={`site-header ${scrolled ? "is-compact" : ""}`} style={{ top: "var(--banner-h, 0px)" }}>
       {isLanding && !scrolled && (
         <div className="studio-banner">
-          <img src={bannerLogo.url} alt="Duo Forge Games" />
+          <img src={bannerLogo} alt="Duo Forge Games" />
           <p>A two-person indie studio from Lübeck, Germany</p>
           <span>Est. 2021</span>
         </div>

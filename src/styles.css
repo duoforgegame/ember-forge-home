@@ -117,7 +117,7 @@ body:has(.public-landing)::before { display: none; }
   clip-path: polygon(0 0, 100% 0, 100% 91%, 93% 89%, 85% 94%, 75% 91%, 65% 96%, 54% 92%, 43% 97%, 31% 92%, 20% 96%, 9% 91%, 0 94%);
 }
 
-.studio-banner img { width: 176px; height: auto; object-fit: contain; }
+.studio-banner img { width: 176px; height: 220px; object-fit: contain; }
 .studio-banner p,
 .studio-banner span {
   font-size: 10px;
