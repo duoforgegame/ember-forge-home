@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/api";
 
-export type GamePlatform = { id?: string; name: string; logo_url: string; store_url: string; sort_order?: number };
+export type GamePlatform = { id?: string; project_id?: string; name: string; logo_url: string; store_url: string; sort_order?: number };
 export type GameProject = {
   id: string; title: string; description?: string; cover_url: string; key_art_url?: string;
   trailer_url?: string; status?: string; button_label?: string; button_url?: string;
@@ -64,7 +64,7 @@ export default function GamePage() {
         supabase.from("site_game_platforms").select("*").order("sort_order"),
       ]);
       const projects = (projectsResult.data ?? []) as GameProject[];
-      const platforms = (platformsResult.data ?? []) as GamePlatform[] & { project_id?: string }[];
+      const platforms = (platformsResult.data ?? []) as GamePlatform[];
       const project = projects.find((item) => slugify(item.title) === slug) ?? null;
       if (!project) return { project: null, projects, blocks: [] as GameBlock[] };
       project.platforms = platforms.filter((platform) => platform.project_id === project.id);
