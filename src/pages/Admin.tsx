@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical } from "lucide-react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical, Copy } from "lucide-react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -13,6 +13,7 @@ import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 import { FeaturedGameCard } from "@/components/FeaturedGameCard";
 import { GamesHero, MissionSection, TeamSection, ContactSection, type ProjectView } from "@/pages/Landing";
 import { SocialIconLinks } from "@/components/SocialIconLinks";
+import { GamePageCanvas, type GameBlock, type GameProject } from "@/pages/GamePage";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; key_art_url?: string; trailer_url?: string; info_bar_color?: string; visible?: boolean; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
 type TeamRow = { id?: string; name: string; gamer_tag?: string; real_name?: string; role: string; bio: string; sort_order: number };
@@ -1348,6 +1349,7 @@ const BLOCK_TYPES: { type: string; label: string; description: string }[] = [
   { type: "gallery", label: "Image Gallery", description: "Multiple images with lightbox and reordering." },
   { type: "free_image", label: "Free Image", description: "Single image (roadmap/infographic) with size and caption." },
   { type: "steam", label: "Steam Widget", description: "Embed the official Steam wishlist/buy widget." },
+  { type: "store_bar", label: "Store Bar", description: "Game description, status, platforms, and main store button." },
   { type: "features", label: "Feature List", description: "Grid of icon + title + description items." },
   { type: "video", label: "Video / Trailer", description: "Embedded YouTube or Vimeo video." },
   { type: "quote", label: "Quote / Testimonial", description: "Featured quote with attribution." },
@@ -1355,14 +1357,15 @@ const BLOCK_TYPES: { type: string; label: string; description: string }[] = [
 
 const defaultContent = (type: string): any => {
   switch (type) {
-    case "hero":       return { title: "", subtitle: "", image_url: "", cta_label: "", cta_url: "", overlay_color: "#000000", overlay_opacity: 0.5, background_color: "" };
-    case "text":       return { heading: "", body: "", image_url: "", image_position: "none", background_color: "" };
+    case "hero":       return { title: "", subtitle: "", image_url: "", cta_label: "", cta_url: "", trailer_url: "", background: "black", background_color: "#000000" };
+    case "text":       return { heading: "", heading_style: "normal", body: "", image_url: "", image_position: "none", background: "black", background_color: "#000000" };
     case "gallery":    return { heading: "", images: [] as string[], background_color: "" };
     case "free_image": return { image_url: "", caption: "", size: "large", zoomable: true, background_color: "" };
-    case "steam":      return { app_id: "", background_color: "" };
+    case "steam":      return { app_id: "", label: "GET IT ON STEAM", background: "black", background_color: "#000000" };
+    case "store_bar":  return { use_game_data: true, description: "", status: "", platforms: [], button_label: "", button_url: "", bar_color: "#e8702a", background: "black", background_color: "#000000" };
     case "features":   return { heading: "", columns: 3, items: [] as any[], background_color: "" };
-    case "video":      return { url: "", background_color: "" };
-    case "quote":      return { quote: "", attribution: "", background_color: "" };
+    case "video":      return { url: "", poster_url: "", background: "black", background_color: "#000000" };
+    case "quote":      return { quote: "", attribution: "", source: "", source_url: "", background: "black", background_color: "#000000" };
     default:           return { background_color: "" };
   }
 };
