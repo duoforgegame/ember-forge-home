@@ -858,3 +858,4 @@ where not exists (select 1 from public.site_mission_lines);
 
 -- Refresh the REST API schema cache so new tables are reachable immediately (fixes 404s).
 notify pgrst, 'reload schema';
+
