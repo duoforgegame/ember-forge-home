@@ -393,7 +393,7 @@ body:has(.public-landing)::before { display: none; }
 .game-page-hero-media > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .game-page-hero-media > span { position: absolute; inset: auto 0 0; height: 38%; background: linear-gradient(to bottom, transparent, rgb(0 0 0 / .92)); }
 .game-page-hero-copy { position: absolute; z-index: 2; left: 6%; right: 6%; bottom: 7%; }
-.game-page-hero-copy h1 { max-width: 900px; font-size: clamp(58px, 9vw, 128px); font-weight: 700; line-height: .9; letter-spacing: 0; text-transform: uppercase; }
+.game-page-hero-copy h1 { max-width: 900px; overflow-wrap: anywhere; font-size: clamp(44px, 9vw, 128px); font-weight: 700; line-height: .9; letter-spacing: 0; text-transform: uppercase; }
 .game-page-hero-copy p { margin-top: 14px; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .game-orange-button { margin-top: 24px; min-height: 50px; border: 2px solid var(--landing-outer); border-radius: 0; background: var(--landing-accent); color: var(--primary-foreground); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .game-page-play, .game-video-frame button > span { display: grid; place-items: center; border: 3px solid var(--foreground); border-radius: 50%; background: var(--landing-accent); color: var(--primary-foreground); }
@@ -495,7 +495,7 @@ body:has(.public-landing)::before { display: none; }
   .feature-grid.columns-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
-  .game-page-hero-copy h1 { font-size: 50px; }
+  .game-page-hero-copy h1 { font-size: 42px; }
   .game-page-play { width: 58px; height: 58px; }
   .game-gallery-grid, .feature-grid.columns-2, .feature-grid.columns-3 { grid-template-columns: 1fr; }
   .next-game { min-height: 260px; }
