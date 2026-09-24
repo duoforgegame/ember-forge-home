@@ -34,11 +34,13 @@ export function Header({ forceCompact = false }: { forceCompact?: boolean }) {
   const { data } = useQuery({
     queryKey: ["header-links"],
     queryFn: async () => {
-      const [links, settings] = await Promise.all([
+      const [links, settings, socials] = await Promise.all([
         supabase.from("site_header_links").select("*").order("sort_order"),
         supabase.from("site_landing_settings").select("*").eq("id", 1).maybeSingle(),
+        supabase.from("site_social_links").select("url,visible,sort_order").eq("platform", "discord").order("sort_order").limit(5),
       ]);
-      return { links: (links.data ?? []) as (HeaderLink & { visible?: boolean })[], settings: settings.data as HeaderSettings | null };
+      const discordSocial = ((socials.data ?? []) as { url: string; visible: boolean }[]).find((row) => row.visible !== false && row.url);
+      return { links: (links.data ?? []) as (HeaderLink & { visible?: boolean })[], settings: settings.data as HeaderSettings | null, discordSocial: discordSocial?.url ?? "" };
     },
     retry: 0,
   });
@@ -48,6 +50,8 @@ export function Header({ forceCompact = false }: { forceCompact?: boolean }) {
   const navLinks = links.filter((link) => link.label.toLowerCase() !== "discord");
   const discordLink = settings?.discord_button_url
     ? { label: settings.discord_button_label || "Discord", url: settings.discord_button_url }
+    : data?.discordSocial
+    ? { label: settings?.discord_button_label || "Discord", url: data.discordSocial }
     : links.find((link) => link.label.toLowerCase() === "discord");
   const internalIds = useMemo(() => navLinks.filter((link) => isInternal(link.url)).map((link) => link.url.slice(1)), [navLinks]);
 

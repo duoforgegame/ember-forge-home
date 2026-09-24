@@ -12,7 +12,7 @@ import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 import { FeaturedGameCard } from "@/components/FeaturedGameCard";
 import { GamesHero, MissionSection, TeamSection, ContactSection, type ProjectView } from "@/pages/Landing";
-import { SocialIconLinks } from "@/components/SocialIconLinks";
+import { SocialIconLinks, SocialIcon, SOCIAL_PLATFORMS, platformLabel, type SocialLink } from "@/components/SocialIconLinks";
 import { GamePageCanvas, type GameBlock, type GameProject } from "@/pages/GamePage";
 import adminLogo from "@/assets/dfg-logo.png";
 
@@ -918,12 +918,14 @@ function MissionPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
 }
 
 function ContactPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
+  const [contactSocials, setContactSocials] = useState<SocialLink[]>([]);
+  useEffect(() => { loadTable<SocialLink>("site_social_links").then(setContactSocials).catch(() => setContactSocials([])); }, []);
   const loader = useLoader<LandingSettingsRow>(loadSettings); const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
   if (loader.error) return <ErrorMsg text={loader.error} />;
   if (!loader.data) return <Spinner />; const data = loader.data;
   const update = (patch: Partial<LandingSettingsRow>) => { onDirty(true); loader.setData({ ...data, ...patch }); };
   const save = async () => { setSaving(true); try { await adminCall({ op: "upsert", table: "site_landing_settings", rows: [data] }); setMsg("Saved"); onDirty(false); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
-  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Contact" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><Field label="Section headline" value={data.contact_heading} onChange={(v) => update({ contact_heading: v })} /><Field label="Direct contact line" value={data.contact_direct_text} onChange={(v) => update({ contact_direct_text: v })} /><Field label="Email" value={data.contact_email} onChange={(v) => update({ contact_email: v })} /><p className="text-sm text-muted-foreground">The public form fields, validation, inquiry types, and sending logic remain unchanged.</p></div></div><PreviewPane><ContactSection socials={{ twitter: "", tiktok: "", instagram: "", discord: "", youtube: "" }} heading={data.contact_heading} directText={data.contact_direct_text} email={data.contact_email} preview /></PreviewPane></div>;
+  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Contact" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><Field label="Section headline" value={data.contact_heading} onChange={(v) => update({ contact_heading: v })} /><Field label="Direct contact line" value={data.contact_direct_text} onChange={(v) => update({ contact_direct_text: v })} /><Field label="Email" value={data.contact_email} onChange={(v) => update({ contact_email: v })} /><p className="text-sm text-muted-foreground">The public form fields, validation, inquiry types, and sending logic remain unchanged.</p></div></div><PreviewPane><ContactSection socialLinks={contactSocials} heading={data.contact_heading} directText={data.contact_direct_text} email={data.contact_email} preview /></PreviewPane></div>;
 }
 
 function FooterPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
@@ -936,29 +938,74 @@ function FooterPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
 }
 
 function SocialsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
-  const { data, loading, error, setData } = useLoader<Socials>(async () => {
-    const { supabase } = await import("@/lib/supabase");
-    const { data: row } = await supabase.from("site_socials").select("*").eq("id", 1).maybeSingle();
-    return (row as Socials) ?? { id: 1, twitter: "", tiktok: "", instagram: "", discord: "", youtube: "" };
-  });
+  const { data, loading, error, setData } = useLoader<SocialLink[]>(() => loadTable<SocialLink>("site_social_links"));
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-  if (loading || !data) return <Spinner />;
+  const [newPlatform, setNewPlatform] = useState("discord");
   if (error) return <ErrorMsg text={error} />;
+  if (loading || !data) return <Spinner />;
+  const rows = data;
+  const change = (next: SocialLink[]) => { onDirty?.(true); setData(next.map((r, i) => ({ ...r, sort_order: i }))); };
+  const update = (i: number, patch: Partial<SocialLink>) => change(rows.map((r, n) => (n === i ? { ...r, ...patch } : r)));
+  const ids = rows.map((r, i) => r.id ?? `new-${i}`);
   const save = async () => {
     setSaving(true); setMsg("");
-    try { await adminCall({ op: "upsert", table: "site_socials", rows: [data] }); setMsg("Saved"); onDirty?.(false); }
-    catch (e: any) { setMsg(e?.message ?? "Save failed"); }
+    try {
+      const res = await adminCall({ op: "upsert", table: "site_social_links", rows: rows.map((r, i) => ({ ...r, sort_order: i })) });
+      if (res?.rows) setData([...(res.rows as SocialLink[])].sort((x, y) => x.sort_order - y.sort_order));
+      setMsg("Saved"); onDirty?.(false);
+    } catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
-  const upd = (k: keyof Socials, v: string | boolean) => { onDirty?.(true); setData({ ...data, [k]: v }); };
+  const remove = async (i: number) => {
+    const row = rows[i];
+    if (!confirm(`Delete the ${platformLabel(row)} link?`)) return;
+    try { if (row.id) await adminCall({ op: "delete", table: "site_social_links", id: row.id }); change(rows.filter((_, n) => n !== i)); }
+    catch (e: any) { setMsg(e?.message ?? "Delete failed"); }
+  };
+  const add = () => change([...rows, { platform: newPlatform, label: newPlatform === "custom" ? "" : (SOCIAL_PLATFORMS.find((p) => p.key === newPlatform)?.label ?? ""), url: "", icon_url: "", visible: true, sort_order: rows.length }]);
   return (
-    <div className="space-y-4">
-      <PanelHeader title="Socials" onSave={save} saving={saving} msg={msg} />
-      <div className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2">
-        {([['twitter','Twitter / X'],['tiktok','TikTok'],['instagram','Instagram'],['discord','Discord'],['youtube','YouTube']] as const).map(([key,label]) => <div key={key} className="space-y-2"><Field label={label} value={data[key]} onChange={(v) => upd(key, v)} /><ToggleField label="Visible" value={data[`${key}_visible` as keyof Socials] !== false} onChange={(v) => upd(`${key}_visible` as keyof Socials, v)} /></div>)}
+    <div className="admin-editor-layout">
+      <div className="space-y-4">
+        <PanelHeader title="Socials" onSave={save} saving={saving} msg={msg} />
+        <div className="admin-card space-y-3">
+          <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (!over || active.id === over.id) return; const o = ids.indexOf(String(active.id)); const n = ids.indexOf(String(over.id)); if (o < 0 || n < 0) return; change(arrayMove(rows, o, n)); }}>
+            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+              {rows.map((row, i) => (
+                <SortableAdminCard key={ids[i]} id={ids[i]}>
+                  <div className="admin-card space-y-3 pr-10">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-10 w-10 place-items-center bg-primary text-primary-foreground"><SocialIcon link={row} size={22} /></span>
+                      <select value={row.platform} onChange={(e) => update(i, { platform: e.target.value, label: e.target.value === "custom" ? row.label : (SOCIAL_PLATFORMS.find((p) => p.key === e.target.value)?.label ?? "") })} className="h-10 border px-2 text-sm">
+                        {SOCIAL_PLATFORMS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+                      </select>
+                      <div className="ml-auto flex items-center gap-2">
+                        <Button variant="ghost" size="icon" title={row.visible ? "Visible" : "Hidden"} onClick={() => update(i, { visible: !row.visible })}>{row.visible ? <Eye /> : <EyeOff />}</Button>
+                        <Button variant="ghost" size="icon" title="Delete" onClick={() => remove(i)}><Trash2 /></Button>
+                      </div>
+                    </div>
+                    {row.platform === "custom" && (
+                      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                        <Field label="Label" value={row.label} onChange={(v) => update(i, { label: v })} />
+                        <IconUploadButton onUploaded={(icon_url) => update(i, { icon_url })} />
+                      </div>
+                    )}
+                    <Field label="URL" value={row.url} onChange={(v) => update(i, { url: v })} placeholder="https://" />
+                  </div>
+                </SortableAdminCard>
+              ))}
+            </SortableContext>
+          </DndContext>
+          {rows.length === 0 && <p className="text-sm text-muted-foreground">No social links yet.</p>}
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <select value={newPlatform} onChange={(e) => setNewPlatform(e.target.value)} className="h-9 border px-2 text-sm">
+              {SOCIAL_PLATFORMS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+            </select>
+            <Button variant="outline" size="sm" onClick={add}><Plus className="mr-2 h-4 w-4" />Add link</Button>
+          </div>
+        </div>
       </div>
-      <PreviewPane><SocialIconLinks socials={data} /></PreviewPane>
+      <PreviewPane><div className="public-landing" style={{ padding: 24 }}><SocialIconLinks links={rows} /></div></PreviewPane>
     </div>
   );
 }
