@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import anvilPatternAsset from "@/assets/anvil-brick-mask.png.asset.json";
+
+const DEFAULT_MISSION_TEXT = "We make the kind of games we'd play ourselves. Easy to pick up, hard to put down, and always a little bit of &quot;just one more&quot;. Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.";
+const DEFAULT_MISSION_SIGNOFF = "Forged together with our community.";
 import {
   projects as fallbackProjects,
   team as fallbackTeam,
@@ -79,7 +82,7 @@ export default function Landing() {
         <Header />
         <main>
           <GamesHero projects={projects} autoplay={data?.settings?.slider_autoplay ?? true} intervalSeconds={data?.settings?.slider_interval_seconds ?? 6} />
-          {(data?.settings?.mission_visible ?? true) && <MissionSection lines={data?.missionLines} missionText={data?.settings?.mission_text || data?.about?.intro_html || ""} signoff={data?.settings?.mission_signoff} />}
+          {(data?.settings?.mission_visible ?? true) && <MissionSection lines={data?.missionLines} missionText={data?.settings?.mission_text || DEFAULT_MISSION_TEXT} signoff={data?.settings?.mission_signoff || DEFAULT_MISSION_SIGNOFF} />}
           <TeamSection team={team} heading={data?.settings?.about_heading} introHtml={data?.about?.intro_html} />
           <ContactSection
             socials={data?.socials ?? fallbackSocials}
@@ -259,13 +262,9 @@ export function MissionSection({ lines, missionText, signoff }: { lines?: { id?:
           {displayLines.filter((line) => line.text).map((line, index) => <span key={line.id ?? index} className={line.style === "black_orange" ? "is-orange" : ""}>{line.text}</span>)}
         </div>
         <div className="mission-copy">
-          {missionText ? (
-            <div dangerouslySetInnerHTML={{ __html: missionText }} />
-          ) : (
-            <p>Duo Forge Games is a two-person indie studio from Lübeck. We are brothers, and every game we make is shaped together with the players who test it.</p>
-          )}
+          <div dangerouslySetInnerHTML={{ __html: missionText || DEFAULT_MISSION_TEXT }} />
           <span className="mission-rule" />
-           {signoff && <p className="mission-signoff">{signoff}</p>}
+          {(signoff || DEFAULT_MISSION_SIGNOFF) && <p className="mission-signoff">{signoff || DEFAULT_MISSION_SIGNOFF}</p>}
         </div>
       </div>
     </section>

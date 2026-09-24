@@ -32,7 +32,7 @@ type PlatformRow = { id?: string; project_id: string; name: string; logo_url: st
 const LANDING_SETTINGS_DEFAULTS: LandingSettingsRow = {
   id: 1, slider_autoplay: true, slider_interval_seconds: 6,
   header_banner_logo_url: "", header_sticky_logo_url: "", header_studio_line: "A TWO-PERSON INDIE STUDIO FROM LÜBECK, GERMANY", header_established_line: "EST. 2021",
-  discord_button_label: "DISCORD", discord_button_url: "", mission_visible: true, mission_text: "", mission_signoff: "Forged together with our community.",
+  discord_button_label: "DISCORD", discord_button_url: "", mission_visible: true, mission_text: "We make the kind of games we'd play ourselves. Easy to pick up, hard to put down, and always a little bit of \"just one more\". Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.", mission_signoff: "Forged together with our community.",
   about_heading: "ABOUT US", contact_heading: "CONTACT", contact_direct_text: "Or reach us directly at", contact_email: "info@duoforgegames.com",
   footer_logo_url: "", footer_copyright: "© 2026 Duo Forge Games. All rights reserved.",
 };

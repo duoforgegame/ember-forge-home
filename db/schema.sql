@@ -777,7 +777,7 @@ create table if not exists public.site_landing_settings (
   discord_button_label text not null default 'DISCORD',
   discord_button_url text not null default '',
   mission_visible boolean not null default true,
-  mission_text text not null default '',
+  mission_text text not null default 'We make the kind of games we''d play ourselves. Easy to pick up, hard to put down, and always a little bit of "just one more". Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.',
   mission_signoff text not null default 'Forged together with our community.',
   about_heading text not null default 'ABOUT US',
   contact_heading text not null default 'CONTACT',
@@ -793,10 +793,26 @@ alter table public.site_landing_settings enable row level security;
 drop policy if exists "public read landing settings" on public.site_landing_settings;
 create policy "public read landing settings" on public.site_landing_settings
   for select to anon, authenticated using (true);
-insert into public.site_landing_settings (id, mission_text, discord_button_url)
-select 1, coalesce((select intro_html from public.site_about where id = 1), ''),
+insert into public.site_landing_settings (id, mission_text, mission_signoff, discord_button_url)
+select 1, 'We make the kind of games we''d play ourselves. Easy to pick up, hard to put down, and always a little bit of "just one more". Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.',
+       'Forged together with our community.',
        coalesce((select discord from public.site_socials where id = 1), '')
 on conflict (id) do nothing;
+
+alter table public.site_landing_settings
+  add column if not exists mission_text text not null default 'We make the kind of games we''d play ourselves. Easy to pick up, hard to put down, and always a little bit of "just one more". Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.',
+  add column if not exists mission_signoff text not null default 'Forged together with our community.';
+
+alter table public.site_landing_settings
+  alter column mission_text set default 'We make the kind of games we''d play ourselves. Easy to pick up, hard to put down, and always a little bit of "just one more". Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.',
+  alter column mission_signoff set default 'Forged together with our community.';
+
+update public.site_landing_settings
+set mission_text = 'We make the kind of games we''d play ourselves. Easy to pick up, hard to put down, and always a little bit of "just one more". Every update is shaped by the people who actually play them, from our Discord to the Steam reviews.',
+    mission_signoff = 'Forged together with our community.',
+    updated_at = now()
+where id = 1
+  and (mission_text = '' or mission_text = coalesce((select intro_html from public.site_about where id = 1), ''));
 
 create table if not exists public.site_mission_lines (
   id uuid primary key default gen_random_uuid(),
