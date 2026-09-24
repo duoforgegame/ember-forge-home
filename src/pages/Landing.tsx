@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import anvilPatternAsset from "@/assets/anvil-brick-mask.png.asset.json";
 import {
   projects as fallbackProjects,
   team as fallbackTeam,
@@ -72,7 +73,8 @@ export default function Landing() {
       : fallbackTeam;
 
   return (
-    <div className="public-landing min-h-screen">
+    <div className="public-landing min-h-screen" style={{ "--anvil-pattern-mask": `url(${anvilPatternAsset.url})` } as React.CSSProperties}>
+      <div className="outer-anvil-pattern" aria-hidden="true" />
       <div className="landing-shell">
         <Header />
         <main>
@@ -267,7 +269,7 @@ export function TeamSection({ team, heading = "About us", introHtml }: { team: a
       <div className="team-grid">
         {team.map((member) => (
           <article key={member.name} className="team-profile">
-            <h3>{member.gamer_tag || member.name}{member.real_name && <small>{member.real_name}</small>}</h3>
+            <AutoFitTeamName primaryName={member.gamer_tag || member.name} realName={member.real_name} />
             <p className="eyebrow">{member.role}</p>
             <p className="team-bio">{member.bio}</p>
           </article>
@@ -275,6 +277,33 @@ export function TeamSection({ team, heading = "About us", introHtml }: { team: a
       </div>
     </section>
   );
+}
+
+function AutoFitTeamName({ primaryName, realName }: { primaryName: string; realName?: string }) {
+  const nameRef = useRef<HTMLHeadingElement>(null);
+
+  useLayoutEffect(() => {
+    const nameElement = nameRef.current;
+    if (!nameElement) return;
+    const fitName = () => {
+      nameElement.style.fontSize = "";
+      const startingSize = Number.parseFloat(window.getComputedStyle(nameElement).fontSize);
+      if (!Number.isFinite(startingSize)) return;
+      const minimumSize = startingSize * 0.6;
+      let fittedSize = startingSize;
+      while (nameElement.scrollWidth > nameElement.clientWidth && fittedSize > minimumSize) {
+        fittedSize = Math.max(minimumSize, fittedSize - 1);
+        nameElement.style.fontSize = `${fittedSize}px`;
+      }
+    };
+
+    fitName();
+    const observer = new ResizeObserver(fitName);
+    observer.observe(nameElement);
+    return () => observer.disconnect();
+  }, [primaryName, realName]);
+
+  return <h3 ref={nameRef} title={[primaryName, realName].filter(Boolean).join(" ")}>{primaryName}{realName && <small>{realName}</small>}</h3>;
 }
 
 export const INQUIRY_TYPES = [
