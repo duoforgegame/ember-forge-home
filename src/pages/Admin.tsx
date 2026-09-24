@@ -352,7 +352,7 @@ function CoverUploader({ value, onChange }: { value: string; onChange: (url: str
     <div>
       <Label>Cover image</Label>
       <p className="mt-1 text-xs text-muted-foreground">Recommended: 1280×720 (16:9), JPG/PNG/WebP, max 5 MB.</p>
-      <div className="mt-2 flex flex-wrap items-center gap-3">
+      <div className="mt-2 flex flex-wrap items-center gap-3 admin-image-drop" onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
         <div className="grid h-20 w-36 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-surface-2">
           {value ? (
             <img src={value} alt="Cover preview" className="h-full w-full object-cover" />
@@ -531,7 +531,7 @@ function AboutPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const [msg, setMsg] = useState("");
   const settingsLoader = useLoader<LandingSettingsRow>(loadSettings);
   const teamLoader = useLoader<TeamRow[]>(() => loadTable("site_team"));
-  if (loading || !data) return <Spinner />;
+  if (loading || !data || !settingsLoader.data || !teamLoader.data) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const save = async () => {
     setSaving(true); setMsg("");
@@ -1250,6 +1250,13 @@ function PressUpload({ label, value, kind, onChange }: { label: string; value: s
     catch (ex: any) { setErr(ex?.message ?? "Upload failed"); }
     finally { setUploading(false); }
   };
+  const onDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    const transfer = new DataTransfer(); transfer.items.add(file);
+    await onPick({ target: { files: transfer.files, value: "" } } as React.ChangeEvent<HTMLInputElement>);
+  };
   return (
     <div>
       <Label>{label}</Label>
@@ -1518,6 +1525,7 @@ function GamePageDialog({ project, onClose }: { project: ProjectRow; onClose: ()
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add block
           </Button>
+          {value && <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Remove image</Button>}
         </div>
       </div>
 

@@ -229,6 +229,15 @@ body:has(.public-landing)::before { display: none; }
 .public-landing .game-secondary-links svg { width: 16px; height: 16px; }
 .public-landing .game-cta { min-height: 58px; border: 3px solid currentColor; border-radius: 0; background: transparent; color: inherit; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; box-shadow: none; }
 .public-landing .game-cta:hover { background: var(--foreground); color: var(--background); }
+.public-landing .game-trailer-button { position: absolute; inset: 50% auto auto 50%; z-index: 3; width: 72px; height: 72px; border: 3px solid #fff; border-radius: 50%; background: #e8702a; color: #000; transform: translate(-50%, -50%); }
+.public-landing .platform-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.public-landing .platform-tile { display: grid; min-width: 76px; place-items: center; gap: 6px; padding: 10px; background: #151515; color: #fff; }
+.public-landing .platform-tile img { width: 32px; height: 32px; object-fit: contain; }
+.public-landing .platform-tile span { font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.trailer-lightbox { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgb(0 0 0 / .9); }
+.trailer-frame { position: relative; width: min(100%, 1100px); aspect-ratio: 16/9; }
+.trailer-frame iframe { width: 100%; height: 100%; border: 0; }
+.trailer-frame > button { position: absolute; right: 0; top: -48px; color: #fff; }
 
 .public-landing .mission-section,
 .public-landing .team-section,
@@ -242,6 +251,7 @@ body:has(.public-landing)::before { display: none; }
 .public-landing .mission-lockup span:nth-child(4) { background: var(--landing-accent); color: var(--primary-foreground); }
 .public-landing .mission-lockup span:nth-child(3) { margin-left: 18px; margin-top: 9px; }
 .public-landing .mission-lockup span:nth-child(4) { margin-left: 74px; }
+.public-landing .mission-lockup span.is-orange { background: var(--landing-accent); color: var(--primary-foreground); }
 .public-landing .mission-copy { color: var(--landing-copy); font-size: 19px; line-height: 1.8; }
 .public-landing .mission-rule { display: block; width: 70px; height: 2px; margin: 34px 0 20px; background: var(--muted-foreground); }
 .public-landing .mission-signoff { color: var(--foreground); font-weight: 800; font-style: italic; }
@@ -252,6 +262,8 @@ body:has(.public-landing)::before { display: none; }
 .public-landing .team-profile { min-height: 310px; padding-right: 64px; }
 .public-landing .team-profile + .team-profile { padding-right: 0; padding-left: 64px; border-left: 2px solid var(--landing-accent); }
 .public-landing .team-profile h3 { color: var(--landing-accent); font-family: var(--font-display); font-size: clamp(46px, 6vw, 78px); font-weight: 700; line-height: 1; letter-spacing: 0; text-transform: uppercase; }
+.public-landing .team-profile h3 small { margin-left: 12px; color: var(--landing-copy); font-family: var(--font-sans); font-size: .28em; letter-spacing: .12em; }
+.public-landing .about-intro { max-width: 900px; margin: -38px 0 64px; color: var(--landing-copy); font-size: 17px; line-height: 1.75; }
 .public-landing .team-profile .eyebrow { margin-top: 18px; color: var(--foreground); }
 .public-landing .team-bio { margin-top: 28px; color: var(--landing-copy); font-size: 16px; line-height: 1.75; }
 
@@ -340,6 +352,31 @@ body:has(.public-landing)::before { display: none; }
   .public-landing *,
   .site-header * { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
 }
+
+/* Admin landing editor */
+.admin-center { background: #000; color: #fff; }
+.admin-center header { background: #151515; border-color: #333; backdrop-filter: none; }
+.admin-center main { max-width: 1380px; }
+.admin-center nav button, .admin-center label { font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.admin-center nav button { border-radius: 0; }
+.admin-center input, .admin-center textarea, .admin-center select { border-radius: 0 !important; border-color: #3a3a3a; background: #242424; box-shadow: none !important; }
+.admin-center input:focus, .admin-center textarea:focus, .admin-center select:focus { border-color: #e8702a; outline: none; }
+.admin-center button { border-radius: 0; }
+.admin-card { border: 1px solid #333; background: #1c1c1c; padding: 16px; }
+.admin-editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, .85fr); gap: 28px; align-items: start; }
+.admin-preview { position: sticky; top: 120px; min-width: 0; border: 1px solid #333; background: #151515; padding: 14px; overflow: hidden; }
+.admin-preview .public-landing { max-height: 720px; overflow: auto; transform-origin: top left; }
+.admin-preview .mission-section, .admin-preview .team-section, .admin-preview .contact-section { padding: 54px 32px; }
+.admin-preview .section-heading { font-size: 54px; margin-bottom: 34px; }
+.admin-preview .mission-grid { grid-template-columns: 1fr; gap: 42px; }
+.admin-drag-handle { position: absolute; z-index: 2; right: 8px; top: 8px; color: #bdbdbd; cursor: grab; }
+.admin-image-drop { border: 1px dashed #555; padding: 12px; }
+.admin-header-preview { display: grid; gap: 22px; padding: 30px; background: #151515; }
+.admin-header-preview nav { display: flex; flex-wrap: wrap; gap: 18px; }
+.admin-header-preview button { width: max-content; border: 2px solid #000; background: #e8702a; padding: 12px 18px; color: #000; font-weight: 800; }
+.admin-footer-preview { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 20px; padding: 30px; background: #000; }
+.admin-footer-preview img { width: 56px; max-height: 70px; object-fit: contain; }
+@media (max-width: 1050px) { .admin-editor-layout { grid-template-columns: 1fr; } .admin-preview { position: static; } }
 
 :root {
   --radius: 0.5rem;
