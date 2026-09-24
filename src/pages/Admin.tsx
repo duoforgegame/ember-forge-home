@@ -529,22 +529,28 @@ function AboutPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const settingsLoader = useLoader<LandingSettingsRow>(loadSettings);
+  const teamLoader = useLoader<TeamRow[]>(() => loadTable("site_team"));
   if (loading || !data) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
   const save = async () => {
     setSaving(true); setMsg("");
-    try { await adminCall({ op: "upsert", table: "site_about", rows: [data] }); setMsg("Saved"); }
+    try { await Promise.all([adminCall({ op: "upsert", table: "site_about", rows: [data] }), adminCall({ op: "upsert", table: "site_landing_settings", rows: [settingsLoader.data] }), adminCall({ op: "upsert", table: "site_team", rows: (teamLoader.data ?? []).map((row, i) => ({ ...row, name: [row.gamer_tag, row.real_name].filter(Boolean).join(" - "), sort_order: i })) })]); setMsg("Saved"); onDirty?.(false); }
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
+  const settings = settingsLoader.data ?? LANDING_SETTINGS_DEFAULTS; const team = teamLoader.data ?? [];
+  const updateTeam = (i: number, patch: Partial<TeamRow>) => { onDirty?.(true); teamLoader.setData(team.map((row, index) => index === i ? { ...row, ...patch } : row)); };
   return (
-    <div className="space-y-4">
+    <div className="admin-editor-layout"><div className="space-y-4">
       <PanelHeader title="About" onSave={save} saving={saving} msg={msg} />
       <div className="rounded-lg border border-border bg-card p-4">
+        <Field label="Section headline" value={settings.about_heading} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, about_heading: v }); }} />
         <Label>About intro (HTML allowed)</Label>
         <Textarea rows={10} value={data.intro_html} onChange={(e) => { onDirty?.(true); setData({ ...data, intro_html: e.target.value }); }} className="mt-2" />
       </div>
-    </div>
+      {team.map((member, i) => <div className="admin-card grid gap-3 sm:grid-cols-2" key={member.id ?? i}><Field label="Gamer tag" value={member.gamer_tag || ""} onChange={(v) => updateTeam(i, { gamer_tag: v })} /><Field label="Real name" value={member.real_name || ""} onChange={(v) => updateTeam(i, { real_name: v })} /><Field label="Role" value={member.role} onChange={(v) => updateTeam(i, { role: v })} /><div className="sm:col-span-2"><TextField label="Bio" value={member.bio} onChange={(v) => updateTeam(i, { bio: v })} /></div><Button variant="ghost" className="text-destructive" onClick={async () => { if (!confirm("Delete this team member?")) return; if (member.id) await adminCall({ op: "delete", table: "site_team", id: member.id }); teamLoader.setData(team.filter((_, index) => index !== i)); }}><Trash2 className="mr-2 h-4 w-4" />Delete</Button></div>)}
+      <Button variant="outline" onClick={() => { onDirty?.(true); teamLoader.setData([...team, { name: "", gamer_tag: "", real_name: "", role: "", bio: "", sort_order: team.length }]); }}><Plus className="mr-2 h-4 w-4" />Add team member</Button></div><PreviewPane><TeamSection team={team} heading={settings.about_heading} introHtml={data.intro_html} /></PreviewPane></div>
   );
 }
 
@@ -861,7 +867,7 @@ function SocialsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   if (error) return <ErrorMsg text={error} />;
   const save = async () => {
     setSaving(true); setMsg("");
-    try { await adminCall({ op: "upsert", table: "site_socials", rows: [data] }); setMsg("Saved"); }
+    try { await adminCall({ op: "upsert", table: "site_socials", rows: [data] }); setMsg("Saved"); onDirty?.(false); }
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
