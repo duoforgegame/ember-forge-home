@@ -22,11 +22,11 @@ const iconUrls = {
 
 export function SocialIconLinks({ socials, className = "" }: { socials: SocialDestinations; className?: string }) {
   const items = [
-    { key: "discord", href: socials.discord, label: "Discord" },
-    { key: "youtube", href: socials.youtube, label: "YouTube" },
-    { key: "tiktok", href: socials.tiktok, label: "TikTok" },
+    { key: "discord", href: socials.discord_visible === false ? null : socials.discord, label: "Discord" },
+    { key: "youtube", href: socials.youtube_visible === false ? null : socials.youtube, label: "YouTube" },
+    { key: "tiktok", href: socials.tiktok_visible === false ? null : socials.tiktok, label: "TikTok" },
     { key: "steam", href: socials.steam, label: "Steam" },
-    { key: "twitter", href: socials.twitter, label: "X" },
+    { key: "twitter", href: socials.twitter_visible === false ? null : socials.twitter, label: "X" },
   ].filter((item): item is { key: keyof typeof iconUrls; href: string; label: string } => Boolean(item.href));
 
   if (items.length === 0) return null;
