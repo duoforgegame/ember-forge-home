@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff } from "lucide-react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical } from "lucide-react";
+import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,11 +11,13 @@ import { adminLogin, adminCall, clearToken, uploadProjectCover, uploadPressAsset
 import { statusBadgeStyle } from "@/pages/Landing";
 import { AnnouncementBannerPreview } from "@/components/AnnouncementBanner";
 import { FeaturedGameCard } from "@/components/FeaturedGameCard";
+import { GamesHero, MissionSection, TeamSection, ContactSection, type ProjectView } from "@/pages/Landing";
+import { SocialIconLinks } from "@/components/SocialIconLinks";
 
-type ProjectRow = { id?: string; title: string; description: string; cover_url: string; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
-type TeamRow = { id?: string; name: string; role: string; bio: string; sort_order: number };
-type LinkRow = { id?: string; label: string; url: string; sort_order: number };
-type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string };
+type ProjectRow = { id?: string; title: string; description: string; cover_url: string; key_art_url?: string; trailer_url?: string; info_bar_color?: string; visible?: boolean; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
+type TeamRow = { id?: string; name: string; gamer_tag?: string; real_name?: string; role: string; bio: string; sort_order: number };
+type LinkRow = { id?: string; label: string; url: string; sort_order: number; visible?: boolean };
+type Socials = { id: number; twitter: string; tiktok: string; instagram: string; discord: string; youtube: string; twitter_visible?: boolean; tiktok_visible?: boolean; instagram_visible?: boolean; discord_visible?: boolean; youtube_visible?: boolean };
 type About = { id: number; intro_html: string };
 type Submission = { id: string; name: string; email: string; subject: string; message: string; inquiry_type: string; created_at: string };
 
@@ -26,7 +31,7 @@ type StatusColor = { status: string; color: string };
 
 const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
 
-const TABS = ["Projects", "Featured", "Team", "About", "Socials", "Header", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
+const TABS = ["Games", "Header", "Mission", "About", "Contact", "Socials", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Admin() {
@@ -73,20 +78,31 @@ function Login({ onOk }: { onOk: () => void }) {
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<Tab>("Projects");
+  const [tab, setTab] = useState<Tab>("Games");
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [dirty]);
+  const changeTab = (next: Tab) => {
+    if (next === tab) return;
+    if (dirty && !confirm("You have unsaved changes. Leave this tab?")) return;
+    setDirty(false); setTab(next);
+  };
   const logout = () => { clearToken(); onLogout(); };
   return (
-    <div className="min-h-screen bg-background">
+    <div className="admin-center min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <h1 className="font-display text-lg font-bold">Duo Forge — Admin</h1>
+          <h1 className="font-display text-lg font-bold">Duo Forge: Admin</h1>
           <Button variant="ghost" size="sm" onClick={logout}><LogOut className="mr-2 h-4 w-4" /> Log out</Button>
         </div>
         <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
           {TABS.map((t) => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => changeTab(t)}
               className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
@@ -97,13 +113,13 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         </nav>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        {tab === "Projects" && <ProjectsPanel />}
-        {tab === "Featured" && <FeaturedGamePanel />}
-        {tab === "Team" && <TeamPanel />}
-        {tab === "About" && <AboutPanel />}
-        {tab === "Socials" && <SocialsPanel />}
-        {tab === "Header" && <LinksPanel table="site_header_links" title="Header links" />}
-        {tab === "Footer" && <LinksPanel table="site_footer_links" title="Footer links" />}
+        {tab === "Games" && <ProjectsPanel onDirty={setDirty} />}
+        {tab === "Header" && <HeaderPanel onDirty={setDirty} />}
+        {tab === "Mission" && <MissionPanel onDirty={setDirty} />}
+        {tab === "About" && <AboutPanel onDirty={setDirty} />}
+        {tab === "Contact" && <ContactPanel onDirty={setDirty} />}
+        {tab === "Socials" && <SocialsPanel onDirty={setDirty} />}
+        {tab === "Footer" && <FooterPanel onDirty={setDirty} />}
         {tab === "Status colors" && <StatusColorsPanel />}
         {tab === "Legal" && <LegalPanel />}
         {tab === "Banner" && <AnnouncementPanel />}
