@@ -26,22 +26,22 @@ export function Footer() {
   const { data } = useQuery({
     queryKey: ["footer-links"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("site_footer_links")
-        .select("*")
-        .order("sort_order");
-      return (data ?? []) as FooterLink[];
+      const [links, settings] = await Promise.all([
+        supabase.from("site_footer_links").select("*").order("sort_order"),
+        supabase.from("site_landing_settings").select("*").eq("id", 1).maybeSingle(),
+      ]);
+      return { links: (links.data ?? []) as FooterLink[], settings: settings.data as { footer_logo_url?: string; footer_copyright?: string } | null };
     },
     retry: 0,
   });
 
-  const links = data && data.length > 0 ? data : FALLBACK;
+  const links = data?.links?.length ? data.links : FALLBACK;
 
   return (
     <footer className="site-footer">
       <div className="footer-inner">
         <Link to="/" className="footer-logo" aria-label="Duo Forge Games home">
-          <img src={logo} alt="Duo Forge Games" />
+          <img src={data?.settings?.footer_logo_url || logo} alt="Duo Forge Games" />
         </Link>
         <nav className="footer-legal" aria-label="Legal">
           {links.map((l, i) => {
@@ -68,7 +68,7 @@ export function Footer() {
           })}
         </nav>
         <div className="footer-copyright">
-          © 2026 Duo Forge Games. All rights reserved.
+          {data?.settings?.footer_copyright || "© 2026 Duo Forge Games. All rights reserved."}
         </div>
       </div>
     </footer>

@@ -68,7 +68,7 @@ export default function Landing() {
 
   const team =
     data?.team && data.team.length > 0
-      ? data.team.map((member: any) => ({ name: member.name, role: member.role, bio: member.bio }))
+      ? data.team.map((member: any) => ({ name: member.name, gamer_tag: member.gamer_tag, real_name: member.real_name, role: member.role, bio: member.bio }))
       : fallbackTeam;
 
   return (

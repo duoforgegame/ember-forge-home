@@ -10,6 +10,10 @@ export type SocialDestinations = {
   tiktok?: string | null;
   steam?: string | null;
   twitter?: string | null;
+  discord_visible?: boolean | null;
+  youtube_visible?: boolean | null;
+  tiktok_visible?: boolean | null;
+  twitter_visible?: boolean | null;
 };
 
 const iconUrls = {

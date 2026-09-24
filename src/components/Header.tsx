@@ -9,6 +9,7 @@ import bannerLogo from "@/assets/dfg-logo-large.png";
 import discordIcon from "@/assets/social/icons8-discord-64.png";
 
 type HeaderLink = { id?: string; label: string; url: string; sort_order?: number };
+type HeaderSettings = { header_banner_logo_url?: string; header_sticky_logo_url?: string; header_studio_line?: string; header_established_line?: string; discord_button_label?: string; discord_button_url?: string };
 
 const FALLBACK: HeaderLink[] = [
   { label: "Home", url: "#home" },
@@ -32,15 +33,19 @@ export function Header() {
   const { data } = useQuery({
     queryKey: ["header-links"],
     queryFn: async () => {
-      const { data } = await supabase.from("site_header_links").select("*").order("sort_order");
-      return (data ?? []) as HeaderLink[];
+      const [links, settings] = await Promise.all([
+        supabase.from("site_header_links").select("*").order("sort_order"),
+        supabase.from("site_landing_settings").select("*").eq("id", 1).maybeSingle(),
+      ]);
+      return { links: (links.data ?? []) as (HeaderLink & { visible?: boolean })[], settings: settings.data as HeaderSettings | null };
     },
     retry: 0,
   });
 
-  const links = data && data.length > 0 ? data : FALLBACK;
+  const links = data?.links?.length ? data.links.filter((link) => link.visible !== false) : FALLBACK;
+  const settings = data?.settings;
   const navLinks = links.filter((link) => link.label.toLowerCase() !== "discord");
-  const discordLink = links.find((link) => link.label.toLowerCase() === "discord");
+  const discordLink = links.find((link) => link.label.toLowerCase() === "discord") ?? (settings?.discord_button_url ? { label: settings.discord_button_label || "Discord", url: settings.discord_button_url } : undefined);
   const internalIds = useMemo(() => navLinks.filter((link) => isInternal(link.url)).map((link) => link.url.slice(1)), [navLinks]);
 
   useEffect(() => {
@@ -94,15 +99,15 @@ export function Header() {
     <header className={`site-header ${scrolled ? "is-compact" : ""}`} style={{ top: "var(--banner-h, 0px)" }}>
       {isLanding && !scrolled && (
         <div className="studio-banner">
-          <img src={bannerLogo} alt="Duo Forge Games" />
-          <p>A two-person indie studio from Lübeck, Germany</p>
-          <span>Est. 2021</span>
+          {(settings?.header_banner_logo_url || bannerLogo) && <img src={settings?.header_banner_logo_url || bannerLogo} alt="Duo Forge Games" />}
+          {settings?.header_studio_line !== "" && <p>{settings?.header_studio_line || "A two-person indie studio from Lübeck, Germany"}</p>}
+          {settings?.header_established_line !== "" && <span>{settings?.header_established_line || "Est. 2021"}</span>}
         </div>
       )}
 
       <div className="header-inner">
         <Link to="/" onClick={scrollTo("home")} className="compact-brand" aria-label="Duo Forge Games home">
-          <img src={logo} alt="" width={42} height={42} />
+          <img src={settings?.header_sticky_logo_url || logo} alt="" width={42} height={42} />
           <span>Duo Forge Games</span>
         </Link>
 
