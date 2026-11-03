@@ -280,6 +280,14 @@ body:has(.proto)::before {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+/* Long names end in "…" inside the frame instead of running past it. */
+.forge-tile-label span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .forge-tile-label i {
   width: 8px;
   height: 8px;

@@ -596,7 +596,7 @@ function ForgeHero({
                     </span>
                     <span className="forge-tile-label">
                       <i aria-hidden="true" />
-                      {tile.game.title}
+                      <span>{tile.game.title}</span>
                     </span>
                   </>
                 );
