@@ -49,6 +49,7 @@ type TeamMember = {
 };
 
 type ProtoTile = {
+  tint: string;
   key: string;
   src: string;
   game: ProtoGame;
@@ -126,7 +127,7 @@ function useGameExtras(projectIds: string[]) {
     enabled: projectIds.length > 0,
     retry: 0,
     queryFn: async () => {
-      const [shots, kits] = await Promise.all([
+      const [shots, kits, blocks, weapons] = await Promise.all([
         supabase
           .from("site_press_screenshots")
           .select("project_id,url,sort_order")
@@ -136,14 +137,44 @@ function useGameExtras(projectIds: string[]) {
           .from("site_press_kits")
           .select("project_id,key_art_url,game_logo_url")
           .in("project_id", projectIds),
+        supabase
+          .from("site_game_page_blocks")
+          .select("project_id,block_type,content,visible")
+          .in("project_id", projectIds)
+          .order("sort_order"),
+        supabase
+          .from("weapons")
+          .select("template_image_url")
+          .eq("active", true)
+          .order("sort_order")
+          .limit(40),
       ]);
+      // Screenshots from the game info page gallery and hero blocks count as tiles too.
+      const blockImages: { project_id: string; url: string }[] = [];
+      ((blocks.data ?? []) as Row[])
+        .filter((b) => b.visible !== false)
+        .forEach((b) => {
+          const c = (b.content ?? {}) as Row;
+          if (b.block_type === "gallery" && Array.isArray(c.images))
+            c.images.forEach(
+              (url: string) => url && blockImages.push({ project_id: b.project_id, url }),
+            );
+          if (b.block_type === "hero" && c.image_url)
+            blockImages.push({ project_id: b.project_id, url: c.image_url });
+        });
       return {
-        screenshots: (shots.data ?? []) as { project_id: string; url: string }[],
+        screenshots: [
+          ...((shots.data ?? []) as { project_id: string; url: string }[]),
+          ...blockImages,
+        ],
         kits: (kits.data ?? []) as {
           project_id: string;
           key_art_url: string;
           game_logo_url: string;
         }[],
+        sprites: ((weapons.data ?? []) as { template_image_url: string }[])
+          .map((w) => w.template_image_url)
+          .filter(Boolean),
       };
     },
   });
@@ -154,18 +185,28 @@ function buildTiles(
   extras?: ReturnType<typeof useGameExtras>["data"],
 ): ProtoTile[] {
   const base: ProtoTile[] = [];
-  games.forEach((game) => {
+  games.forEach((game, gameIndex) => {
+    const tint = GAME_THEMES[gameIndex % GAME_THEMES.length].panel;
     const sources: { src: string; fit: "cover" | "contain" }[] = [];
     if (game.cover) sources.push({ src: game.cover, fit: "cover" });
     const kit = extras?.kits.find((k) => k.project_id === game.id);
+    // Press kit key art is often a transparent logo, so show it whole on the game's colour.
     if (kit?.key_art_url && kit.key_art_url !== game.cover)
-      sources.push({ src: kit.key_art_url, fit: "cover" });
+      sources.push({ src: kit.key_art_url, fit: "contain" });
     if (kit?.game_logo_url) sources.push({ src: kit.game_logo_url, fit: "contain" });
+    const seen = new Set(sources.map((x) => x.src));
     extras?.screenshots
-      .filter((s) => s.project_id === game.id && s.url)
+      .filter((s) => s.project_id === game.id && s.url && !seen.has(s.url) && seen.add(s.url))
       .forEach((s) => sources.push({ src: s.url, fit: "cover" }));
     sources.forEach((s, i) =>
-      base.push({ key: `${game.title}-${i}`, src: s.src, fit: s.fit, game, position: "50% 50%" }),
+      base.push({
+        key: `${game.title}-${i}`,
+        src: s.src,
+        fit: s.fit,
+        game,
+        tint,
+        position: "50% 50%",
+      }),
     );
   });
   if (base.length === 0) return [];
@@ -237,7 +278,7 @@ export default function LandingPrototype() {
     <div className="proto">
       <ProtoHeader featured={featured} discordUrl={discordUrl} />
       <main>
-        <ForgeHero tiles={tiles} featured={featured} />
+        <ForgeHero tiles={tiles} featured={featured} sprites={extras?.sprites ?? []} />
         <GamesSection games={games} />
         <MissionBand />
         <AboutSection team={team} intro={data?.about?.intro_html} />
@@ -301,7 +342,32 @@ function ProtoHeader({ featured, discordUrl }: { featured?: ProtoGame; discordUr
   );
 }
 
-function ForgeHero({ tiles, featured }: { tiles: ProtoTile[]; featured?: ProtoGame }) {
+// Spots stay clear of the headline (top left) and the captions (bottom corners).
+const SPRITE_SPOTS = [
+  { x: 60, y: 13, r: 12, s: 1.8 },
+  { x: 84, y: 24, r: -10, s: 1.6 },
+  { x: 93, y: 58, r: -24, s: 1.5 },
+  { x: 30, y: 78, r: -8, s: 1.6 },
+  { x: 58, y: 86, r: 14, s: 1.8 },
+  { x: 6, y: 58, r: 18, s: 1.5 },
+];
+
+function ForgeHero({
+  tiles,
+  featured,
+  sprites,
+}: {
+  tiles: ProtoTile[];
+  featured?: ProtoGame;
+  sprites: string[];
+}) {
+  // Pick an even spread of sprites so the hero shows different weapon types.
+  const picked = sprites.length
+    ? SPRITE_SPOTS.map((spot, i) => ({
+        ...spot,
+        src: sprites[Math.floor((i * sprites.length) / SPRITE_SPOTS.length)],
+      }))
+    : [];
   const heroRef = useRef<HTMLElement>(null);
   const [hovered, setHovered] = useState<ProtoGame | null>(null);
   const [bursts, setBursts] = useState<number[]>([]);
@@ -343,6 +409,25 @@ function ForgeHero({ tiles, featured }: { tiles: ProtoTile[]; featured?: ProtoGa
         <p className="forge-sub">Games we'd play ourselves. Easy to pick up, hard to put down.</p>
       </div>
 
+      <div className="forge-sprites" aria-hidden="true">
+        {picked.map((sp, i) => (
+          <img
+            key={i}
+            src={sp.src}
+            alt=""
+            style={
+              {
+                left: `${sp.x}%`,
+                top: `${sp.y}%`,
+                "--r": `${sp.r}deg`,
+                "--s": sp.s,
+                "--i": i,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+
       <div className="forge-strip" aria-label="Our games">
         <div className="forge-track">
           {[0, 1].map((copy) => (
@@ -352,7 +437,7 @@ function ForgeHero({ tiles, featured }: { tiles: ProtoTile[]; featured?: ProtoGa
                   <img
                     src={tile.src}
                     alt={copy === 0 ? tile.game.title : ""}
-                    loading="lazy"
+                    decoding="async"
                     style={{ objectFit: tile.fit, objectPosition: tile.position }}
                   />
                 );
@@ -363,6 +448,7 @@ function ForgeHero({ tiles, featured }: { tiles: ProtoTile[]; featured?: ProtoGa
                   onFocus: () => setHovered(tile.game),
                   onBlur: () => setHovered(null),
                   tabIndex: copy === 1 ? -1 : undefined,
+                  style: { "--tile-bg": tile.tint } as CSSProperties,
                   "aria-label": `${tile.game.title}: more info`,
                 };
                 return tile.game.external ? (

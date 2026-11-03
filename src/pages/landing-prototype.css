@@ -237,7 +237,7 @@ body:has(.proto)::before {
 }
 .forge-tile.is-logo {
   padding: 14px;
-  background: #241a2f;
+  background: var(--tile-bg, #241a2f);
 }
 .forge-strip:hover .forge-tile {
   filter: saturate(0.55) brightness(0.92);
@@ -838,5 +838,48 @@ body:has(.proto)::before {
   }
   .forge-track {
     flex-wrap: nowrap;
+  }
+}
+
+/* Pixel sprites from the Unboxed skin creator drifting around the hero */
+.forge-sprites {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.forge-sprites img {
+  position: absolute;
+  width: auto;
+  height: auto;
+  image-rendering: pixelated;
+  transform: rotate(var(--r)) scale(var(--s));
+  opacity: 0.55;
+  filter: drop-shadow(2px 2px 0 rgba(21, 19, 17, 0.2));
+  animation: sprite-drift calc(7s + var(--i) * 0.7s) ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.3s);
+}
+@keyframes sprite-drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--r)) scale(var(--s));
+  }
+  50% {
+    transform: translateY(-14px) rotate(calc(var(--r) + 6deg)) scale(var(--s));
+  }
+}
+@media (max-width: 860px) {
+  .forge-sprites img {
+    transform: rotate(var(--r)) scale(calc(var(--s) * 0.6));
+    animation: none;
+  }
+  .forge-sprites img:nth-child(-n + 2),
+  .forge-sprites img:nth-child(n + 5) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .forge-sprites img {
+    animation: none;
   }
 }
