@@ -18,6 +18,11 @@ import logoLarge from "@/assets/dfg-logo-large.png";
 import logoSmall from "@/assets/dfg-logo.png";
 import coverCoinsweeper from "@/assets/cover-coinsweeper.jpg";
 import coverUnboxed from "@/assets/cover-unboxed.jpg";
+import gemBlue from "@/assets/gems/gem-blue.png";
+import gemPink from "@/assets/gems/gem-pink.png";
+import gemGold from "@/assets/gems/gem-gold.png";
+import gemGreen from "@/assets/gems/gem-green.png";
+import gemPurple from "@/assets/gems/gem-purple.png";
 import "./landing-prototype.css";
 
 /*
@@ -127,7 +132,7 @@ function useGameExtras(projectIds: string[]) {
     enabled: projectIds.length > 0,
     retry: 0,
     queryFn: async () => {
-      const [shots, kits, blocks, weapons] = await Promise.all([
+      const [shots, kits, blocks] = await Promise.all([
         supabase
           .from("site_press_screenshots")
           .select("project_id,url,sort_order")
@@ -142,12 +147,6 @@ function useGameExtras(projectIds: string[]) {
           .select("project_id,block_type,content,visible")
           .in("project_id", projectIds)
           .order("sort_order"),
-        supabase
-          .from("weapons")
-          .select("template_image_url")
-          .eq("active", true)
-          .order("sort_order")
-          .limit(40),
       ]);
       // Screenshots from the game info page gallery and hero blocks count as tiles too.
       const blockImages: { project_id: string; url: string }[] = [];
@@ -172,9 +171,6 @@ function useGameExtras(projectIds: string[]) {
           key_art_url: string;
           game_logo_url: string;
         }[],
-        sprites: ((weapons.data ?? []) as { template_image_url: string }[])
-          .map((w) => w.template_image_url)
-          .filter(Boolean),
       };
     },
   });
@@ -278,7 +274,7 @@ export default function LandingPrototype() {
     <div className="proto">
       <ProtoHeader featured={featured} discordUrl={discordUrl} />
       <main>
-        <ForgeHero tiles={tiles} featured={featured} sprites={extras?.sprites ?? []} />
+        <ForgeHero tiles={tiles} featured={featured} />
         <GamesSection games={games} />
         <MissionBand />
         <AboutSection team={team} intro={data?.about?.intro_html} />
@@ -342,32 +338,20 @@ function ProtoHeader({ featured, discordUrl }: { featured?: ProtoGame; discordUr
   );
 }
 
-// Spots stay clear of the headline (top left) and the captions (bottom corners).
+// Coinsweeper gems floating around the hero. Spots stay clear of the headline and the captions.
+const GEMS = [gemPink, gemBlue, gemGold, gemGreen, gemPurple];
 const SPRITE_SPOTS = [
-  { x: 60, y: 13, r: 12, s: 1.8 },
-  { x: 84, y: 24, r: -10, s: 1.6 },
-  { x: 93, y: 58, r: -24, s: 1.5 },
-  { x: 30, y: 78, r: -8, s: 1.6 },
-  { x: 58, y: 86, r: 14, s: 1.8 },
-  { x: 6, y: 58, r: 18, s: 1.5 },
+  { x: 60, y: 12, r: -12, s: 0.9 },
+  { x: 86, y: 20, r: 10, s: 0.7 },
+  { x: 93, y: 56, r: -6, s: 0.55 },
+  { x: 30, y: 76, r: 14, s: 0.6 },
+  { x: 57, y: 84, r: -18, s: 0.8 },
+  { x: 5, y: 56, r: 8, s: 0.5 },
+  { x: 74, y: 70, r: 20, s: 0.45 },
 ];
 
-function ForgeHero({
-  tiles,
-  featured,
-  sprites,
-}: {
-  tiles: ProtoTile[];
-  featured?: ProtoGame;
-  sprites: string[];
-}) {
-  // Pick an even spread of sprites so the hero shows different weapon types.
-  const picked = sprites.length
-    ? SPRITE_SPOTS.map((spot, i) => ({
-        ...spot,
-        src: sprites[Math.floor((i * sprites.length) / SPRITE_SPOTS.length)],
-      }))
-    : [];
+function ForgeHero({ tiles, featured }: { tiles: ProtoTile[]; featured?: ProtoGame }) {
+  const picked = SPRITE_SPOTS.map((spot, i) => ({ ...spot, src: GEMS[i % GEMS.length] }));
   const heroRef = useRef<HTMLElement>(null);
   const [hovered, setHovered] = useState<ProtoGame | null>(null);
   const [bursts, setBursts] = useState<number[]>([]);

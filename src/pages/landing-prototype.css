@@ -841,7 +841,7 @@ body:has(.proto)::before {
   }
 }
 
-/* Pixel sprites from the Unboxed skin creator drifting around the hero */
+/* Coinsweeper gems drifting around the hero */
 .forge-sprites {
   position: absolute;
   inset: 0;
@@ -850,13 +850,12 @@ body:has(.proto)::before {
 }
 .forge-sprites img {
   position: absolute;
-  width: auto;
+  width: 110px;
   height: auto;
   image-rendering: pixelated;
   transform: rotate(var(--r)) scale(var(--s));
-  opacity: 0.55;
-  filter: drop-shadow(2px 2px 0 rgba(21, 19, 17, 0.2));
-  animation: sprite-drift calc(7s + var(--i) * 0.7s) ease-in-out infinite;
+  filter: drop-shadow(4px 6px 0 rgba(21, 19, 17, 0.12));
+  animation: sprite-drift calc(6s + var(--i) * 0.7s) ease-in-out infinite;
   animation-delay: calc(var(--i) * -1.3s);
 }
 @keyframes sprite-drift {
@@ -873,8 +872,8 @@ body:has(.proto)::before {
     transform: rotate(var(--r)) scale(calc(var(--s) * 0.6));
     animation: none;
   }
-  .forge-sprites img:nth-child(-n + 2),
-  .forge-sprites img:nth-child(n + 5) {
+  /* On phones only the gems beside the logo stay, so captions remain readable. */
+  .forge-sprites img:not(:nth-child(3), :nth-child(7)) {
     display: none;
   }
 }
