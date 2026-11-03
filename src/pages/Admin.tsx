@@ -607,7 +607,10 @@ function CarouselPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
       for (const id of deletedIds) await adminCall({ op: "delete", table: "site_hero_tiles", id });
       if (tiles.length) await adminCall({ op: "upsert", table: "site_hero_tiles", rows: tiles.map((t, i) => ({ ...t, sort_order: i })) });
       setDeletedIds([]); onDirty(false); setMsg("Saved"); await tilesLoader.reload();
-    } catch (e: any) { setMsg(e?.message ?? "Save failed"); }
+    } catch (e: any) {
+      const text = String(e?.message ?? "Save failed");
+      setMsg(/table not allowed/i.test(text) ? "Can't save yet: redeploy the admin-write function in Supabase (see setup steps)." : text);
+    }
     finally { setSaving(false); }
   };
   const visibleCount = tiles.filter((t) => t.visible).length;
