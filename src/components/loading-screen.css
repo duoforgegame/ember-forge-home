@@ -1,0 +1,199 @@
+/* Boot loading screen. Light forge look matching the homepage. */
+.ls-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(50% 45% at 50% 46%, rgba(232, 112, 42, 0.18), transparent 70%), #efe9e1;
+  color: #151311;
+  transition: visibility 0s linear 650ms;
+}
+/* Once the curtain covers the screen, drop the background so the curtain reveals the real page. */
+.ls-root.is-leaving {
+  visibility: hidden;
+  background: transparent;
+  transition:
+    visibility 0s linear 650ms,
+    background 0s linear 325ms;
+}
+.ls-stage {
+  display: grid;
+  justify-items: center;
+  gap: 26px;
+}
+
+.ls-anvil-wrap {
+  position: relative;
+  display: grid;
+  width: 150px;
+  height: 150px;
+  place-items: center;
+}
+.ls-anvil {
+  position: relative;
+  z-index: 2;
+  width: 128px;
+  height: 128px;
+  user-select: none;
+  filter: drop-shadow(0 16px 14px rgba(45, 22, 6, 0.28));
+  animation:
+    ls-drop 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both,
+    ls-strike calc(var(--ls-duration) * 0.3) ease-out calc(var(--ls-duration) * 0.22) 3 both;
+}
+.ls-floor {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 120px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(45, 22, 6, 0.35), transparent);
+  transform: translateX(-50%);
+  animation: ls-floor 420ms ease-out both;
+}
+@keyframes ls-drop {
+  from {
+    transform: translateY(-120px) rotate(-8deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(0) rotate(0);
+  }
+}
+@keyframes ls-floor {
+  from {
+    transform: translateX(-50%) scale(0.3);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+/* Each strike squashes the anvil, then it springs back. */
+@keyframes ls-strike {
+  0% {
+    transform: translateY(0) scale(1, 1);
+  }
+  12% {
+    transform: translateY(5px) scale(1.08, 0.9);
+  }
+  40% {
+    transform: translateY(-3px) scale(0.98, 1.03);
+  }
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+/* Pixel sparks fired from the top of the anvil at each strike. */
+.ls-burst {
+  position: absolute;
+  z-index: 3;
+  top: 34%;
+  left: 52%;
+  pointer-events: none;
+}
+.ls-burst i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #e8702a;
+  box-shadow: 0 0 10px 2px rgba(232, 112, 42, 0.7);
+  opacity: 0;
+  animation: ls-spark 520ms cubic-bezier(0.1, 0.7, 0.3, 1) calc(var(--ls-duration) * var(--at)) both;
+}
+.ls-burst i:nth-child(3n) {
+  width: 4px;
+  height: 4px;
+  background: #ffc46b;
+}
+@keyframes ls-spark {
+  0% {
+    transform: rotate(var(--a)) translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a)) translateX(var(--d)) translateY(14px);
+    opacity: 0;
+  }
+}
+
+.ls-bar {
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border: 2px solid #151311;
+  background: #f7f3ee;
+  box-shadow: 4px 4px 0 #151311;
+}
+.ls-bar i {
+  width: 14px;
+  height: 14px;
+  background: #e2dacf;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+.ls-bar i.is-lit {
+  background: #e8702a;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+.ls-label {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  font-family: "Silkscreen", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ls-pct {
+  color: #c8561a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Exit: an orange curtain sweeps up over everything, then the screen fades away. */
+.ls-curtain {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: #e8702a;
+  transform: translateY(100%);
+}
+.ls-root.is-leaving .ls-curtain {
+  animation: ls-curtain 650ms cubic-bezier(0.7, 0, 0.3, 1) both;
+}
+@keyframes ls-curtain {
+  0% {
+    transform: translateY(100%);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+.ls-root.is-leaving .ls-stage {
+  visibility: hidden;
+  transition: visibility 0s linear 325ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-anvil,
+  .ls-floor,
+  .ls-burst i,
+  .ls-root.is-leaving .ls-curtain {
+    animation: none;
+  }
+  .ls-burst {
+    display: none;
+  }
+}

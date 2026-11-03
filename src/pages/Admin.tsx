@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical, Copy, Gamepad2, PanelTop, Goal, Users, Mail, Share2, PanelBottom, Palette, Scale, Bell, MessagesSquare, PanelLeftClose, PanelLeftOpen, LayoutDashboard, CircleDot, Check, Reply, ChevronRight } from "lucide-react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical, Copy, Gamepad2, PanelTop, Goal, Users, Mail, Share2, PanelBottom, Palette, Scale, Bell, MessagesSquare, PanelLeftClose, PanelLeftOpen, LayoutDashboard, GalleryHorizontal, CircleDot, Check, Reply, ChevronRight } from "lucide-react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -50,16 +50,17 @@ type StatusColor = { status: string; color: string };
 
 const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
 
-const TABS = ["Overview", "Games", "Header", "Mission", "About", "Contact", "Socials", "Footer", "Messages", "Banner", "Status colors", "Legal"] as const;
+const TABS = ["Overview", "Games", "Carousel", "Header", "Mission", "About", "Contact", "Socials", "Footer", "Messages", "Banner", "Status colors", "Legal"] as const;
 type Tab = (typeof TABS)[number];
 
 /* Every section gets a plain-language hint so it is obvious what you are editing and where it shows up. */
 const TAB_META: Record<Tab, { title: string; hint: string }> = {
   Overview: { title: "Overview", hint: "What's live right now and what still needs attention." },
   Games: { title: "Games", hint: "Your games in the homepage slider. Drag to change the order." },
-  Header: { title: "Header", hint: "Logo banner, studio line and the menu at the top of the homepage." },
-  Mission: { title: "Mission", hint: "The \"Games by gamers, for gamers\" block below the games." },
-  About: { title: "About us", hint: "Studio intro and the team cards." },
+  Carousel: { title: "Hero carousel", hint: "Pick which images run through the tile strip on the homepage, and in what order." },
+  Header: { title: "Header", hint: "The studio line shows on the homepage hero. Logos and menu links are used on game and press pages." },
+  Mission: { title: "Mission", hint: "The orange band below the games: headline lines run in the ticker, the text is the big quote." },
+  About: { title: "About us", hint: "Studio intro and the team cards. The headline is the small label above the section." },
   Contact: { title: "Contact", hint: "Headline and email next to the contact form." },
   Socials: { title: "Social links", hint: "Icons shown in the contact section and the Discord button." },
   Footer: { title: "Footer", hint: "Logo, copyright and legal links at the very bottom." },
@@ -73,6 +74,7 @@ const TAB_GROUPS = [
   { label: "Start", tabs: [{ name: "Overview" as Tab, icon: LayoutDashboard }] },
   { label: "Content", tabs: [
     { name: "Games" as Tab, icon: Gamepad2 },
+    { name: "Carousel" as Tab, icon: GalleryHorizontal },
     { name: "Socials" as Tab, icon: Share2 },
     { name: "Messages" as Tab, icon: MessagesSquare },
   ] },
@@ -212,6 +214,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         <main>
         {tab === "Overview" && <OverviewPanel onOpen={changeTab} />}
         {tab === "Games" && <ProjectsPanel onDirty={setDirty} />}
+        {tab === "Carousel" && <CarouselPanel onDirty={setDirty} />}
         {tab === "Header" && <HeaderPanel onDirty={setDirty} />}
         {tab === "Mission" && <MissionPanel onDirty={setDirty} />}
         {tab === "About" && <AboutPanel onDirty={setDirty} />}
@@ -251,7 +254,7 @@ function OverviewPanel({ onOpen }: { onOpen: (tab: Tab) => void }) {
   games.forEach((g) => {
     const name = g.title || "Untitled game";
     if (!g.key_art_url && !g.cover_url) todos.push({ text: `${name} has no key art yet`, tab: "Games" });
-    if (!g.more_info_enabled) todos.push({ text: `${name}: game info page is off, so "More info" goes straight to the store`, tab: "Games" });
+    if (!g.more_info_enabled) todos.push({ text: `${name}: game info page is off, so there is no "More info" button`, tab: "Games" });
     if (!g.trailer_url) todos.push({ text: `${name} has no trailer`, tab: "Games" });
     if (g.id && !(shots.data ?? []).some((s) => s.project_id === g.id)) todos.push({ text: `${name} has no screenshots`, tab: "Games" });
   });
@@ -463,7 +466,7 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
               <h3>Extra pages</h3>
               <div className="admin-page-toggles">
                 <div className="admin-page-toggle">
-                  <ToggleField label="Game info page" description={`Your own page at /games/${slugify(r.title || "slug")}. The "More info" button and slider tiles link here.`} value={!!r.more_info_enabled} onChange={(v) => update(i, { more_info_enabled: v })} />
+                  <ToggleField label="Game info page" description={`Your own page at /games/${slugify(r.title || "slug")}. When on, a "More info" button appears and carousel tiles link here. When off, they go to the store.`} value={!!r.more_info_enabled} onChange={(v) => update(i, { more_info_enabled: v })} />
                   <Button type="button" variant="outline" size="sm" disabled={!r.id || !r.more_info_enabled} onClick={() => setGamePageFor(r)} title={!r.id ? "Save the game first" : !r.more_info_enabled ? "Switch the page on first" : "Edit game page"}><Layers className="mr-2 h-4 w-4" /> Edit page</Button>
                 </div>
                 <div className="admin-page-toggle">
@@ -505,6 +508,192 @@ function SortableGameItem({ id, active, onSelect, children }: { id: string; acti
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`admin-games-list-item ${active ? "is-active" : ""}`}>
       <button type="button" className="admin-games-grip" {...attributes} {...listeners} aria-label="Drag to reorder"><GripVertical /></button>
       <button type="button" className="admin-games-select" onClick={onSelect} aria-current={active ? "true" : undefined}>{children}</button>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * HERO CAROUSEL: choose the images that run through the homepage tile strip.
+ * Stored in site_hero_tiles. An empty table means the site picks images itself.
+ * ------------------------------------------------------------------------- */
+type HeroTileRow = { id?: string; project_id: string; url: string; fit: "cover" | "contain"; visible: boolean; sort_order: number };
+type LibraryImage = { project_id: string; url: string; fit: "cover" | "contain"; source: string };
+
+async function loadHeroTiles(): Promise<HeroTileRow[] | null> {
+  const { supabase } = await import("@/lib/supabase");
+  const { data, error } = await supabase.from("site_hero_tiles").select("*").order("sort_order");
+  if (error) {
+    const missing = error.code === "PGRST205" || error.code === "42P01" || /not find the table|does not exist/i.test(error.message || "");
+    if (missing) return null;
+    throw tableError("site_hero_tiles", error);
+  }
+  return (data ?? []) as HeroTileRow[];
+}
+
+async function loadImageLibrary(projects: ProjectRow[]): Promise<LibraryImage[]> {
+  const { supabase } = await import("@/lib/supabase");
+  const [shots, kits, blocks] = await Promise.all([
+    supabase.from("site_press_screenshots").select("project_id,url").order("sort_order"),
+    supabase.from("site_press_kits").select("project_id,key_art_url,game_logo_url"),
+    supabase.from("site_game_page_blocks").select("project_id,block_type,content").order("sort_order"),
+  ]);
+  const out: LibraryImage[] = [];
+  const add = (project_id: string, url: string, fit: "cover" | "contain", source: string) => {
+    if (url && !out.some((x) => x.project_id === project_id && x.url === url)) out.push({ project_id, url, fit, source });
+  };
+  projects.forEach((p) => p.id && add(p.id, p.key_art_url || p.cover_url, "cover", "Key art"));
+  ((kits.data ?? []) as { project_id: string; key_art_url: string; game_logo_url: string }[]).forEach((k) => {
+    add(k.project_id, k.key_art_url, "contain", "Press kit art");
+    add(k.project_id, k.game_logo_url, "contain", "Game logo");
+  });
+  ((shots.data ?? []) as { project_id: string; url: string }[]).forEach((x) => add(x.project_id, x.url, "cover", "Press screenshot"));
+  ((blocks.data ?? []) as { project_id: string; block_type: string; content: any }[]).forEach((b) => {
+    if (b.block_type === "gallery" && Array.isArray(b.content?.images)) b.content.images.forEach((url: string) => add(b.project_id, url, "cover", "Game page gallery"));
+    if (b.block_type === "hero" && b.content?.image_url) add(b.project_id, b.content.image_url, "cover", "Game page hero");
+  });
+  return out;
+}
+
+function CarouselPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
+  const projectsLoader = useLoader<ProjectRow[]>(() => loadTable("site_projects"));
+  const tilesLoader = useLoader<HeroTileRow[] | null>(loadHeroTiles);
+  const libraryLoader = useLoader<LibraryImage[]>(async () => loadImageLibrary(await loadTable<ProjectRow>("site_projects")));
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [uploadFor, setUploadFor] = useState("");
+
+  { const e = firstError(projectsLoader, tilesLoader, libraryLoader); if (e) return <ErrorMsg text={e} />; }
+  if (projectsLoader.loading || tilesLoader.loading || libraryLoader.loading) return <Spinner />;
+  const projects = (projectsLoader.data ?? []).filter((p) => p.id);
+  if (tilesLoader.data === null) {
+    return (
+      <div className="admin-card admin-setup">
+        <h3>One-time setup needed</h3>
+        <p className="admin-hint">The table for carousel images doesn't exist yet. Until it does, the homepage picks images automatically.</p>
+        <ol>
+          <li>Open the Supabase SQL editor and run <code>db/migrations/2026_hero_carousel.sql</code>.</li>
+          <li>Redeploy the admin function: <code>supabase functions deploy admin-write --no-verify-jwt</code></li>
+          <li>Reload this page.</li>
+        </ol>
+      </div>
+    );
+  }
+  const tiles = tilesLoader.data ?? [];
+  const library = libraryLoader.data ?? [];
+  const gameName = (id: string) => projects.find((p) => p.id === id)?.title || "Unknown game";
+  const ids = tiles.map((t, i) => t.id ?? `new-${i}-${t.url}`);
+  const setTiles = (next: HeroTileRow[]) => { onDirty(true); tilesLoader.setData(next.map((t, i) => ({ ...t, sort_order: i }))); };
+  const update = (i: number, patch: Partial<HeroTileRow>) => setTiles(tiles.map((t, n) => (n === i ? { ...t, ...patch } : t)));
+  const remove = (i: number) => { const t = tiles[i]; if (t.id) setDeletedIds([...deletedIds, t.id]); setTiles(tiles.filter((_, n) => n !== i)); };
+  const inCarousel = (img: { project_id: string; url: string }) => tiles.some((t) => t.url === img.url && t.project_id === img.project_id);
+  const addImage = (img: { project_id: string; url: string; fit: "cover" | "contain" }) => {
+    if (inCarousel(img)) return;
+    setTiles([...tiles, { project_id: img.project_id, url: img.url, fit: img.fit, visible: true, sort_order: tiles.length }]);
+  };
+  const addAll = () => setTiles([...tiles, ...library.filter((img) => !inCarousel(img)).map((img, i) => ({ project_id: img.project_id, url: img.url, fit: img.fit, visible: true, sort_order: tiles.length + i }))]);
+  const upload = async (projectId: string, files: FileList | null) => {
+    if (!files?.length) return;
+    setMsg("");
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files)) urls.push(await uploadPressAsset(file, "press_image"));
+      setTiles([...tiles, ...urls.map((url, i) => ({ project_id: projectId, url, fit: "cover" as const, visible: true, sort_order: tiles.length + i }))]);
+    } catch (e: any) { setMsg(e?.message ?? "Upload failed"); }
+  };
+  const save = async () => {
+    setSaving(true); setMsg("");
+    try {
+      for (const id of deletedIds) await adminCall({ op: "delete", table: "site_hero_tiles", id });
+      if (tiles.length) await adminCall({ op: "upsert", table: "site_hero_tiles", rows: tiles.map((t, i) => ({ ...t, sort_order: i })) });
+      setDeletedIds([]); onDirty(false); setMsg("Saved"); await tilesLoader.reload();
+    } catch (e: any) { setMsg(e?.message ?? "Save failed"); }
+    finally { setSaving(false); }
+  };
+  const visibleCount = tiles.filter((t) => t.visible).length;
+
+  return (
+    <div className="space-y-4">
+      <PanelHeader title="Hero carousel" onSave={save} saving={saving} msg={msg} />
+
+      <div className={`admin-mode-note ${visibleCount ? "is-manual" : ""}`}>
+        {visibleCount ? (
+          <p><strong>Manual selection.</strong> Once saved, the homepage shows these {visibleCount} images in this order. Fewer than 12 repeat to fill the strip.</p>
+        ) : (
+          <p><strong>Automatic mode.</strong> Nothing is selected, so the homepage shows all key art and screenshots of your games. Add images below to choose yourself.</p>
+        )}
+        {library.some((img) => !inCarousel(img)) && <Button variant="outline" size="sm" onClick={addAll}><Plus className="mr-2 h-4 w-4" />Add all images</Button>}
+      </div>
+
+      <section className="admin-card">
+        <div className="admin-card-head"><h3>In the carousel</h3><span className="admin-muted">{tiles.length} image{tiles.length === 1 ? "" : "s"} · drag to reorder</span></div>
+        {tiles.length === 0 && <p className="admin-hint">No images picked yet. Click an image in the library below to add it.</p>}
+        <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (!over || active.id === over.id) return; const o = ids.indexOf(String(active.id)); const n = ids.indexOf(String(over.id)); if (o < 0 || n < 0) return; setTiles(arrayMove(tiles, o, n)); }}>
+          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+            <div className="admin-tile-list">
+              {tiles.map((t, i) => (
+                <SortableTileRow key={ids[i]} id={ids[i]} dimmed={!t.visible}>
+                  <span className={`admin-tile-thumb ${t.fit === "contain" ? "is-contain" : ""}`}><img src={t.url} alt="" /></span>
+                  <div className="admin-tile-fields">
+                    <select value={t.project_id} onChange={(e) => update(i, { project_id: e.target.value })} aria-label="Links to game">
+                      {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+                    </select>
+                    <div className="admin-segment" role="group" aria-label="How the image fits the tile">
+                      <button type="button" className={t.fit === "cover" ? "is-active" : ""} onClick={() => update(i, { fit: "cover" })}>Fill tile</button>
+                      <button type="button" className={t.fit === "contain" ? "is-active" : ""} onClick={() => update(i, { fit: "contain" })}>Show whole</button>
+                    </div>
+                  </div>
+                  <div className="admin-tile-actions">
+                    <Button variant="ghost" size="icon" title={t.visible ? "Shown, click to hide" : "Hidden, click to show"} onClick={() => update(i, { visible: !t.visible })}>{t.visible ? <Eye /> : <EyeOff />}</Button>
+                    <Button variant="ghost" size="icon" title="Remove from carousel" onClick={() => remove(i)}><X /></Button>
+                  </div>
+                </SortableTileRow>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </section>
+
+      <section className="admin-card">
+        <div className="admin-card-head"><h3>Image library</h3><span className="admin-muted">Click an image to add it</span></div>
+        {projects.map((p) => {
+          const imgs = library.filter((img) => img.project_id === p.id);
+          return (
+            <div key={p.id} className="admin-library-group">
+              <div className="admin-library-head">
+                <strong>{p.title}</strong>
+                <label className="admin-upload-link">
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="hidden" disabled={uploadFor === p.id} onChange={async (e) => { setUploadFor(p.id!); await upload(p.id!, e.target.files); e.target.value = ""; setUploadFor(""); }} />
+                  {uploadFor === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload new image
+                </label>
+              </div>
+              {imgs.length === 0 && <p className="admin-hint">No images for this game yet.</p>}
+              <div className="admin-library-grid">
+                {imgs.map((img) => {
+                  const added = inCarousel(img);
+                  return (
+                    <button key={img.url} type="button" className={`admin-library-item ${added ? "is-added" : ""}`} onClick={() => addImage(img)} disabled={added} title={added ? "Already in the carousel" : "Add to carousel"}>
+                      <span className={`admin-tile-thumb ${img.fit === "contain" ? "is-contain" : ""}`}><img src={img.url} alt="" loading="lazy" /></span>
+                      <small>{img.source}</small>
+                      <i>{added ? <Check /> : <Plus />}</i>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+function SortableTileRow({ id, dimmed, children }: { id: string; dimmed: boolean; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`admin-tile-row ${dimmed ? "is-dimmed" : ""}`}>
+      <button type="button" className="admin-games-grip" {...attributes} {...listeners} aria-label="Drag to reorder"><GripVertical /></button>
+      {children}
     </div>
   );
 }

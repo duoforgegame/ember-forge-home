@@ -941,3 +941,99 @@ body:has(.proto)::before {
     animation: none;
   }
 }
+
+.mission-big.is-long {
+  font-size: clamp(24px, 3vw, 44px);
+  line-height: 1.12;
+}
+
+/* Legal pages (Imprint, Privacy Policy) */
+.legal-hero {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: clamp(56px, 8vw, 110px) 40px 36px;
+  border-bottom: 1px solid var(--line);
+}
+.legal-hero h1 {
+  margin-top: 12px;
+  font-size: clamp(44px, 7vw, 96px);
+  line-height: 0.95;
+}
+.legal-body {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px 40px clamp(70px, 9vw, 120px);
+  color: #34302b;
+  font-size: 16px;
+  line-height: 1.7;
+}
+/* The stored text starts with its own big title; the page header already shows it. */
+.legal-body > div > h1:first-child {
+  display: none;
+}
+.legal-body h1,
+.legal-body h2,
+.legal-body h3 {
+  margin: 40px 0 10px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.legal-body h1 {
+  font-size: 32px;
+}
+.legal-body h2 {
+  font-size: 26px;
+}
+.legal-body h3 {
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+  font-size: 21px;
+}
+.legal-body h1:first-child + h3,
+.legal-body > div > h3:first-child,
+.legal-body h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.legal-body p,
+.legal-body ul,
+.legal-body ol {
+  margin: 0 0 14px;
+}
+.legal-body ul,
+.legal-body ol {
+  padding-left: 22px;
+}
+.legal-body ul {
+  list-style: square;
+}
+.legal-body ol {
+  list-style: decimal;
+}
+.legal-body li::marker {
+  color: var(--orange);
+}
+.legal-body a {
+  border-bottom: 2px solid var(--orange);
+  color: var(--ink);
+  font-weight: 600;
+}
+.legal-body a:hover {
+  background: rgba(232, 112, 42, 0.12);
+}
+.legal-body strong {
+  color: var(--ink);
+}
+.legal-loading {
+  color: var(--ink-soft);
+}
+@media (max-width: 860px) {
+  .legal-hero,
+  .legal-body {
+    padding-inline: 16px;
+  }
+}

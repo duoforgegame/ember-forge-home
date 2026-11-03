@@ -1,6 +1,6 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { lazy, Suspense, useState } from "react";
-import Landing from "./pages/Landing";
+import Landing from "./pages/LandingPrototype";
 import NotFound from "./pages/NotFound";
 import { AnnouncementBanner } from "./components/AnnouncementBanner";
 import { LoadingScreen } from "./components/LoadingScreen";
@@ -15,7 +15,6 @@ const SkinCreator = lazy(() => import("./pages/SkinCreator"));
 const SkinCreatorAdmin = lazy(() => import("./pages/SkinCreatorAdmin"));
 const MySkins = lazy(() => import("./pages/MySkins"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const LandingPrototype = lazy(() => import("./pages/LandingPrototype"));
 
 
 
@@ -31,7 +30,7 @@ export default function App() {
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/new" element={<LandingPrototype />} />
+          <Route path="/new" element={<Navigate to="/" replace />} />
           <Route path="/imprint" element={<Imprint />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin" element={<Admin />} />

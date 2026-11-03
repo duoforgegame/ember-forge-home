@@ -7,7 +7,7 @@ import {
   type FormEvent,
   type MouseEvent,
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUpRight, Loader2, Send } from "lucide-react";
 import { siDiscord, siSteam } from "simple-icons";
@@ -39,8 +39,10 @@ type ProtoGame = {
   cover: string;
   buttonLabel: string;
   buttonUrl: string;
+  /** Where tiles link to: the game info page when it is switched on, otherwise the store. */
   href: string;
   external: boolean;
+  hasInfoPage: boolean;
   trailerUrl: string;
 };
 
@@ -132,7 +134,7 @@ function useGameExtras(projectIds: string[]) {
     enabled: projectIds.length > 0,
     retry: 0,
     queryFn: async () => {
-      const [shots, kits, blocks] = await Promise.all([
+      const [shots, kits, blocks, curated] = await Promise.all([
         supabase
           .from("site_press_screenshots")
           .select("project_id,url,sort_order")
@@ -146,6 +148,12 @@ function useGameExtras(projectIds: string[]) {
           .from("site_game_page_blocks")
           .select("project_id,block_type,content,visible")
           .in("project_id", projectIds)
+          .order("sort_order"),
+        // Images picked in the admin. Missing table or no rows means automatic mode.
+        supabase
+          .from("site_hero_tiles")
+          .select("project_id,url,fit,visible,sort_order")
+          .eq("visible", true)
           .order("sort_order"),
       ]);
       // Screenshots from the game info page gallery and hero blocks count as tiles too.
@@ -166,6 +174,9 @@ function useGameExtras(projectIds: string[]) {
           ...((shots.data ?? []) as { project_id: string; url: string }[]),
           ...blockImages,
         ],
+        curated: (
+          (curated.data ?? []) as { project_id: string; url: string; fit: string }[]
+        ).filter((t) => t.url),
         kits: (kits.data ?? []) as {
           project_id: string;
           key_art_url: string;
@@ -180,6 +191,30 @@ function buildTiles(
   games: ProtoGame[],
   extras?: ReturnType<typeof useGameExtras>["data"],
 ): ProtoTile[] {
+  const curated = (extras?.curated ?? [])
+    .map((t, i) => {
+      const gameIndex = games.findIndex((g) => g.id === t.project_id);
+      if (gameIndex < 0) return null; // game hidden or deleted
+      return {
+        key: `curated-${i}`,
+        src: t.url,
+        fit: t.fit === "contain" ? "contain" : "cover",
+        game: games[gameIndex],
+        tint: GAME_THEMES[gameIndex % GAME_THEMES.length].panel,
+        position: "50% 50%",
+      } as ProtoTile;
+    })
+    .filter((t): t is ProtoTile => !!t);
+  if (curated.length) {
+    // Keep the exact order chosen in the admin; repeat it until the strip is full.
+    const tiles = [...curated];
+    for (let round = 1; tiles.length < MIN_TILES; round++)
+      curated.forEach(
+        (t) => tiles.length < MIN_TILES && tiles.push({ ...t, key: `${t.key}-r${round}` }),
+      );
+    return tiles;
+  }
+
   const base: ProtoTile[] = [];
   games.forEach((game, gameIndex) => {
     const tint = GAME_THEMES[gameIndex % GAME_THEMES.length].panel;
@@ -232,66 +267,129 @@ function buildTiles(
   return tiles;
 }
 
-export default function LandingPrototype() {
-  useFonts();
-  const { data } = useQuery({ queryKey: ["site-content"], queryFn: fetchSiteContent, retry: 0 });
+/* Links like /#about from the game and press pages land here; scroll once the section exists. */
+function useHashScroll(ready: boolean) {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash || !ready) return;
+    const timer = window.setTimeout(
+      () =>
+        document
+          .getElementById(hash.slice(1))
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      80,
+    );
+    return () => window.clearTimeout(timer);
+  }, [hash, ready]);
+}
 
-  const games: ProtoGame[] = useMemo(() => {
-    const live = (data?.projects ?? []).filter((p: Row) => p.visible !== false);
-    const source = live.length
-      ? live.map((p: Row) => ({
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          status: p.status,
-          cover: p.key_art_url || p.cover_url,
-          buttonLabel: p.button_label,
-          buttonUrl: p.button_url,
-          trailerUrl: p.trailer_url || "",
-          moreInfo: !!p.more_info_enabled,
-        }))
-      : FALLBACK_GAMES.map((g) => ({ ...g, id: undefined, moreInfo: true }));
-    return source.map(({ moreInfo, ...g }: Row) => {
-      const internal = moreInfo || !g.buttonUrl;
-      return {
-        ...g,
-        href: internal ? `/games/${slugify(g.title)}` : g.buttonUrl,
-        external: !internal,
-      } as ProtoGame;
-    });
-  }, [data?.projects]);
+function toGames(projects?: Row[]): ProtoGame[] {
+  const live = (projects ?? []).filter((p: Row) => p.visible !== false);
+  const source = live.length
+    ? live.map((p: Row) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        status: p.status,
+        cover: p.key_art_url || p.cover_url,
+        buttonLabel: p.button_label,
+        buttonUrl: p.button_url,
+        trailerUrl: p.trailer_url || "",
+        moreInfo: !!p.more_info_enabled,
+      }))
+    : FALLBACK_GAMES.map((g) => ({ ...g, id: undefined, moreInfo: true }));
+  return source.map(({ moreInfo, ...g }: Row) => {
+    const internal = moreInfo || !g.buttonUrl;
+    return {
+      ...g,
+      href: internal ? `/games/${slugify(g.title)}` : g.buttonUrl,
+      external: !internal,
+      hasInfoPage: !!moreInfo,
+    } as ProtoGame;
+  });
+}
 
-  const { data: extras } = useGameExtras(games.map((g) => g.id).filter(Boolean) as string[]);
-  const tiles = useMemo(() => buildTiles(games, extras), [games, extras]);
-  const team = data?.team?.length ? data.team : FALLBACK_TEAM;
+/* Shared site chrome (header, footer) for the homepage and the simple content pages. */
+function useSiteChrome() {
+  const { data, isFetched } = useQuery({
+    queryKey: ["site-content"],
+    queryFn: fetchSiteContent,
+    retry: 0,
+  });
+  const games = useMemo(() => toGames(data?.projects), [data?.projects]);
   const featured = games.find((g) => g.status === "Play Now") ?? games[0];
   const discordUrl =
     data?.settings?.discord_button_url ||
     data?.socialLinks?.find((l) => l.platform === "discord" && l.visible !== false)?.url ||
     "https://discord.gg/9mJ4XA6YrB";
+  return { data, isFetched, games, featured, discordUrl };
+}
+
+/* Wraps pages like Imprint and Privacy in the same look as the homepage. */
+export function SitePageShell({ children }: { children: React.ReactNode }) {
+  useFonts();
+  const { featured, discordUrl } = useSiteChrome();
+  return (
+    <div className="proto">
+      <ProtoHeader featured={featured} discordUrl={discordUrl} onHomepage={false} />
+      <main>{children}</main>
+      <ProtoFooter />
+    </div>
+  );
+}
+
+function ProtoFooter() {
+  return (
+    <footer className="proto-footer">
+      <img src={logoSmall} alt="" width={40} height={40} />
+      <span>© {new Date().getFullYear()} Duo Forge Games · Lübeck, Germany</span>
+      <nav>
+        <Link to="/imprint">Imprint</Link>
+        <Link to="/privacy">Privacy</Link>
+      </nav>
+    </footer>
+  );
+}
+
+export default function LandingPrototype() {
+  useFonts();
+  const { data, isFetched, games, featured, discordUrl } = useSiteChrome();
+  useHashScroll(isFetched);
+
+  const { data: extras } = useGameExtras(games.map((g) => g.id).filter(Boolean) as string[]);
+  const tiles = useMemo(() => buildTiles(games, extras), [games, extras]);
+  const team = data?.team?.length ? data.team : FALLBACK_TEAM;
 
   return (
     <div className="proto">
       <ProtoHeader featured={featured} discordUrl={discordUrl} />
       <main>
-        <ForgeHero tiles={tiles} featured={featured} />
+        <ForgeHero
+          tiles={tiles}
+          featured={featured}
+          studioLine={data?.settings?.header_studio_line}
+        />
         <GamesSection games={games} />
-        <MissionBand />
-        <AboutSection team={team} intro={data?.about?.intro_html} />
+        {(data?.settings?.mission_visible ?? true) && (
+          <MissionBand
+            lines={(data?.missionLines ?? []).map((l: Row) => String(l.text || "")).filter(Boolean)}
+            text={data?.settings?.mission_text}
+            signoff={data?.settings?.mission_signoff}
+          />
+        )}
+        <AboutSection
+          team={team}
+          intro={data?.about?.intro_html}
+          label={data?.settings?.about_heading}
+        />
         <ContactBand
+          label={data?.settings?.contact_heading}
           discordUrl={discordUrl}
           email={data?.settings?.contact_email || "info@duoforgegames.com"}
           socialLinks={data?.socialLinks ?? []}
         />
       </main>
-      <footer className="proto-footer">
-        <img src={logoSmall} alt="" width={40} height={40} />
-        <span>© {new Date().getFullYear()} Duo Forge Games · Lübeck, Germany</span>
-        <nav>
-          <Link to="/imprint">Imprint</Link>
-          <Link to="/privacy">Privacy</Link>
-        </nav>
-      </footer>
+      <ProtoFooter />
     </div>
   );
 }
@@ -304,16 +402,33 @@ function BrandIcon({ path, size = 18 }: { path: string; size?: number }) {
   );
 }
 
-function ProtoHeader({ featured, discordUrl }: { featured?: ProtoGame; discordUrl: string }) {
+function ProtoHeader({
+  featured,
+  discordUrl,
+  onHomepage = true,
+}: {
+  featured?: ProtoGame;
+  discordUrl: string;
+  onHomepage?: boolean;
+}) {
+  // On the homepage the links jump to sections; elsewhere they go back to the homepage first.
+  const NavLink = ({ id, children }: { id: string; children: React.ReactNode }) =>
+    onHomepage ? <a href={`#${id}`}>{children}</a> : <Link to={`/#${id}`}>{children}</Link>;
   return (
     <header className="proto-header">
-      <a href="#top" className="proto-brand">
-        <img src={logoSmall} alt="" width={30} height={30} /> Duo Forge Games
-      </a>
+      {onHomepage ? (
+        <a href="#home" className="proto-brand">
+          <img src={logoSmall} alt="" width={30} height={30} /> Duo Forge Games
+        </a>
+      ) : (
+        <Link to="/" className="proto-brand">
+          <img src={logoSmall} alt="" width={30} height={30} /> Duo Forge Games
+        </Link>
+      )}
       <nav className="proto-nav" aria-label="Primary navigation">
-        <a href="#games">Games</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
+        <NavLink id="games">Games</NavLink>
+        <NavLink id="about">About</NavLink>
+        <NavLink id="contact">Contact</NavLink>
       </nav>
       <a
         className="proto-header-icon"
@@ -367,7 +482,15 @@ const SPRITE_SPOTS = [
   { x: 74, y: 70, r: 20, s: 0.45 },
 ];
 
-function ForgeHero({ tiles, featured }: { tiles: ProtoTile[]; featured?: ProtoGame }) {
+function ForgeHero({
+  tiles,
+  featured,
+  studioLine,
+}: {
+  tiles: ProtoTile[];
+  featured?: ProtoGame;
+  studioLine?: string;
+}) {
   const picked = SPRITE_SPOTS.map((spot, i) => ({ ...spot, src: GEMS[i % GEMS.length] }));
   const heroRef = useRef<HTMLElement>(null);
   const [hovered, setHovered] = useState<ProtoGame | null>(null);
@@ -394,14 +517,14 @@ function ForgeHero({ tiles, featured }: { tiles: ProtoTile[]; featured?: ProtoGa
 
   return (
     <section
-      id="top"
+      id="home"
       ref={heroRef}
       className="forge-hero"
       onMouseMove={onMove}
       aria-label="Duo Forge Games"
     >
       <div className="forge-copy">
-        <p className="pixel-label">Indie studio · Lübeck, Germany</p>
+        <p className="pixel-label">{studioLine || "Indie studio · Lübeck, Germany"}</p>
         <h1>
           Two brothers.
           <br />
@@ -585,20 +708,12 @@ function GamesSection({ games }: { games: ProtoGame[] }) {
           "--g-accent": theme.accent,
           "--g-glow": theme.glow,
         } as CSSProperties;
-        const More = game.external ? (
-          <a
-            href={game.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pixel-button is-ghost"
-          >
-            More info
-          </a>
-        ) : (
-          <Link to={game.href} className="pixel-button is-ghost">
+        // Only offer "More info" when there is a real game page, so it never duplicates the store button.
+        const More = game.hasInfoPage ? (
+          <Link to={`/games/${slugify(game.title)}`} className="pixel-button is-ghost">
             More info
           </Link>
-        );
+        ) : null;
         return (
           <article
             key={game.title}
@@ -638,36 +753,68 @@ function GamesSection({ games }: { games: ProtoGame[] }) {
   );
 }
 
-function MissionBand() {
-  const words = ["Games by gamers", "for gamers", "just one more run", "forged with our community"];
+const DEFAULT_MISSION_WORDS = [
+  "Games by gamers",
+  "for gamers",
+  "just one more run",
+  "forged with our community",
+];
+const DEFAULT_MISSION_TEXT =
+  "We make the kind of games we'd play ourselves, and every update is shaped by the people who play them.";
+
+/* Text comes from the admin Mission tab: headline lines run in the marquee, the mission text is the big quote. */
+function MissionBand({
+  lines,
+  text,
+  signoff,
+}: {
+  lines: string[];
+  text?: string;
+  signoff?: string;
+}) {
+  // The admin stores the headline as separate lines; in the ticker they read as one phrase.
+  const words = lines.length ? [lines.join(" ")] : DEFAULT_MISSION_WORDS;
+  const body = text || DEFAULT_MISSION_TEXT;
+  const isLong = body.replace(/<[^>]+>/g, "").length > 170;
   return (
     <section className="mission-band" aria-label="Our mission">
       <div className="mission-marquee" aria-hidden="true">
         <div>
-          {[...words, ...words].map((w, i) => (
-            <span key={i}>
-              {w}
-              <b>✦</b>
-            </span>
-          ))}
+          {Array.from({ length: words.length === 1 ? 8 : 3 }, () => words)
+            .flat()
+            .map((w, i) => (
+              <span key={i}>
+                {w}
+                <b>✦</b>
+              </span>
+            ))}
         </div>
       </div>
       <div className="mission-band-inner">
-        <p className="mission-big">
-          We make the kind of games we'd play ourselves, and every update is shaped by the people
-          who play them.
-        </p>
-        <p className="mission-sign">From our Discord to the Steam reviews.</p>
+        {/* Mission text is written by the studio in the admin and may contain simple HTML. */}
+        <div
+          className={`mission-big ${isLong ? "is-long" : ""}`}
+          dangerouslySetInnerHTML={{ __html: body }}
+        />
+        <p className="mission-sign">{signoff ?? "From our Discord to the Steam reviews."}</p>
       </div>
     </section>
   );
 }
 
-function AboutSection({ team, intro }: { team: TeamMember[]; intro?: string }) {
+function AboutSection({
+  team,
+  intro,
+  label,
+}: {
+  team: TeamMember[];
+  intro?: string;
+  label?: string;
+}) {
   return (
     <section id="about" className="about-forge">
       <div className="about-head">
-        <p className="pixel-label">About us</p>
+        <p className="pixel-label">{label || "About us"}</p>
         <h2>Two people, one anvil.</h2>
         {intro ? (
           <div className="about-intro" dangerouslySetInnerHTML={{ __html: intro }} />
@@ -699,10 +846,12 @@ function AboutSection({ team, intro }: { team: TeamMember[]; intro?: string }) {
 }
 
 function ContactBand({
+  label,
   discordUrl,
   email,
   socialLinks,
 }: {
+  label?: string;
   discordUrl: string;
   email: string;
   socialLinks: SocialLink[];
@@ -732,7 +881,7 @@ function ContactBand({
   return (
     <section id="contact" className="contact-band">
       <div className="contact-band-copy">
-        <p className="pixel-label">Contact</p>
+        <p className="pixel-label">{label || "Contact"}</p>
         <h2>Let's forge something.</h2>
         <p>Player, press or publisher: drop us a line or come hang out on Discord.</p>
         <div className="contact-band-links">
