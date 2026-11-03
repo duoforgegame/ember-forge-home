@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical, Copy, Gamepad2, PanelTop, Goal, Users, Mail, Share2, PanelBottom, Palette, Scale, Bell, MessagesSquare, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Loader2, LogOut, Trash2, Plus, Save, Upload, ImageIcon, FileText, ArrowUp, ArrowDown, ExternalLink, X, Layers, Eye, EyeOff, GripVertical, Copy, Gamepad2, PanelTop, Goal, Users, Mail, Share2, PanelBottom, Palette, Scale, Bell, MessagesSquare, PanelLeftClose, PanelLeftOpen, LayoutDashboard, CircleDot, Check, Reply, ChevronRight } from "lucide-react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -15,6 +15,7 @@ import { GamesHero, MissionSection, TeamSection, ContactSection, type ProjectVie
 import { SocialIconLinks, SocialIcon, SOCIAL_PLATFORMS, platformLabel, type SocialLink } from "@/components/SocialIconLinks";
 import { GamePageCanvas, type GameBlock, type GameProject } from "@/pages/GamePage";
 import adminLogo from "@/assets/dfg-logo.png";
+import "./admin.css";
 
 type ProjectRow = { id?: string; title: string; description: string; cover_url: string; key_art_url?: string; trailer_url?: string; info_bar_color?: string; visible?: boolean; status: string; button_label: string; button_url: string; sort_order: number; press_kit_enabled?: boolean; more_info_enabled?: boolean };
 type TeamRow = { id?: string; name: string; gamer_tag?: string; real_name?: string; role: string; bio: string; sort_order: number };
@@ -40,32 +41,52 @@ const LANDING_SETTINGS_DEFAULTS: LandingSettingsRow = {
 type Submission = { id: string; name: string; email: string; subject: string; message: string; inquiry_type: string; created_at: string };
 
 const INQUIRY_META: Record<string, { label: string; className: string }> = {
-  player:    { label: "Player",               className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" },
-  press:     { label: "Press / Media",        className: "border-sky-500/40 bg-sky-500/10 text-sky-300" },
-  publisher: { label: "Publisher / Business", className: "border-primary/50 bg-primary/15 text-primary" },
-  other:     { label: "Other",                className: "border-border bg-muted/40 text-muted-foreground" },
+  player:    { label: "Player",               className: "is-player" },
+  press:     { label: "Press / Media",        className: "is-press" },
+  publisher: { label: "Publisher / Business", className: "is-publisher" },
+  other:     { label: "Other",                className: "is-other" },
 };
 type StatusColor = { status: string; color: string };
 
 const DEFAULT_STATUSES = ["Play Now", "In Development", "Coming Soon", "Prototype"] as const;
 
-const TABS = ["Games", "Header", "Mission", "About", "Contact", "Socials", "Footer", "Status colors", "Legal", "Banner", "Messages"] as const;
+const TABS = ["Overview", "Games", "Header", "Mission", "About", "Contact", "Socials", "Footer", "Messages", "Banner", "Status colors", "Legal"] as const;
 type Tab = (typeof TABS)[number];
+
+/* Every section gets a plain-language hint so it is obvious what you are editing and where it shows up. */
+const TAB_META: Record<Tab, { title: string; hint: string }> = {
+  Overview: { title: "Overview", hint: "What's live right now and what still needs attention." },
+  Games: { title: "Games", hint: "Your games in the homepage slider. Drag to change the order." },
+  Header: { title: "Header", hint: "Logo banner, studio line and the menu at the top of the homepage." },
+  Mission: { title: "Mission", hint: "The \"Games by gamers, for gamers\" block below the games." },
+  About: { title: "About us", hint: "Studio intro and the team cards." },
+  Contact: { title: "Contact", hint: "Headline and email next to the contact form." },
+  Socials: { title: "Social links", hint: "Icons shown in the contact section and the Discord button." },
+  Footer: { title: "Footer", hint: "Logo, copyright and legal links at the very bottom." },
+  Messages: { title: "Messages", hint: "Everything people sent through the contact form." },
+  Banner: { title: "Announcement banner", hint: "A strip above the whole site for news like a launch or sale." },
+  "Status colors": { title: "Status colors", hint: "Badge colors for Play Now, In Development and so on." },
+  Legal: { title: "Legal pages", hint: "Imprint and privacy policy." },
+};
+
 const TAB_GROUPS = [
-  { label: "Landing page", tabs: [
+  { label: "Start", tabs: [{ name: "Overview" as Tab, icon: LayoutDashboard }] },
+  { label: "Content", tabs: [
     { name: "Games" as Tab, icon: Gamepad2 },
+    { name: "Socials" as Tab, icon: Share2 },
+    { name: "Messages" as Tab, icon: MessagesSquare },
+  ] },
+  { label: "Homepage sections", tabs: [
     { name: "Header" as Tab, icon: PanelTop },
     { name: "Mission" as Tab, icon: Goal },
     { name: "About" as Tab, icon: Users },
     { name: "Contact" as Tab, icon: Mail },
-    { name: "Socials" as Tab, icon: Share2 },
     { name: "Footer" as Tab, icon: PanelBottom },
   ] },
-  { label: "Site controls", tabs: [
+  { label: "Settings", tabs: [
+    { name: "Banner" as Tab, icon: Bell },
     { name: "Status colors" as Tab, icon: Palette },
     { name: "Legal" as Tab, icon: Scale },
-    { name: "Banner" as Tab, icon: Bell },
-    { name: "Messages" as Tab, icon: MessagesSquare },
   ] },
 ] as const;
 
@@ -94,48 +115,56 @@ function Login({ onOk }: { onOk: () => void }) {
     }
   };
   return (
-    <div className="grid min-h-screen place-items-center bg-background px-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
-        <h1 className="font-display text-xl font-bold">Admin</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Enter the admin password to continue.</p>
-        <div className="mt-5 space-y-2">
+    <div className="admin-login">
+      <form onSubmit={submit} className="admin-login-card">
+        <img src={adminLogo} alt="Duo Forge Games" width={64} height={64} />
+        <h1>Welcome back</h1>
+        <p>Log in to edit the Duo Forge Games website.</p>
+        <div className="admin-login-field">
           <Label htmlFor="pwd">Password</Label>
           <Input id="pwd" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus autoComplete="current-password" />
         </div>
-        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-        <Button type="submit" disabled={loading} className="mt-5 w-full">
+        {error && <p className="admin-login-error">{error}</p>}
+        <Button type="submit" disabled={loading || !password} className="w-full">
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Login
+          Log in
         </Button>
+        <a href="/" className="admin-login-back">Back to the website</a>
       </form>
     </div>
   );
 }
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<Tab>("Games");
+  const [tab, setTab] = useState<Tab>("Overview");
   const [dirty, setDirty] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(() => !window.matchMedia("(max-width: 760px)").matches);
+  const [messageCount, setMessageCount] = useState<number | null>(null);
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [dirty]);
+  useEffect(() => {
+    adminCall({ op: "list_submissions" }).then((res) => setMessageCount((res?.rows ?? []).length)).catch(() => setMessageCount(null));
+  }, []);
   const changeTab = (next: Tab) => {
+    if (window.matchMedia("(max-width: 760px)").matches) setMenuOpen(false);
     if (next === tab) return;
-    if (dirty && !confirm("You have unsaved changes. Leave this tab?")) return;
+    if (dirty && !confirm("You have unsaved changes. Leave without saving?")) return;
     setDirty(false); setTab(next);
+    window.scrollTo({ top: 0 });
   };
-  const logout = () => { clearToken(); onLogout(); };
+  const logout = () => { if (dirty && !confirm("You have unsaved changes. Log out anyway?")) return; clearToken(); onLogout(); };
+  const meta = TAB_META[tab];
   return (
     <div className={`admin-center min-h-screen ${menuOpen ? "admin-menu-open" : "admin-menu-collapsed"}`}>
       <aside className="admin-sidebar">
-        <div className="admin-sidebar-accent" />
         <div className="admin-brand">
           <img src={adminLogo} alt="Duo Forge Games" />
           <div className="admin-brand-copy">
-            <strong>DUO FORGE</strong>
-            <span>Games Admin</span>
+            <strong>Duo Forge</strong>
+            <span>Website admin</span>
           </div>
           <Button variant="ghost" size="icon" className="admin-sidebar-toggle" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? "Collapse admin menu" : "Expand admin menu"} title={menuOpen ? "Collapse menu" : "Expand menu"}>
             {menuOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
@@ -147,40 +176,41 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             <div className="admin-nav-group" key={group.label}>
               <p>{group.label}</p>
               {group.tabs.map(({ name, icon: Icon }) => (
-                <Button
+                <button
+                  type="button"
                   key={name}
-                  variant="ghost"
                   onClick={() => changeTab(name)}
                   className={tab === name ? "is-active" : ""}
                   aria-current={tab === name ? "page" : undefined}
-                  title={!menuOpen ? name : undefined}
+                  title={!menuOpen ? TAB_META[name].title : undefined}
                 >
                   <Icon />
-                  <span>{name}</span>
-                  {name === "Messages" && <i aria-hidden="true" />}
-                </Button>
+                  <span>{TAB_META[name].title}</span>
+                  {name === "Messages" && !!messageCount && <b className="admin-nav-count">{messageCount}</b>}
+                </button>
               ))}
             </div>
           ))}
         </nav>
 
         <div className="admin-sidebar-footer">
-          <div className="admin-access-mark" aria-hidden="true"><span /></div>
-          <div className="admin-access-copy"><strong>Admin access</strong><span>Content control</span></div>
-          <Button variant="ghost" size="icon" onClick={logout} aria-label="Log out" title="Log out"><LogOut /></Button>
+          <a href="/" target="_blank" rel="noopener noreferrer" title="Open the website"><ExternalLink /><span>View website</span></a>
+          <button type="button" onClick={logout} title="Log out"><LogOut /><span>Log out</span></button>
         </div>
       </aside>
+      {menuOpen && <button type="button" className="admin-scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
 
       <div className="admin-workspace">
         <header className="admin-command-bar">
           <Button variant="ghost" size="icon" className="admin-mobile-toggle" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle admin menu"><PanelLeftOpen /></Button>
-          <div>
-            <span>Content editor</span>
-            <h1>{tab}</h1>
+          <div className="admin-command-title">
+            <h1>{meta.title}</h1>
+            <p>{meta.hint}</p>
           </div>
-          <a href="/" target="_blank" rel="noopener noreferrer">View site <ExternalLink /></a>
+          {dirty && <span className="admin-dirty-pill"><i />Unsaved changes</span>}
         </header>
         <main>
+        {tab === "Overview" && <OverviewPanel onOpen={changeTab} />}
         {tab === "Games" && <ProjectsPanel onDirty={setDirty} />}
         {tab === "Header" && <HeaderPanel onDirty={setDirty} />}
         {tab === "Mission" && <MissionPanel onDirty={setDirty} />}
@@ -191,8 +221,96 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         {tab === "Status colors" && <StatusColorsPanel />}
         {tab === "Legal" && <LegalPanel />}
         {tab === "Banner" && <AnnouncementPanel />}
-        {tab === "Messages" && <MessagesPanel />}
+        {tab === "Messages" && <MessagesPanel onCount={setMessageCount} />}
         </main>
+      </div>
+    </div>
+  );
+}
+
+/* Start page: a quick read of what's live and a short to-do list built from the real data. */
+function OverviewPanel({ onOpen }: { onOpen: (tab: Tab) => void }) {
+  const projects = useLoader<ProjectRow[]>(() => loadTable("site_projects"));
+  const messages = useLoader<Submission[]>(async () => (await adminCall({ op: "list_submissions" })).rows as Submission[]);
+  const banner = useLoader<{ enabled: boolean; message: string } | null>(async () => {
+    const { supabase } = await import("@/lib/supabase");
+    const { data } = await supabase.from("site_announcement").select("enabled,message").eq("id", 1).maybeSingle();
+    return data as { enabled: boolean; message: string } | null;
+  });
+  const shots = useLoader<{ project_id: string }[]>(async () => {
+    const { supabase } = await import("@/lib/supabase");
+    const [a, b] = await Promise.all([
+      supabase.from("site_press_screenshots").select("project_id"),
+      supabase.from("site_game_page_blocks").select("project_id").eq("block_type", "gallery"),
+    ]);
+    return [...(a.data ?? []), ...(b.data ?? [])] as { project_id: string }[];
+  });
+  const games = projects.data ?? [];
+  const inbox = [...(messages.data ?? [])].sort((x, y) => y.created_at.localeCompare(x.created_at));
+  const todos: { text: string; tab: Tab }[] = [];
+  games.forEach((g) => {
+    const name = g.title || "Untitled game";
+    if (!g.key_art_url && !g.cover_url) todos.push({ text: `${name} has no key art yet`, tab: "Games" });
+    if (!g.more_info_enabled) todos.push({ text: `${name}: game info page is off, so "More info" goes straight to the store`, tab: "Games" });
+    if (!g.trailer_url) todos.push({ text: `${name} has no trailer`, tab: "Games" });
+    if (g.id && !(shots.data ?? []).some((s) => s.project_id === g.id)) todos.push({ text: `${name} has no screenshots`, tab: "Games" });
+  });
+  return (
+    <div className="admin-overview">
+      <section className="admin-stat-row">
+        <button type="button" className="admin-stat" onClick={() => onOpen("Games")}>
+          <span>Games</span>
+          <strong>{projects.data ? games.filter((g) => g.visible !== false).length : "…"}</strong>
+          <small>{games.filter((g) => g.visible === false).length ? `${games.filter((g) => g.visible === false).length} hidden` : "all visible"}</small>
+        </button>
+        <button type="button" className="admin-stat" onClick={() => onOpen("Messages")}>
+          <span>Messages</span>
+          <strong>{messages.data ? inbox.length : "…"}</strong>
+          <small>{inbox[0] ? `latest ${new Date(inbox[0].created_at).toLocaleDateString()}` : "inbox empty"}</small>
+        </button>
+        <button type="button" className="admin-stat" onClick={() => onOpen("Banner")}>
+          <span>Announcement banner</span>
+          <strong className={banner.data?.enabled ? "is-on" : ""}>{banner.data?.enabled ? "On" : "Off"}</strong>
+          <small>{banner.data?.enabled ? banner.data.message.slice(0, 40) : "nothing shown above the site"}</small>
+        </button>
+      </section>
+
+      <div className="admin-overview-grid">
+        <section className="admin-card">
+          <div className="admin-card-head"><h2>Your games</h2><Button size="sm" variant="outline" onClick={() => onOpen("Games")}>Edit games</Button></div>
+          {projects.loading && <Spinner />}
+          <ul className="admin-game-mini">
+            {games.map((g) => (
+              <li key={g.id ?? g.title}>
+                {g.key_art_url || g.cover_url ? <img src={g.key_art_url || g.cover_url} alt="" /> : <span className="admin-thumb-empty"><ImageIcon /></span>}
+                <div><strong>{g.title || "Untitled game"}</strong><small>{g.status}{g.visible === false ? " · hidden" : ""}</small></div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="admin-card">
+          <div className="admin-card-head"><h2>To do</h2><span className="admin-muted">{todos.length ? `${todos.length} open` : "all done"}</span></div>
+          {todos.length === 0 && !projects.loading && <p className="admin-muted">Nothing missing. Nice!</p>}
+          <ul className="admin-todo">
+            {todos.slice(0, 8).map((t, i) => <li key={i}><button type="button" onClick={() => onOpen(t.tab)}><CircleDot />{t.text}</button></li>)}
+          </ul>
+        </section>
+
+        <section className="admin-card admin-overview-wide">
+          <div className="admin-card-head"><h2>Latest messages</h2><Button size="sm" variant="outline" onClick={() => onOpen("Messages")}>Open inbox</Button></div>
+          {messages.loading && <Spinner />}
+          {!messages.loading && inbox.length === 0 && <p className="admin-muted">No messages yet.</p>}
+          <ul className="admin-inbox-mini">
+            {inbox.slice(0, 4).map((m) => (
+              <li key={m.id}>
+                <span className={`admin-pill ${INQUIRY_META[m.inquiry_type]?.className ?? INQUIRY_META.other.className}`}>{(INQUIRY_META[m.inquiry_type] ?? INQUIRY_META.other).label}</span>
+                <strong>{m.subject}</strong>
+                <small>{m.name} · {new Date(m.created_at).toLocaleDateString()}</small>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </div>
   );
@@ -251,6 +369,7 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   const [msg, setMsg] = useState("");
   const [pressKitFor, setPressKitFor] = useState<ProjectRow | null>(null);
   const [gamePageFor, setGamePageFor] = useState<ProjectRow | null>(null);
+  const [selected, setSelected] = useState(0);
   const loadError = error || firstError(settingsLoader, platformsLoader);
   if (loadError) return <ErrorMsg text={loadError} />;
   if (loading || !settingsLoader.data || !platformsLoader.data) return <Spinner />;
@@ -268,7 +387,7 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
     const row = rows[i];
     if (!confirm("Delete this game?")) return;
     if (row.id) await adminCall({ op: "delete", table: "site_projects", id: row.id });
-    setData(rows.filter((_, idx) => idx !== i)); onDirty?.(true);
+    setData(rows.filter((_, idx) => idx !== i)); setSelected(Math.max(0, i - 1)); onDirty?.(true);
   };
   const saveAll = async () => {
     setSaving(true); setMsg("");
@@ -276,81 +395,97 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
     catch (e: any) { setMsg(e?.message ?? "Save failed"); }
     finally { setSaving(false); }
   };
+  const current = Math.min(selected, Math.max(rows.length - 1, 0));
+  const r = rows[current];
+  const i = current;
+  const ids = rows.map((row, idx) => row.id ?? `new-${idx}`);
+  const addAndSelect = () => { addRow(); setSelected(rows.length); };
   return (
     <div className="space-y-4">
-      <PanelHeader title="Games" onAdd={addRow} onSave={saveAll} saving={saving} msg={msg} />
-      <div className="admin-card grid gap-4 sm:grid-cols-2"><ToggleField label="Slider autoplay" value={settings.slider_autoplay} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, slider_autoplay: v }); }} /><NumField label="Autoplay interval in seconds" value={settings.slider_interval_seconds} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, slider_interval_seconds: Math.max(2, Math.min(60, v)) }); }} /></div>
-      <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (!over || active.id === over.id) return; const oldIndex = rows.findIndex((row, i) => (row.id ?? `new-${i}`) === active.id); const newIndex = rows.findIndex((row, i) => (row.id ?? `new-${i}`) === over.id); setData(arrayMove(rows, oldIndex, newIndex)); onDirty?.(true); }}><SortableContext items={rows.map((row, i) => row.id ?? `new-${i}`)} strategy={verticalListSortingStrategy}>{rows.map((r, i) => (
-        <SortableAdminCard key={r.id ?? `new-${i}`} id={r.id ?? `new-${i}`}>
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Title" value={r.title} onChange={(v) => update(i, { title: v })} />
-              <StatusSelect value={r.status} options={Object.keys(colorMap)} onChange={(v) => update(i, { status: v })} />
-              <ToggleField label="Visible" value={r.visible !== false} onChange={(v) => update(i, { visible: v })} />
-              <div className="sm:col-span-2">
-                <CoverUploader value={r.key_art_url || r.cover_url} onChange={(v) => update(i, { key_art_url: v, cover_url: v })} />
+      <PanelHeader title="Games" onAdd={addAndSelect} addLabel="New game" onSave={saveAll} saving={saving} msg={msg} />
+      <div className="admin-games-layout">
+        <aside className="admin-games-list">
+          <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => { if (!over || active.id === over.id) return; const oldIndex = ids.indexOf(String(active.id)); const newIndex = ids.indexOf(String(over.id)); setData(arrayMove(rows, oldIndex, newIndex)); if (current === oldIndex) setSelected(newIndex); onDirty?.(true); }}>
+            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+              {rows.map((row, idx) => (
+                <SortableGameItem key={ids[idx]} id={ids[idx]} active={idx === current} onSelect={() => setSelected(idx)}>
+                  {row.key_art_url || row.cover_url ? <img src={row.key_art_url || row.cover_url} alt="" /> : <span className="admin-thumb-empty"><ImageIcon /></span>}
+                  <span className="admin-games-list-copy">
+                    <strong>{row.title || "Untitled game"}</strong>
+                    <small><i style={{ background: colorMap[row.status] ?? "#a1a1aa" }} />{row.status}{row.visible === false ? " · hidden" : ""}</small>
+                  </span>
+                  <ChevronRight className="admin-games-list-arrow" />
+                </SortableGameItem>
+              ))}
+            </SortableContext>
+          </DndContext>
+          {rows.length === 0 && <p className="admin-hint">No games yet. Click "New game" to add one.</p>}
+          <div className="admin-card admin-slider-settings">
+            <h3 className="admin-subhead">Homepage slider</h3>
+            <ToggleField label="Rotate automatically" value={settings.slider_autoplay} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, slider_autoplay: v }); }} />
+            {settings.slider_autoplay && <NumField label="Seconds per game" value={settings.slider_interval_seconds} onChange={(v) => { onDirty?.(true); settingsLoader.setData({ ...settings, slider_interval_seconds: Math.max(2, Math.min(60, v)) }); }} />}
+          </div>
+        </aside>
+
+        {r && (
+          <div className="admin-game-editor" key={ids[current]}>
+            <section className="admin-card">
+              <div className="admin-card-head">
+                <h3>Basics</h3>
+                <ToggleField label={r.visible !== false ? "Visible on the website" : "Hidden from the website"} value={r.visible !== false} onChange={(v) => update(i, { visible: v })} />
               </div>
-              <Field label="YouTube trailer URL" value={r.trailer_url || ""} onChange={(v) => update(i, { trailer_url: v })} />
-              <ColorField label="Info bar color" value={r.info_bar_color || "#e8702a"} onChange={(v) => update(i, { info_bar_color: v })} />
-              <Field label="Button label" value={r.button_label} onChange={(v) => update(i, { button_label: v })} />
-              <Field label="Button URL" value={r.button_url} onChange={(v) => update(i, { button_url: v })} />
-              <div className="sm:col-span-2"><TextField label={`Short description (${r.description.length}/350)`} value={r.description} onChange={(v) => update(i, { description: v.slice(0, 350) })} /></div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Game title" value={r.title} onChange={(v) => update(i, { title: v })} />
+                <StatusSelect value={r.status} options={Object.keys(colorMap)} onChange={(v) => update(i, { status: v })} />
+                <TextField className="sm:col-span-2" rows={4} label="Short description" hint={`${r.description.length}/350 characters. Shown under the title in the slider.`} value={r.description} onChange={(v) => update(i, { description: v.slice(0, 350) })} />
+              </div>
+            </section>
+
+            <section className="admin-card">
+              <h3>Images & video</h3>
+              <CoverUploader value={r.key_art_url || r.cover_url} onChange={(v) => update(i, { key_art_url: v, cover_url: v })} />
+              <div className="grid gap-4 sm:grid-cols-2 mt-4">
+                <Field label="YouTube trailer" hint="Adds a play button on the key art." placeholder="https://youtube.com/watch?v=…" value={r.trailer_url || ""} onChange={(v) => update(i, { trailer_url: v })} />
+                <ColorField label="Info bar color" value={r.info_bar_color || "#e8702a"} onChange={(v) => update(i, { info_bar_color: v })} />
+              </div>
+            </section>
+
+            <section className="admin-card">
+              <h3>Store button</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Button text" placeholder="Wishlist on Steam" value={r.button_label} onChange={(v) => update(i, { button_label: v })} />
+                <Field label="Button link" placeholder="https://store.steampowered.com/app/…" value={r.button_url} onChange={(v) => update(i, { button_url: v })} />
+              </div>
               <PlatformEditor project={r} rows={platforms.filter((platform) => platform.project_id === r.id)} onChange={(next) => { onDirty?.(true); platformsLoader.setData([...platforms.filter((platform) => platform.project_id !== r.id), ...next]); }} />
-              <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3">
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={!!r.press_kit_enabled}
-                    onChange={(e) => update(i, { press_kit_enabled: e.target.checked })}
-                    className="h-4 w-4 accent-primary"
-                  />
-                  <span className="text-sm font-medium">Press Kit enabled</span>
-                  <span className="text-xs text-muted-foreground">Shows a press-kit icon on the public card and enables <code>/press/{slugify(r.title || "slug")}</code>.</span>
-                </label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!r.id || !r.press_kit_enabled}
-                  onClick={() => setPressKitFor(r)}
-                  title={!r.id ? "Save the project first" : !r.press_kit_enabled ? "Enable press kit first" : "Edit press kit"}
-                >
-                  <FileText className="mr-2 h-4 w-4" /> Edit Press Kit
-                </Button>
+            </section>
+
+            <section className="admin-card">
+              <h3>Extra pages</h3>
+              <div className="admin-page-toggles">
+                <div className="admin-page-toggle">
+                  <ToggleField label="Game info page" description={`Your own page at /games/${slugify(r.title || "slug")}. The "More info" button and slider tiles link here.`} value={!!r.more_info_enabled} onChange={(v) => update(i, { more_info_enabled: v })} />
+                  <Button type="button" variant="outline" size="sm" disabled={!r.id || !r.more_info_enabled} onClick={() => setGamePageFor(r)} title={!r.id ? "Save the game first" : !r.more_info_enabled ? "Switch the page on first" : "Edit game page"}><Layers className="mr-2 h-4 w-4" /> Edit page</Button>
+                </div>
+                <div className="admin-page-toggle">
+                  <ToggleField label="Press kit" description={`Download page for journalists at /press/${slugify(r.title || "slug")}.`} value={!!r.press_kit_enabled} onChange={(v) => update(i, { press_kit_enabled: v })} />
+                  <Button type="button" variant="outline" size="sm" disabled={!r.id || !r.press_kit_enabled} onClick={() => setPressKitFor(r)} title={!r.id ? "Save the game first" : !r.press_kit_enabled ? "Switch the press kit on first" : "Edit press kit"}><FileText className="mr-2 h-4 w-4" /> Edit press kit</Button>
+                </div>
               </div>
-              <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3">
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={!!r.more_info_enabled}
-                    onChange={(e) => update(i, { more_info_enabled: e.target.checked })}
-                    className="h-4 w-4 accent-primary"
-                  />
-                  <span className="text-sm font-medium">Game Info Page enabled</span>
-                  <span className="text-xs text-muted-foreground">Shows a "More info" link on the card and enables <code>/games/{slugify(r.title || "slug")}</code>.</span>
-                </label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!r.id || !r.more_info_enabled}
-                  onClick={() => setGamePageFor(r)}
-                  title={!r.id ? "Save the project first" : !r.more_info_enabled ? "Enable Game Page first" : "Edit game page"}
-                >
-                  <Layers className="mr-2 h-4 w-4" /> Edit Game Page
-                </Button>
-              </div>
-              <div className="flex items-end justify-end sm:col-span-2">
-                <Button variant="ghost" size="sm" onClick={() => removeRow(i)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
-              </div>
-            </div>
-            <div>
-              <Label className="mb-2 block text-xs uppercase tracking-wider text-muted-foreground">Live preview</Label>
-              <div className="public-landing"><div className="landing-shell"><GamesHero preview projects={[{ title: r.title || "Untitled game", description: r.description, cover: r.key_art_url || r.cover_url, status: r.status as any, buttonLabel: r.button_label, buttonUrl: r.button_url, trailerUrl: r.trailer_url, infoBarColor: r.info_bar_color, platforms: platforms.filter((platform) => platform.project_id === r.id) } as ProjectView]} /></div></div>
+              {!r.id && <p className="admin-hint mt-3">Save this new game once to unlock its extra pages.</p>}
+            </section>
+
+            <section className="admin-card">
+              <h3>Preview</h3>
+              <div className="admin-game-preview public-landing"><div className="landing-shell"><GamesHero preview projects={[{ title: r.title || "Untitled game", description: r.description, cover: r.key_art_url || r.cover_url, status: r.status as any, buttonLabel: r.button_label, buttonUrl: r.button_url, trailerUrl: r.trailer_url, infoBarColor: r.info_bar_color, platforms: platforms.filter((platform) => platform.project_id === r.id) } as ProjectView]} /></div></div>
+            </section>
+
+            <div className="admin-danger">
+              <span>Delete <strong>{r.title || "this game"}</strong> from the website. This can't be undone.</span>
+              <Button variant="ghost" size="sm" onClick={() => removeRow(i)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete game</Button>
             </div>
           </div>
-        </SortableAdminCard>
-      ))}</SortableContext></DndContext>
+        )}
+      </div>
       {pressKitFor?.id && (
         <PressKitDialog
           project={pressKitFor}
@@ -364,6 +499,16 @@ function ProjectsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
   );
 }
 
+function SortableGameItem({ id, active, onSelect, children }: { id: string; active: boolean; onSelect: () => void; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`admin-games-list-item ${active ? "is-active" : ""}`}>
+      <button type="button" className="admin-games-grip" {...attributes} {...listeners} aria-label="Drag to reorder"><GripVertical /></button>
+      <button type="button" className="admin-games-select" onClick={onSelect} aria-current={active ? "true" : undefined}>{children}</button>
+    </div>
+  );
+}
+
 function SortableAdminCard({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   return <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="relative rounded-lg border border-border bg-card p-4"><button type="button" className="admin-drag-handle" {...attributes} {...listeners} aria-label="Drag to reorder"><GripVertical /></button>{children}</div>;
@@ -372,7 +517,7 @@ function SortableAdminCard({ id, children }: { id: string; children: React.React
 function PlatformEditor({ project, rows, onChange }: { project: ProjectRow; rows: PlatformRow[]; onChange: (rows: PlatformRow[]) => void }) {
   if (!project.id) return <p className="sm:col-span-2 text-xs text-muted-foreground">Save this game before adding platform tiles.</p>;
   const update = (i: number, patch: Partial<PlatformRow>) => onChange(rows.map((row, index) => index === i ? { ...row, ...patch } : row));
-  return <div className="sm:col-span-2 space-y-3 border-t border-border pt-4"><Label>Platform tiles</Label>{rows.map((row, i) => <div key={row.id ?? i} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"><Field label="Platform name" value={row.name} onChange={(v) => update(i, { name: v })} /><Field label="Store URL" value={row.store_url} onChange={(v) => update(i, { store_url: v })} /><div className="flex items-end gap-1">{row.logo_url && <img src={row.logo_url} alt="" className="h-10 w-10 object-contain" />}<IconUploadButton onUploaded={(logo_url) => update(i, { logo_url })} /></div><div className="flex items-end"><Button variant="ghost" size="icon" disabled={i === 0} onClick={() => onChange(arrayMove(rows, i, i - 1))}><ArrowUp /></Button><Button variant="ghost" size="icon" disabled={i === rows.length - 1} onClick={() => onChange(arrayMove(rows, i, i + 1))}><ArrowDown /></Button></div><Button variant="ghost" size="icon" onClick={async () => { if (!confirm("Remove this platform?")) return; if (row.id) await adminCall({ op: "delete", table: "site_game_platforms", id: row.id }); onChange(rows.filter((_, index) => index !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" size="sm" onClick={() => onChange([...rows, { project_id: project.id!, name: "", logo_url: "", store_url: "", sort_order: rows.length }])}><Plus className="mr-2 h-4 w-4" />Add platform</Button></div>;
+  return <div className="sm:col-span-2 space-y-3 border-t border-border pt-4"><div><Label>Platform tiles</Label><p className="admin-hint">Optional store logos (Steam, Epic, consoles) shown next to the button.</p></div>{rows.map((row, i) => <div key={row.id ?? i} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"><Field label="Platform name" value={row.name} onChange={(v) => update(i, { name: v })} /><Field label="Store URL" value={row.store_url} onChange={(v) => update(i, { store_url: v })} /><div className="flex items-end gap-1">{row.logo_url && <img src={row.logo_url} alt="" className="h-10 w-10 object-contain" />}<IconUploadButton onUploaded={(logo_url) => update(i, { logo_url })} /></div><div className="flex items-end"><Button variant="ghost" size="icon" disabled={i === 0} onClick={() => onChange(arrayMove(rows, i, i - 1))}><ArrowUp /></Button><Button variant="ghost" size="icon" disabled={i === rows.length - 1} onClick={() => onChange(arrayMove(rows, i, i + 1))}><ArrowDown /></Button></div><Button variant="ghost" size="icon" onClick={async () => { if (!confirm("Remove this platform?")) return; if (row.id) await adminCall({ op: "delete", table: "site_game_platforms", id: row.id }); onChange(rows.filter((_, index) => index !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" size="sm" onClick={() => onChange([...rows, { project_id: project.id!, name: "", logo_url: "", store_url: "", sort_order: rows.length }])}><Plus className="mr-2 h-4 w-4" />Add platform</Button></div>;
 }
 
 function StatusSelect({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
@@ -391,7 +536,7 @@ function StatusSelect({ value, options, onChange }: { value: string; options: st
   );
 }
 
-function CoverUploader({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+function CoverUploader({ value, onChange, label = "Key art", hint = "Shown big in the slider. Best: 1920×1080 (16:9), JPG/PNG/WebP, max 5 MB.", contain = false }: { value: string; onChange: (url: string) => void; label?: string; hint?: string; contain?: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState<string>("");
@@ -424,23 +569,24 @@ function CoverUploader({ value, onChange }: { value: string; onChange: (url: str
 
   return (
     <div>
-      <Label>Cover image</Label>
-      <p className="mt-1 text-xs text-muted-foreground">Recommended: 1280×720 (16:9), JPG/PNG/WebP, max 5 MB.</p>
-      <div className="mt-2 flex flex-wrap items-center gap-3 admin-image-drop" onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
-        <div className="grid h-20 w-36 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-surface-2">
+      <Label>{label}</Label>
+      <p className="admin-hint">{hint}</p>
+      <div className="mt-2 admin-image-drop" onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
+        <div className={`admin-image-thumb ${contain ? "is-contain" : ""}`}>
           {value ? (
-            <img src={value} alt="Cover preview" className="h-full w-full object-cover" />
+            <img src={value} alt={`${label} preview`} />
           ) : (
             <ImageIcon className="h-6 w-6 text-muted-foreground" />
           )}
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="admin-image-actions">
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPick} className="hidden" />
+          {!value && <p className="admin-hint">Drop an image here or</p>}
           <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : <><Upload className="mr-2 h-4 w-4" /> {value ? "Replace image" : "Upload image"}</>}
           </Button>
           {value && <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Remove image</Button>}
-          <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="…or paste an image URL" className="w-full sm:w-96" />
+          <details className="admin-url-details"><summary>Use an image URL instead</summary><Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://…" /></details>
           {err && <p className="text-xs text-destructive">{err}</p>}
         </div>
       </div>
@@ -838,7 +984,7 @@ function FeaturedGamePanel() {
           </select>
           <p className="mt-1 text-xs text-muted-foreground">Image, title and description fall back to the selected project unless overridden below.</p>
         </div>
-        <CoverUploader value={data.custom_image_url} onChange={(v) => upd("custom_image_url", v)} />
+        <CoverUploader label="Custom image (optional)" hint="Leave empty to use the key art of the game." value={data.custom_image_url} onChange={(v) => upd("custom_image_url", v)} />
         <Field label="Custom headline (optional)" value={data.custom_headline} onChange={(v) => upd("custom_headline", v)} placeholder="Overrides project title" />
         <TextField label="Custom description (optional)" value={data.custom_description} onChange={(v) => upd("custom_description", v)} />
         <div>
@@ -903,7 +1049,7 @@ function HeaderPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
   const updateSettings = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
   const updateLink = (i: number, patch: Partial<LinkRow>) => { onDirty(true); linksLoader.setData(links.map((row, index) => index === i ? { ...row, ...patch } : row)); };
   const save = async () => { setSaving(true); setMsg(""); try { await Promise.all([adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), adminCall({ op: "upsert", table: "site_header_links", rows: links.map((row, i) => ({ ...row, sort_order: i })) })]); onDirty(false); setMsg("Saved"); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
-  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Header" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><CoverUploader value={settings.header_banner_logo_url} onChange={(v) => updateSettings({ header_banner_logo_url: v })} /><CoverUploader value={settings.header_sticky_logo_url} onChange={(v) => updateSettings({ header_sticky_logo_url: v })} /><Field label="Banner studio line" value={settings.header_studio_line} onChange={(v) => updateSettings({ header_studio_line: v })} /><Field label="Established line" value={settings.header_established_line} onChange={(v) => updateSettings({ header_established_line: v })} /><Field label="Discord button label" value={settings.discord_button_label} onChange={(v) => updateSettings({ discord_button_label: v })} /><Field label="Discord URL" value={settings.discord_button_url} onChange={(v) => updateSettings({ discord_button_url: v })} /></div><div className="space-y-2">{links.map((link, i) => <div className="admin-card grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto_auto]" key={link.id ?? i}><Field label="Label" value={link.label} onChange={(v) => updateLink(i, { label: v })} /><Field label="Target" value={link.url} onChange={(v) => updateLink(i, { url: v })} /><ToggleField label="Visible" value={link.visible !== false} onChange={(v) => updateLink(i, { visible: v })} /><div><Button variant="ghost" size="icon" disabled={i === 0} onClick={() => { onDirty(true); linksLoader.setData(arrayMove(links, i, i - 1)); }}><ArrowUp /></Button><Button variant="ghost" size="icon" disabled={i === links.length - 1} onClick={() => { onDirty(true); linksLoader.setData(arrayMove(links, i, i + 1)); }}><ArrowDown /></Button></div><Button variant="ghost" size="icon" onClick={() => { onDirty(true); linksLoader.setData(links.filter((_, index) => index !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" onClick={() => { onDirty(true); linksLoader.setData([...links, { label: "", url: "", sort_order: links.length, visible: true }]); }}><Plus className="mr-2 h-4 w-4" />Add link</Button></div></div><PreviewPane><div className="admin-header-preview"><strong>{settings.header_studio_line}</strong><nav>{links.filter((link) => link.visible !== false).map((link, i) => <span key={i}>{link.label}</span>)}</nav><button>{settings.discord_button_label}</button></div></PreviewPane></div>;
+  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Header" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><CoverUploader contain label="Banner logo" hint="The big logo in the hanging banner at the top left. Leave empty to use the default DFG logo." value={settings.header_banner_logo_url} onChange={(v) => updateSettings({ header_banner_logo_url: v })} /><CoverUploader contain label="Small logo (after scrolling)" hint="Shown in the slim menu bar once visitors scroll down. Leave empty to use the default logo." value={settings.header_sticky_logo_url} onChange={(v) => updateSettings({ header_sticky_logo_url: v })} /><Field label="Studio line" hint="Small text under the banner logo." value={settings.header_studio_line} onChange={(v) => updateSettings({ header_studio_line: v })} /><Field label="Founded line" hint="For example: EST. 2021" value={settings.header_established_line} onChange={(v) => updateSettings({ header_established_line: v })} /><Field label="Discord button label" value={settings.discord_button_label} onChange={(v) => updateSettings({ discord_button_label: v })} /><Field label="Discord invite link" placeholder="https://discord.gg/…" value={settings.discord_button_url} onChange={(v) => updateSettings({ discord_button_url: v })} /></div><div className="space-y-2"><h3 className="admin-subhead">Menu links</h3>{links.length === 0 && <p className="admin-hint">No custom links yet, so the default menu (Home, Games, About Us, Contact) is shown.</p>}{links.map((link, i) => <div className="admin-card grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto_auto]" key={link.id ?? i}><Field label="Label" value={link.label} onChange={(v) => updateLink(i, { label: v })} /><Field label="Goes to" placeholder="#about or https://…" value={link.url} onChange={(v) => updateLink(i, { url: v })} /><ToggleField label="Visible" value={link.visible !== false} onChange={(v) => updateLink(i, { visible: v })} /><div><Button variant="ghost" size="icon" disabled={i === 0} onClick={() => { onDirty(true); linksLoader.setData(arrayMove(links, i, i - 1)); }}><ArrowUp /></Button><Button variant="ghost" size="icon" disabled={i === links.length - 1} onClick={() => { onDirty(true); linksLoader.setData(arrayMove(links, i, i + 1)); }}><ArrowDown /></Button></div><Button variant="ghost" size="icon" onClick={() => { onDirty(true); linksLoader.setData(links.filter((_, index) => index !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" onClick={() => { onDirty(true); linksLoader.setData([...links, { label: "", url: "", sort_order: links.length, visible: true }]); }}><Plus className="mr-2 h-4 w-4" />Add link</Button></div></div><PreviewPane><div className="admin-header-preview"><strong>{settings.header_studio_line}</strong><nav>{links.filter((link) => link.visible !== false).map((link, i) => <span key={i}>{link.label}</span>)}</nav><button>{settings.discord_button_label}</button></div></PreviewPane></div>;
 }
 
 function MissionPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
@@ -914,7 +1060,7 @@ function MissionPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
   const settings = settingsLoader.data; const lines = linesLoader.data;
   const setSettings = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
   const save = async () => { setSaving(true); try { await Promise.all([adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), adminCall({ op: "upsert", table: "site_mission_lines", rows: lines.map((line, i) => ({ ...line, sort_order: i })) })]); setMsg("Saved"); onDirty(false); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
-  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Mission" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><ToggleField label="Section visible" value={settings.mission_visible} onChange={(v) => setSettings({ mission_visible: v })} /><TextField label="Mission text (HTML allowed)" value={settings.mission_text} onChange={(v) => setSettings({ mission_text: v })} /><Field label="Sign-off" value={settings.mission_signoff} onChange={(v) => setSettings({ mission_signoff: v })} /></div>{lines.map((line, i) => <div className="admin-card grid gap-3 sm:grid-cols-[1fr_220px_auto]" key={line.id ?? i}><Field label="Headline line" value={line.text} onChange={(v) => { onDirty(true); linesLoader.setData(lines.map((x, n) => n === i ? { ...x, text: v } : x)); }} /><div><Label>Style</Label><select className="mt-1 h-10 w-full border border-input bg-background px-3" value={line.style} onChange={(e) => { onDirty(true); linesLoader.setData(lines.map((x, n) => n === i ? { ...x, style: e.target.value as MissionLineRow['style'] } : x)); }}><option value="white_black">White on black</option><option value="black_orange">Black on orange</option></select></div><Button variant="ghost" size="icon" onClick={() => { onDirty(true); linesLoader.setData(lines.filter((_, n) => n !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" onClick={() => { onDirty(true); linesLoader.setData([...lines, { text: "", style: "white_black", sort_order: lines.length }]); }}><Plus className="mr-2 h-4 w-4" />Add line</Button></div><PreviewPane><MissionSection lines={lines} missionText={settings.mission_text} signoff={settings.mission_signoff} /></PreviewPane></div>;
+  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Mission" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><ToggleField label="Section visible" value={settings.mission_visible} onChange={(v) => setSettings({ mission_visible: v })} /><TextField rows={6} label="Mission text" hint="You can use simple HTML like <strong> or <br>." value={settings.mission_text} onChange={(v) => setSettings({ mission_text: v })} /><Field label="Sign-off" value={settings.mission_signoff} onChange={(v) => setSettings({ mission_signoff: v })} /></div>{lines.map((line, i) => <div className="admin-card grid gap-3 sm:grid-cols-[1fr_220px_auto]" key={line.id ?? i}><Field label={`Headline line ${i + 1}`} value={line.text} onChange={(v) => { onDirty(true); linesLoader.setData(lines.map((x, n) => n === i ? { ...x, text: v } : x)); }} /><div><Label>Style</Label><select className="mt-1 h-10 w-full border border-input bg-background px-3" value={line.style} onChange={(e) => { onDirty(true); linesLoader.setData(lines.map((x, n) => n === i ? { ...x, style: e.target.value as MissionLineRow['style'] } : x)); }}><option value="white_black">White on black</option><option value="black_orange">Black on orange</option></select></div><Button variant="ghost" size="icon" onClick={() => { onDirty(true); linesLoader.setData(lines.filter((_, n) => n !== i)); }}><Trash2 /></Button></div>)}<Button variant="outline" onClick={() => { onDirty(true); linesLoader.setData([...lines, { text: "", style: "white_black", sort_order: lines.length }]); }}><Plus className="mr-2 h-4 w-4" />Add line</Button></div><PreviewPane><MissionSection lines={lines} missionText={settings.mission_text} signoff={settings.mission_signoff} /></PreviewPane></div>;
 }
 
 function ContactPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
@@ -934,7 +1080,7 @@ function FooterPanel({ onDirty }: { onDirty: (dirty: boolean) => void }) {
   if (!settingsLoader.data || !linksLoader.data) return <Spinner />; const settings = settingsLoader.data; const links = linksLoader.data;
   const update = (patch: Partial<LandingSettingsRow>) => { onDirty(true); settingsLoader.setData({ ...settings, ...patch }); };
   const save = async () => { setSaving(true); try { await Promise.all([adminCall({ op: "upsert", table: "site_landing_settings", rows: [settings] }), adminCall({ op: "upsert", table: "site_footer_links", rows: links.map((row, i) => ({ ...row, sort_order: i })) })]); setMsg("Saved"); onDirty(false); } catch (e: any) { setMsg(e?.message ?? "Save failed"); } finally { setSaving(false); } };
-  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Footer" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><CoverUploader value={settings.footer_logo_url} onChange={(v) => update({ footer_logo_url: v })} /><Field label="Copyright" value={settings.footer_copyright} onChange={(v) => update({ footer_copyright: v })} />{links.map((link, i) => <div className="grid gap-3 sm:grid-cols-2" key={link.id ?? i}><Field label="Legal link label" value={link.label} onChange={(v) => { onDirty(true); linksLoader.setData(links.map((x, n) => n === i ? { ...x, label: v } : x)); }} /><Field label="URL" value={link.url} onChange={(v) => { onDirty(true); linksLoader.setData(links.map((x, n) => n === i ? { ...x, url: v } : x)); }} /></div>)}</div></div><PreviewPane><footer className="admin-footer-preview">{settings.footer_logo_url && <img src={settings.footer_logo_url} alt="" />}<span>{links.map((x) => x.label).join("  ·  ")}</span><small>{settings.footer_copyright}</small></footer></PreviewPane></div>;
+  return <div className="admin-editor-layout"><div className="space-y-4"><PanelHeader title="Footer" onSave={save} saving={saving} msg={msg} /><div className="admin-card space-y-4"><CoverUploader contain label="Footer logo" hint="Small logo at the bottom of every page. Square, transparent PNG." value={settings.footer_logo_url} onChange={(v) => update({ footer_logo_url: v })} /><Field label="Copyright" value={settings.footer_copyright} onChange={(v) => update({ footer_copyright: v })} />{links.map((link, i) => <div className="grid gap-3 sm:grid-cols-2" key={link.id ?? i}><Field label="Legal link label" value={link.label} onChange={(v) => { onDirty(true); linksLoader.setData(links.map((x, n) => n === i ? { ...x, label: v } : x)); }} /><Field label="URL" value={link.url} onChange={(v) => { onDirty(true); linksLoader.setData(links.map((x, n) => n === i ? { ...x, url: v } : x)); }} /></div>)}</div></div><PreviewPane><footer className="admin-footer-preview">{settings.footer_logo_url && <img src={settings.footer_logo_url} alt="" />}<span>{links.map((x) => x.label).join("  ·  ")}</span><small>{settings.footer_copyright}</small></footer></PreviewPane></div>;
 }
 
 function SocialsPanel({ onDirty }: { onDirty?: (dirty: boolean) => void }) {
@@ -1048,103 +1194,101 @@ function LinksPanel({ table, title }: { table: string; title: string }) {
   );
 }
 
-function MessagesPanel() {
+function MessagesPanel({ onCount }: { onCount?: (count: number) => void }) {
   const [filter, setFilter] = useState<string>("all");
   const { data, loading, error, reload } = useLoader<Submission[]>(async () => {
     const res = await adminCall({ op: "list_submissions" });
     return res.rows as Submission[];
   });
+  useEffect(() => { if (data) onCount?.(data.length); }, [data, onCount]);
   if (loading) return <Spinner />;
   if (error) return <ErrorMsg text={error} />;
-  const all = data ?? [];
+  const all = [...(data ?? [])].sort((x, y) => y.created_at.localeCompare(x.created_at));
   const rows = filter === "all" ? all : all.filter((r) => (r.inquiry_type || "other") === filter);
   const del = async (id: string) => {
-    if (!confirm("Delete this message?")) return;
+    if (!confirm("Delete this message? This can't be undone.")) return;
     await adminCall({ op: "delete_submission", id });
     await reload();
   };
   const filterOptions = [
-    { value: "all", label: `All (${all.length})` },
+    { value: "all", label: "All", count: all.length },
     ...Object.entries(INQUIRY_META).map(([value, m]) => ({
       value,
-      label: `${m.label} (${all.filter((r) => (r.inquiry_type || "other") === value).length})`,
+      label: m.label,
+      count: all.filter((r) => (r.inquiry_type || "other") === value).length,
     })),
   ];
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-2xl font-bold">Messages ({rows.length})</h2>
-        <div className="flex flex-wrap gap-1.5">
-          {filterOptions.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => setFilter(o.value)}
-              className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
-                filter === o.value
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
+      <div className="admin-filter-row" role="tablist" aria-label="Filter messages">
+        {filterOptions.map((o) => (
+          <button key={o.value} type="button" role="tab" aria-selected={filter === o.value} onClick={() => setFilter(o.value)} className={filter === o.value ? "is-active" : ""}>
+            {o.label} <b>{o.count}</b>
+          </button>
+        ))}
       </div>
-      {rows.length === 0 && <p className="text-sm text-muted-foreground">No messages.</p>}
+      {rows.length === 0 && <div className="admin-empty"><MessagesSquare /><p>No messages here yet.</p></div>}
       {rows.map((r) => {
         const meta = INQUIRY_META[r.inquiry_type] ?? INQUIRY_META.other;
         return (
-          <div key={r.id} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${meta.className}`}>
-                    {meta.label}
-                  </span>
-                  <span className="font-semibold">{r.subject}</span>
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">{r.name} &lt;{r.email}&gt; · {new Date(r.created_at).toLocaleString()}</div>
-              </div>
+          <article key={r.id} className="admin-card admin-message">
+            <header>
+              <span className={`admin-pill ${meta.className}`}>{meta.label}</span>
+              <h3>{r.subject}</h3>
+              <time>{new Date(r.created_at).toLocaleString()}</time>
+            </header>
+            <p className="admin-message-from">{r.name} · <a href={`mailto:${r.email}`}>{r.email}</a></p>
+            <pre>{r.message}</pre>
+            <footer>
+              <Button asChild size="sm"><a href={`mailto:${r.email}?subject=${encodeURIComponent(`Re: ${r.subject}`)}`}><Reply className="mr-2 h-4 w-4" />Reply by email</a></Button>
               <Button variant="ghost" size="sm" onClick={() => del(r.id)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
-            </div>
-            <pre className="mt-3 whitespace-pre-wrap font-sans text-sm text-foreground/90">{r.message}</pre>
-          </div>
+            </footer>
+          </article>
         );
       })}
     </div>
   );
 }
 
-function PanelHeader({ title, onAdd, onSave, saving, msg }: { title: string; onAdd?: () => void; onSave: () => void; saving: boolean; msg: string }) {
+function PanelHeader({ title, onAdd, addLabel = "Add", onSave, saving, msg }: { title: string; onAdd?: () => void; addLabel?: string; onSave: () => void; saving: boolean; msg: string }) {
+  const [shownMsg, setShownMsg] = useState(msg);
+  useEffect(() => {
+    setShownMsg(msg);
+    if (msg !== "Saved") return;
+    const timer = window.setTimeout(() => setShownMsg(""), 3000);
+    return () => window.clearTimeout(timer);
+  }, [msg]);
+  const ok = shownMsg === "Saved";
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="font-display text-2xl font-bold">{title}</h2>
-      <div className="flex items-center gap-2">
-        {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
-        {onAdd && <Button variant="outline" size="sm" onClick={onAdd}><Plus className="mr-2 h-4 w-4" /> Add</Button>}
+    <div className="admin-panel-bar">
+      <h2>{title}</h2>
+      <div className="admin-panel-actions">
+        {shownMsg && <span className={`admin-save-msg ${ok ? "is-ok" : "is-error"}`}>{ok ? <><Check className="h-4 w-4" /> Saved</> : shownMsg}</span>}
+        {onAdd && <Button variant="outline" size="sm" onClick={onAdd}><Plus className="mr-2 h-4 w-4" /> {addLabel}</Button>}
         <Button size="sm" onClick={onSave} disabled={saving}>
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Save
+          {saving ? "Saving…" : "Save changes"}
         </Button>
       </div>
     </div>
   );
 }
 
-function Field({ label, value, onChange, className, placeholder }: { label: string; value: string; onChange: (v: string) => void; className?: string; placeholder?: string }) {
+function Field({ label, value, onChange, className, placeholder, hint }: { label: string; value: string; onChange: (v: string) => void; className?: string; placeholder?: string; hint?: string }) {
   return (
     <div className={className}>
       <Label>{label}</Label>
+      {hint && <p className="admin-hint">{hint}</p>}
       <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="mt-1" />
     </div>
   );
 }
-function TextField({ label, value, onChange, className }: { label: string; value: string; onChange: (v: string) => void; className?: string }) {
+function TextField({ label, value, onChange, className, hint, rows = 3 }: { label: string; value: string; onChange: (v: string) => void; className?: string; hint?: string; rows?: number }) {
   return (
     <div className={className}>
       <Label>{label}</Label>
-      <Textarea rows={3} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="mt-1" />
+      {hint && <p className="admin-hint">{hint}</p>}
+      <Textarea rows={rows} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="mt-1" />
     </div>
   );
 }
