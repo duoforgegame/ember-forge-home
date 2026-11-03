@@ -9,8 +9,17 @@ import {
 } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUpRight, Loader2, Send } from "lucide-react";
-import { siDiscord, siSteam } from "simple-icons";
+import { ArrowDown, ArrowUpRight, Loader2, Play, Send } from "lucide-react";
+import {
+  siAppstore,
+  siDiscord,
+  siEpicgames,
+  siGogdotcom,
+  siGoogleplay,
+  siItchdotio,
+  siPlaystation,
+  siSteam,
+} from "simple-icons";
 import { fetchSiteContent, sendContact, slugify } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { SocialIconLinks, type SocialLink } from "@/components/SocialIconLinks";
@@ -394,6 +403,26 @@ export default function LandingPrototype() {
   );
 }
 
+/* Store logos recognised from the button link. Anything else (e.g. a browser game) gets a play icon. */
+const STORE_ICONS: { match: RegExp; path: string }[] = [
+  { match: /steampowered\.com|steamcommunity\.com|s\.team/i, path: siSteam.path },
+  { match: /itch\.io/i, path: siItchdotio.path },
+  { match: /epicgames\.com/i, path: siEpicgames.path },
+  { match: /gog\.com/i, path: siGogdotcom.path },
+  { match: /play\.google\.com/i, path: siGoogleplay.path },
+  { match: /apps\.apple\.com/i, path: siAppstore.path },
+  { match: /playstation\.com/i, path: siPlaystation.path },
+];
+
+function StoreIcon({ url, size = 16 }: { url?: string; size?: number }) {
+  const store = STORE_ICONS.find((s) => url && s.match.test(url));
+  return store ? (
+    <BrandIcon path={store.path} size={size} />
+  ) : (
+    <Play size={size} aria-hidden="true" />
+  );
+}
+
 function BrandIcon({ path, size = 18 }: { path: string; size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="currentColor">
@@ -446,7 +475,7 @@ function ProtoHeader({
           target="_blank"
           rel="noopener noreferrer"
         >
-          <BrandIcon path={siSteam.path} size={16} /> <span>{featured.title}</span>
+          <StoreIcon url={featured.buttonUrl} /> <span>{featured.title}</span>
         </a>
       )}
     </header>
@@ -678,7 +707,7 @@ function ForgeHero({
             rel="noopener noreferrer"
             className="pixel-button"
           >
-            <BrandIcon path={siSteam.path} size={16} /> {featured.buttonLabel || "View on Steam"}
+            <StoreIcon url={featured.buttonUrl} /> {featured.buttonLabel || "Play now"}
           </a>
         )}
         <a href="#games" className="scroll-hint">
@@ -739,8 +768,7 @@ function GamesSection({ games }: { games: ProtoGame[] }) {
                     rel="noopener noreferrer"
                     className="pixel-button"
                   >
-                    <BrandIcon path={siSteam.path} size={16} />{" "}
-                    {game.buttonLabel || "View on Steam"}
+                    <StoreIcon url={game.buttonUrl} /> {game.buttonLabel || "Play now"}
                   </a>
                 )}
                 {More}
