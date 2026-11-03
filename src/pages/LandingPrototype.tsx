@@ -338,6 +338,23 @@ function ProtoHeader({ featured, discordUrl }: { featured?: ProtoGame; discordUr
   );
 }
 
+const LOGO_DEPTH_LAYERS = 12;
+// Ember start points around the logo edge (percent of the logo box) and their sideways drift.
+const EMBER_SPOTS = [
+  { x: 8, y: 6, dx: -30 },
+  { x: 38, y: -2, dx: -10 },
+  { x: 66, y: 0, dx: 14 },
+  { x: 94, y: 8, dx: 34 },
+  { x: 102, y: 34, dx: 40 },
+  { x: 99, y: 64, dx: 36 },
+  { x: 94, y: 92, dx: 26 },
+  { x: -2, y: 28, dx: -40 },
+  { x: 2, y: 60, dx: -36 },
+  { x: 6, y: 90, dx: -26 },
+  { x: 34, y: 101, dx: -12 },
+  { x: 70, y: 99, dx: 16 },
+];
+
 // Coinsweeper gems floating around the hero. Spots stay clear of the headline and the captions.
 const GEMS = [gemPink, gemBlue, gemGold, gemGreen, gemPurple];
 const SPRITE_SPOTS = [
@@ -456,14 +473,44 @@ function ForgeHero({ tiles, featured }: { tiles: ProtoTile[]; featured?: ProtoGa
         </div>
       </div>
 
+      {/* Embers glow around the edges of the logo, behind it. */}
+      <div className="forge-aura" aria-hidden="true">
+        {EMBER_SPOTS.map((e, i) => (
+          <i
+            key={i}
+            style={
+              {
+                left: `${e.x}%`,
+                top: `${e.y}%`,
+                "--dx": `${e.dx}px`,
+                "--i": i,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+      <div className="forge-ground-shadow" aria-hidden="true" />
+
       <button type="button" className="forge-logo" onClick={strike} aria-label="Strike the anvil">
         <span className="forge-logo-float">
-          <img src={logoLarge} alt="Duo Forge Games" width={1589} height={1920} />
-        </span>
-        <span className="forge-embers" aria-hidden="true">
-          {Array.from({ length: 10 }, (_, i) => (
-            <i key={i} style={{ "--i": i } as CSSProperties} />
+          {/* Stacked, darkened copies behind the front image give the logo real thickness when it tilts. */}
+          {Array.from({ length: LOGO_DEPTH_LAYERS }, (_, i) => (
+            <img
+              key={i}
+              className={`forge-logo-layer ${i === LOGO_DEPTH_LAYERS - 1 ? "is-back" : ""}`}
+              src={logoLarge}
+              alt=""
+              aria-hidden="true"
+              style={{ "--z": `${-(i + 1) * 1.6}px` } as CSSProperties}
+            />
           ))}
+          <img
+            className="forge-logo-front"
+            src={logoLarge}
+            alt="Duo Forge Games"
+            width={1589}
+            height={1920}
+          />
         </span>
         {bursts.map((id) => (
           <span key={id} className="forge-burst" aria-hidden="true">
