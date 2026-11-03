@@ -96,8 +96,8 @@
 .ls-burst {
   position: absolute;
   z-index: 3;
-  top: 34%;
-  left: 52%;
+  top: 22%;
+  left: 50%;
   pointer-events: none;
 }
 .ls-burst i {
@@ -114,9 +114,13 @@
   height: 4px;
   background: #ffc46b;
 }
+/* Invisible until the strike (the "both" fill would otherwise show them stacked in one spot). */
 @keyframes ls-spark {
   0% {
     transform: rotate(var(--a)) translateX(0);
+    opacity: 0;
+  }
+  8% {
     opacity: 1;
   }
   100% {
