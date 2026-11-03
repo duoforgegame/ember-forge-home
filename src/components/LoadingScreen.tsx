@@ -4,12 +4,10 @@ import "./loading-screen.css";
 
 const BLOCKS = 12;
 const DURATION = 1350; // ms until the bar is full
-const STRIKES = [0.22, 0.52, 0.82]; // when the hammer hits, as a share of DURATION
-const SPARKS = 12;
 
 /**
- * Boot screen in the style of the site: the anvil drops in, takes three hammer strikes that throw
- * pixel sparks, a pixel bar fills up, then an orange curtain wipes up to reveal the page.
+ * Boot screen in the style of the site: the anvil drops in and takes three hammer strikes while a
+ * pixel bar fills up, then an orange curtain wipes up to reveal the page.
  */
 export function LoadingScreen({ onDone }: { onDone?: () => void }) {
   const [progress, setProgress] = useState(0);
@@ -51,26 +49,6 @@ export function LoadingScreen({ onDone }: { onDone?: () => void }) {
     >
       <div className="ls-stage">
         <div className="ls-anvil-wrap">
-          {STRIKES.map((at, s) => (
-            <span
-              key={s}
-              className="ls-burst"
-              style={{ "--at": at } as CSSProperties}
-              aria-hidden="true"
-            >
-              {Array.from({ length: SPARKS }, (_, i) => (
-                <i
-                  key={i}
-                  style={
-                    {
-                      "--a": `${-170 + (i / (SPARKS - 1)) * 160 + s * 7}deg`,
-                      "--d": `${60 + ((i * 37 + s * 11) % 50)}px`,
-                    } as CSSProperties
-                  }
-                />
-              ))}
-            </span>
-          ))}
           <img src={anvilIcon} alt="" className="ls-anvil" draggable={false} />
           <span className="ls-floor" aria-hidden="true" />
         </div>

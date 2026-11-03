@@ -214,43 +214,93 @@ body:has(.proto)::before {
 }
 .forge-track-set {
   display: flex;
-  gap: 14px;
-  padding-right: 14px;
+  gap: 18px;
+  padding-right: 18px;
+}
+/* The tiles ride on a band like a forge conveyor: dark belt with pixel rivets along both edges. */
+.forge-strip::before {
+  content: "";
+  position: absolute;
+  inset: -14px -10px -6px;
+  background:
+    radial-gradient(circle, rgba(239, 233, 225, 0.22) 1.6px, transparent 2px) 0 7px / 26px 100%
+      repeat-x,
+    radial-gradient(circle, rgba(239, 233, 225, 0.22) 1.6px, transparent 2px) 0 calc(100% - 7px) /
+      26px 100% repeat-x,
+    repeating-linear-gradient(90deg, #26211d 0 2px, transparent 2px 52px),
+    #1d1a17;
+  border-block: 3px solid var(--ink);
+  box-shadow: 0 10px 0 rgba(21, 19, 17, 0.12);
+}
+.forge-track {
+  position: relative;
+  padding: 10px 0 14px;
 }
 .forge-tile {
   position: relative;
-  display: block;
-  width: clamp(130px, 13vw, 200px);
-  aspect-ratio: 1;
-  overflow: hidden;
-  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  width: clamp(140px, 13.5vw, 210px);
+  border: 3px solid var(--ink);
+  background: #f7f3ee;
+  box-shadow: 5px 5px 0 var(--ink);
   transition:
     transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 220ms ease,
     filter 220ms ease;
 }
-.forge-tile img {
+.forge-tile-art {
+  display: block;
+  margin: 6px 6px 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+}
+.forge-tile-art img {
   width: 100%;
   height: 100%;
   display: block;
-  image-rendering: auto;
 }
-.forge-tile.is-logo {
-  padding: 14px;
+.forge-tile.is-logo .forge-tile-art {
+  padding: 12px;
   background: var(--tile-bg, #241a2f);
 }
+.forge-tile-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 7px 8px 6px;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.forge-tile-label i {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  background: var(--tile-accent, var(--orange));
+  box-shadow: 1px 1px 0 var(--ink);
+}
 .forge-strip:hover .forge-tile {
-  filter: saturate(0.55) brightness(0.92);
+  filter: saturate(0.6) brightness(0.95);
 }
 .forge-strip .forge-tile:hover,
 .forge-strip .forge-tile:focus-visible {
   z-index: 5;
   filter: none;
-  transform: translateY(-10px) scale(1.07);
-  box-shadow:
-    6px 6px 0 var(--orange),
-    0 18px 40px rgba(0, 0, 0, 0.25);
+  transform: translateY(-12px) rotate(-1.5deg);
+  box-shadow: 8px 8px 0 var(--tile-accent, var(--orange));
   outline: none;
+}
+.forge-strip .forge-tile:hover .forge-tile-label,
+.forge-strip .forge-tile:focus-visible .forge-tile-label {
+  background: var(--tile-accent, var(--orange));
 }
 @keyframes forge-scroll {
   to {
@@ -274,7 +324,6 @@ body:has(.proto)::before {
   border: 0;
   background: none;
   padding: 0;
-  cursor: pointer;
   pointer-events: none;
 }
 .forge-logo-float {
@@ -303,10 +352,6 @@ body:has(.proto)::before {
 .forge-logo-layer.is-back {
   filter: brightness(0.3) drop-shadow(22px 40px 26px rgba(45, 22, 6, 0.6))
     drop-shadow(40px 80px 60px rgba(45, 22, 6, 0.35));
-}
-.forge-logo:active .forge-logo-float {
-  animation-play-state: paused;
-  transform: translateY(8px) scale(0.97);
 }
 @keyframes forge-float {
   0%,
@@ -381,36 +426,6 @@ body:has(.proto)::before {
   }
   100% {
     transform: translate(var(--dx), -120px) scale(0.4);
-    opacity: 0;
-  }
-}
-
-.forge-burst {
-  position: absolute;
-  left: 50%;
-  top: 40%;
-  pointer-events: none;
-}
-.forge-burst i {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: var(--orange);
-  box-shadow: 0 0 12px var(--orange);
-  animation: burst 800ms cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
-}
-.forge-burst i:nth-child(2n) {
-  background: #ffc46b;
-  width: 5px;
-  height: 5px;
-}
-@keyframes burst {
-  from {
-    transform: rotate(var(--a)) translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: rotate(var(--a)) translateX(var(--d));
     opacity: 0;
   }
 }

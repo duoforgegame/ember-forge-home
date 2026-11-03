@@ -66,6 +66,7 @@ type TeamMember = {
 
 type ProtoTile = {
   tint: string;
+  accent: string;
   key: string;
   src: string;
   game: ProtoGame;
@@ -210,6 +211,7 @@ function buildTiles(
         fit: t.fit === "contain" ? "contain" : "cover",
         game: games[gameIndex],
         tint: GAME_THEMES[gameIndex % GAME_THEMES.length].panel,
+        accent: GAME_THEMES[gameIndex % GAME_THEMES.length].accent,
         position: "50% 50%",
       } as ProtoTile;
     })
@@ -227,6 +229,7 @@ function buildTiles(
   const base: ProtoTile[] = [];
   games.forEach((game, gameIndex) => {
     const tint = GAME_THEMES[gameIndex % GAME_THEMES.length].panel;
+    const accent = GAME_THEMES[gameIndex % GAME_THEMES.length].accent;
     const sources: { src: string; fit: "cover" | "contain" }[] = [];
     if (game.cover) sources.push({ src: game.cover, fit: "cover" });
     const kit = extras?.kits.find((k) => k.project_id === game.id);
@@ -245,6 +248,7 @@ function buildTiles(
         fit: s.fit,
         game,
         tint,
+        accent,
         position: "50% 50%",
       }),
     );
@@ -523,7 +527,6 @@ function ForgeHero({
   const picked = SPRITE_SPOTS.map((spot, i) => ({ ...spot, src: GEMS[i % GEMS.length] }));
   const heroRef = useRef<HTMLElement>(null);
   const [hovered, setHovered] = useState<ProtoGame | null>(null);
-  const [bursts, setBursts] = useState<number[]>([]);
 
   const onMove = (event: MouseEvent<HTMLElement>) => {
     const el = heroRef.current;
@@ -534,12 +537,6 @@ function ForgeHero({
     el.style.setProperty("--tilt-x", `${(-y * 14).toFixed(2)}deg`);
     el.style.setProperty("--tilt-y", `${(x * 18).toFixed(2)}deg`);
     el.style.setProperty("--shift-x", `${(x * 24).toFixed(1)}px`);
-  };
-
-  const strike = () => {
-    const id = Date.now();
-    setBursts((b) => [...b, id]);
-    window.setTimeout(() => setBursts((b) => b.filter((x) => x !== id)), 900);
   };
 
   const info = hovered ?? null;
@@ -586,13 +583,22 @@ function ForgeHero({
           {[0, 1].map((copy) => (
             <div className="forge-track-set" key={copy} aria-hidden={copy === 1}>
               {tiles.map((tile) => {
+                // Each tile is a little pixel card: framed art plus a label strip with the game name.
                 const content = (
-                  <img
-                    src={tile.src}
-                    alt={copy === 0 ? tile.game.title : ""}
-                    decoding="async"
-                    style={{ objectFit: tile.fit, objectPosition: tile.position }}
-                  />
+                  <>
+                    <span className="forge-tile-art">
+                      <img
+                        src={tile.src}
+                        alt={copy === 0 ? tile.game.title : ""}
+                        decoding="async"
+                        style={{ objectFit: tile.fit, objectPosition: tile.position }}
+                      />
+                    </span>
+                    <span className="forge-tile-label">
+                      <i aria-hidden="true" />
+                      {tile.game.title}
+                    </span>
+                  </>
                 );
                 const common = {
                   className: `forge-tile ${tile.fit === "contain" ? "is-logo" : ""}`,
@@ -601,7 +607,7 @@ function ForgeHero({
                   onFocus: () => setHovered(tile.game),
                   onBlur: () => setHovered(null),
                   tabIndex: copy === 1 ? -1 : undefined,
-                  style: { "--tile-bg": tile.tint } as CSSProperties,
+                  style: { "--tile-bg": tile.tint, "--tile-accent": tile.accent } as CSSProperties,
                   "aria-label": `${tile.game.title}: more info`,
                 };
                 return tile.game.external ? (
@@ -643,7 +649,7 @@ function ForgeHero({
       </div>
       <div className="forge-ground-shadow" aria-hidden="true" />
 
-      <button type="button" className="forge-logo" onClick={strike} aria-label="Strike the anvil">
+      <div className="forge-logo">
         <span className="forge-logo-float">
           {/* Stacked, darkened copies behind the front image give the logo real thickness when it tilts. */}
           {Array.from({ length: LOGO_DEPTH_LAYERS }, (_, i) => (
@@ -664,22 +670,7 @@ function ForgeHero({
             height={1920}
           />
         </span>
-        {bursts.map((id) => (
-          <span key={id} className="forge-burst" aria-hidden="true">
-            {Array.from({ length: 16 }, (_, i) => (
-              <i
-                key={i}
-                style={
-                  {
-                    "--a": `${(i / 16) * 360}deg`,
-                    "--d": `${90 + (i % 4) * 30}px`,
-                  } as CSSProperties
-                }
-              />
-            ))}
-          </span>
-        ))}
-      </button>
+      </div>
 
       <div className="forge-caption forge-caption-left" aria-live="polite">
         {info ? (
