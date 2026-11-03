@@ -854,7 +854,9 @@ body:has(.proto)::before {
   height: auto;
   image-rendering: pixelated;
   transform: rotate(var(--r)) scale(var(--s));
-  filter: drop-shadow(4px 6px 0 rgba(21, 19, 17, 0.12));
+  /* Pale and slightly soft so the gems read as background depth, not foreground. */
+  opacity: 0.42;
+  filter: saturate(0.6) blur(0.6px);
   animation: sprite-drift calc(6s + var(--i) * 0.7s) ease-in-out infinite;
   animation-delay: calc(var(--i) * -1.3s);
 }
